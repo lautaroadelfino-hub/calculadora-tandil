@@ -1,39 +1,142 @@
 "use client";
 import React from "react";
 
-export default function Resultados({
-  r,
-  money
-}) {
-  if (!r) return <p className="text-slate-700">Complete los parámetros para ver el resultado.</p>;
+export default function Resultados({ r, money }) {
+  if (!r) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-5 text-slate-600">
+        Completá los parámetros para ver el resultado.
+      </section>
+    );
+  }
+
+  // NO insertamos espacios invisibles: queremos 1 sola línea
+  const moneyNoWrap = (v) => money(v) || "0,00";
+
+  const Fila = ({ label, value, strong, negative }) => (
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5">
+      <span
+        className={`text-sm ${strong ? "font-semibold text-slate-800" : "text-slate-600"} truncate`}
+        title={label}
+      >
+        {label}
+      </span>
+      <span
+        className={[
+          "text-sm tabular-nums leading-tight",
+          "text-right whitespace-nowrap",
+          strong ? "font-semibold" : "",
+          negative ? "text-rose-600" : "text-slate-800",
+        ].join(" ")}
+        title={moneyNoWrap(value)}
+      >
+        {negative ? "-" : ""}${moneyNoWrap(Math.abs(value || 0))}
+      </span>
+    </div>
+  );
+
+  const Block = ({ title, children }) => (
+    <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4">
+      <h3 className="text-sm font-semibold text-slate-700 mb-2">{title}</h3>
+      {children}
+    </div>
+  );
+
+  const Stat = ({ label, value, tone = "neutral" }) => {
+    const ring =
+      tone === "good"
+        ? "ring-1 ring-emerald-200"
+        : tone === "bad"
+        ? "ring-1 ring-rose-200"
+        : tone === "warn"
+        ? "ring-1 ring-amber-200"
+        : "ring-1 ring-slate-200";
+    return (
+      <div className={`rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0`}>
+        <div className="text-[11px] uppercase tracking-wide text-slate-500">
+          {label}
+        </div>
+        <div
+  className="font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight text-right whitespace-nowrap"
+  style={{ fontSize: "clamp(1rem, 2.2vw, 1.4rem)" }}
+  title={moneyNoWrap(value)}
+>
+  ${moneyNoWrap(value)}
+</div>
+
+      </div>
+    );
+  };
+
+  const remRows = [
+    ["Básico", r.basico],
+    ["Antigüedad", r.antiguedad],
+    ["Presentismo", r.presentismo],
+    ["Adicional horario", r.adicionalHorario],
+    ["Adicional por título", r.adicionalTitulo],
+    ["Bonificación por función", r.adicionalFuncion],
+    ["Horas 50%", r.horasExtras50],
+    ["Horas 100%", r.horasExtras100],
+  ].filter(([, v]) => (v ?? 0) !== 0);
+
+  const noRemRows = [
+    ["Suma no remunerativa fija (acuerdo)", r.noRemuFijo],
+    ["Otras no remunerativas", r.noRemunerativoOtros],
+  ].filter(([, v]) => (v ?? 0) !== 0);
+
+  const dedRows =
+    Array.isArray(r.detalleDeducciones) && r.detalleDeducciones.length > 0
+      ? r.detalleDeducciones
+      : [{ label: "Deducciones", monto: r.totalDeducciones || 0 }];
 
   return (
-    <section className="bg-white p-5 rounded-xl shadow">
-      <h2 className="font-semibold mb-4 text-lg">Resultado</h2>
+    <section className="space-y-4">
+      {/* Resumen superior */}
+<div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-4">
+  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+    <Stat label="Remunerativo" value={r.totalRemunerativo} />
+    <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
+    <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
+    <Stat label="Líquido" value={r.liquido} tone="good" />
+  </div>
+</div>
 
-      <div className="space-y-1">
-        <p><b>Básico:</b> ${money(r.basico)}</p>
-        <p><b>Antigüedad:</b> ${money(r.antiguedadPesos)}</p>
-        <p><b>Presentismo:</b> ${money(r.presentismoPesos)}</p>
-        <p><b>Título:</b> ${money(r.adicionalTitulo)}</p>
-        <p><b>Función:</b> ${money(r.adicionalFuncion)}</p>
-        <p><b>Horas 50%:</b> ${money(r.horasExtras50)}</p>
-        <p><b>Horas 100%:</b> ${money(r.horasExtras100)}</p>
+      {/* Detalle por bloques */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Block title="Remunerativos">
+          {remRows.map(([label, val]) => (
+            <Fila key={label} label={label} value={val} />
+          ))}
+          <div className="pt-2 border-t border-slate-100 mt-2">
+            <Fila label="Total remunerativo" value={r.totalRemunerativo} strong />
+          </div>
+        </Block>
 
-        <p className="font-semibold text-slate-800 mt-2">
-          Total remunerativo: ${money(r.totalRemunerativo)}
-        </p>
-        <p className="font-semibold text-slate-800">
-          Total no remunerativo: ${money(r.totalNoRemunerativo)}
-        </p>
-        <p className="font-semibold text-red-700">
-          Total deducciones: ${money(r.totalDeducciones)}
-        </p>
+        <Block title="No remunerativos">
+          {noRemRows.length > 0 ? (
+            <>
+              {noRemRows.map(([label, val]) => (
+                <Fila key={label} label={label} value={val} />
+              ))}
+              <div className="pt-2 border-t border-slate-100 mt-2">
+                <Fila label="Total no remunerativo" value={r.totalNoRemunerativo} strong />
+              </div>
+            </>
+          ) : (
+            <div className="text-sm text-slate-500">
+              No hay conceptos no remunerativos.
+            </div>
+          )}
+        </Block>
 
-        <hr className="my-3" />
-        <p className="text-xl font-bold text-green-700">
-          Líquido a cobrar: ${money(r.liquido)}
-        </p>
+        <Block title="Deducciones">
+          {dedRows.map((d, i) => (
+            <Fila key={i} label={d.label} value={-Math.abs(d.monto)} negative />
+          ))}
+          <div className="pt-2 border-t border-slate-100 mt-2">
+            <Fila label="Total deducciones" value={r.totalDeducciones} strong negative />
+          </div>
+        </Block>
       </div>
     </section>
   );
