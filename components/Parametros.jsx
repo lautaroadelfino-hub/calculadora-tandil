@@ -1,5 +1,50 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
+
+// Input numérico “suave”: guarda texto local mientras tipeás
+function NumericInput({ value, onCommit, placeholder = "0", min, step, ...rest }) {
+  const [txt, setTxt] = useState(String(value ?? ""));
+
+  // Si el padre cambia el valor (por reset o cambio de mes/categoría), sincronizamos
+  useEffect(() => {
+    setTxt(String(value ?? ""));
+  }, [value]);
+
+  const commit = useCallback(() => {
+    // Acepta coma o punto
+    const n = parseFloat(String(txt).replace(",", "."));
+    const safe = Number.isFinite(n) ? n : 0;
+    if (typeof min === "number" && safe < min) {
+      onCommit(min);
+      setTxt(String(min));
+    } else {
+      onCommit(safe);
+      setTxt(String(safe));
+    }
+  }, [txt, onCommit, min]);
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={txt}
+      onChange={(e) => setTxt(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.currentTarget.blur(); // dispara onBlur → commit
+        }
+      }}
+      placeholder={placeholder}
+      {...rest}
+      className={
+        "w-full rounded-lg border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " +
+        "bg-white/80 backdrop-blur placeholder-slate-400 border px-3 py-2 outline-none transition " +
+        (rest.className || "")
+      }
+    />
+  );
+}
 
 export default function Parametros({
   sector, setSector,
@@ -38,16 +83,6 @@ export default function Parametros({
     </label>
   );
 
-  const Input = (props) => (
-    <input
-      {...props}
-      className={
-        "w-full rounded-lg border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " +
-        "bg-white/80 backdrop-blur placeholder-slate-400 border px-3 py-2 outline-none transition"
-      }
-    />
-  );
-
   const Select = (props) => (
     <select
       {...props}
@@ -76,9 +111,7 @@ export default function Parametros({
 
       {/* Sector */}
       <div className="mb-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-slate-600">Sector</span>
-        </div>
+        <span className="text-sm font-medium text-slate-600 mb-2 block">Sector</span>
         <div className="flex gap-2">
           <Btn active={sector === "publico"} onClick={() => setSector("publico")}>Público</Btn>
           <Btn active={sector === "privado"} onClick={() => setSector("privado")}>Privado</Btn>
@@ -119,12 +152,11 @@ export default function Parametros({
       {/* Antigüedad y Régimen */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         <Field label="Años de antigüedad">
-          <Input
-            type="number"
-            min={0}
+          <NumericInput
             value={aniosAntiguedad}
-            onChange={(e) => setAniosAntiguedad(Number(e.target.value || 0))}
+            onCommit={setAniosAntiguedad}
             placeholder="0"
+            min={0}
           />
         </Field>
 
@@ -138,7 +170,11 @@ export default function Parametros({
           </Field>
         ) : (
           <Field label="Régimen horario semanal">
-            <Input disabled value="48 hs (fijo comercio)" />
+            <input
+              disabled
+              value="48 hs (fijo comercio)"
+              className="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2"
+            />
           </Field>
         )}
       </div>
@@ -154,12 +190,11 @@ export default function Parametros({
         </Field>
 
         <Field label="Bonificación por función (%)">
-          <Input
-            type="number"
-            min={0}
+          <NumericInput
             value={funcion}
-            onChange={(e) => setFuncion(Number(e.target.value || 0))}
+            onCommit={setFuncion}
             placeholder="0"
+            min={0}
           />
         </Field>
       </div>
@@ -167,21 +202,19 @@ export default function Parametros({
       {/* Horas extra */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         <Field label="Horas extras al 50%">
-          <Input
-            type="number"
-            min={0}
+          <NumericInput
             value={horas50}
-            onChange={(e) => setHoras50(Number(e.target.value || 0))}
+            onCommit={setHoras50}
             placeholder="0"
+            min={0}
           />
         </Field>
         <Field label="Horas extras al 100%">
-          <Input
-            type="number"
-            min={0}
+          <NumericInput
             value={horas100}
-            onChange={(e) => setHoras100(Number(e.target.value || 0))}
+            onCommit={setHoras100}
             placeholder="0"
+            min={0}
           />
         </Field>
       </div>
@@ -189,22 +222,20 @@ export default function Parametros({
       {/* Otros campos */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Field label="Descuentos adicionales ($)">
-          <Input
-            type="number"
-            min={0}
+          <NumericInput
             value={descuentosExtras}
-            onChange={(e) => setDescuentosExtras(Number(e.target.value || 0))}
+            onCommit={setDescuentosExtras}
             placeholder="0"
+            min={0}
           />
         </Field>
 
         <Field label="No remunerativo / productividad ($)">
-          <Input
-            type="number"
-            min={0}
+          <NumericInput
             value={noRemunerativo}
-            onChange={(e) => setNoRemunerativo(Number(e.target.value || 0))}
+            onCommit={setNoRemunerativo}
             placeholder="0"
+            min={0}
           />
         </Field>
       </div>
