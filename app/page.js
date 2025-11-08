@@ -177,10 +177,10 @@ export default function Home() {
       <header className="bg-gradient-to-r from-sky-600 to-indigo-700 text-white">
         <div className="max-w-6xl mx-auto px-4 py-8">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            Calculadora de Sueldos – Tandil
+            Calculadora de Sueldos
           </h1>
           <p className="opacity-90 mt-1 text-sm md:text-base">
-            Cálculo para sector público y Empleados de Comercio.
+            Cálculo para sector público y privado.
           </p>
         </div>
       </header>
@@ -236,7 +236,7 @@ export default function Home() {
       {/* FOOTER */}
       <footer className="border-t border-slate-200 mt-8">
         <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-slate-500">
-          © {new Date().getFullYear()} Calculadora Tandil.
+          © {new Date().getFullYear()} Calculadora de Sueldos.
         </div>
       </footer>
     </div>
