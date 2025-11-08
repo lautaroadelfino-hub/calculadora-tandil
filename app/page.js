@@ -212,14 +212,14 @@ export default function Home() {
         </div>
 
         <p className="text-xs text-slate-500 mt-6">
-          * Los valores se calculan con datos de Google Sheets y reglas provistas por vos. Verificá siempre contra la liquidación oficial.
+          * Los valores se calculan con datos publicados de sitios oficiales y reglas provistas por la normativa vigente. Verificá siempre contra la liquidación oficial.
         </p>
       </main>
 
       {/* FOOTER */}
       <footer className="border-t border-slate-200 mt-8">
         <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-slate-500">
-          © {new Date().getFullYear()} Calculadora Tandil — Next.js + Tailwind.
+          © {new Date().getFullYear()} Calculadora Tandil —.
         </div>
       </footer>
     </div>
