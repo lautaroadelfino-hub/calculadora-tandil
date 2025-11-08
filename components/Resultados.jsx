@@ -10,7 +10,6 @@ export default function Resultados({ r, money }) {
     );
   }
 
-  // NO insertamos espacios invisibles: queremos 1 sola línea
   const moneyNoWrap = (v) => money(v) || "0,00";
 
   const Fila = ({ label, value, strong, negative }) => (
@@ -51,19 +50,19 @@ export default function Resultados({ r, money }) {
         : tone === "warn"
         ? "ring-1 ring-amber-200"
         : "ring-1 ring-slate-200";
+
     return (
       <div className={`rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0`}>
         <div className="text-[11px] uppercase tracking-wide text-slate-500">
           {label}
         </div>
         <div
-  className="font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight text-right whitespace-nowrap"
-  style={{ fontSize: "clamp(1rem, 2.2vw, 1.4rem)" }}
-  title={moneyNoWrap(value)}
->
-  ${moneyNoWrap(value)}
-</div>
-
+          className="font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight text-right whitespace-nowrap overflow-hidden text-ellipsis"
+          style={{ fontSize: "clamp(0.95rem, 1.8vw, 1.3rem)" }}
+          title={moneyNoWrap(value)}
+        >
+          ${moneyNoWrap(value)}
+        </div>
       </div>
     );
   };
@@ -92,14 +91,14 @@ export default function Resultados({ r, money }) {
   return (
     <section className="space-y-4">
       {/* Resumen superior */}
-<div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-4">
-  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-    <Stat label="Remunerativo" value={r.totalRemunerativo} />
-    <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
-    <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
-    <Stat label="Líquido" value={r.liquido} tone="good" />
-  </div>
-</div>
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+          <Stat label="Remunerativo" value={r.totalRemunerativo} />
+          <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
+          <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
+          <Stat label="Líquido" value={r.liquido} tone="good" />
+        </div>
+      </div>
 
       {/* Detalle por bloques */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
