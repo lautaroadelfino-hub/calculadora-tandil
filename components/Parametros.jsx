@@ -1,18 +1,57 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
+
+// Input numérico “suave”: no pierde foco mientras tipeás.
+// Confirma al salir del campo o con Enter.
+function NumericInput({ value, onCommit, placeholder = "0", min, step, ...rest }) {
+  const [txt, setTxt] = useState(String(value ?? ""));
+
+  useEffect(() => {
+    setTxt(String(value ?? ""));
+  }, [value]);
+
+  const commit = useCallback(() => {
+    const n = parseFloat(String(txt).replace(",", "."));
+    const safe = Number.isFinite(n) ? n : 0;
+    if (typeof min === "number" && safe < min) {
+      onCommit(min);
+      setTxt(String(min));
+    } else {
+      onCommit(safe);
+      setTxt(String(safe));
+    }
+  }, [txt, onCommit, min]);
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={txt}
+      onChange={(e) => setTxt(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
+      placeholder={placeholder}
+      {...rest}
+      className={
+        "w-full rounded-lg border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " +
+        "bg-white/80 backdrop-blur placeholder-slate-400 border px-3 py-2 outline-none transition " +
+        (rest.className || "")
+      }
+    />
+  );
+}
 
 export default function Parametros({
-  // estructura: Sector → Convenio → Sub-régimen
+  // nuevo orden y props extra
   sector, setSector,
   convenio, setConvenio,
   subRegimen, setSubRegimen,
 
-  // dependientes
-  categoria, setCategoria,
   mes, setMes,
-  mesesDisponibles, categoriasDisponibles,
+  mesesDisponibles,
+  categoria, setCategoria,
+  categoriasDisponibles,
 
-  // demás parámetros
   aniosAntiguedad, setAniosAntiguedad,
   regimen, setRegimen,
   titulo, setTitulo,
@@ -44,16 +83,6 @@ export default function Parametros({
     </label>
   );
 
-  const Input = (props) => (
-    <input
-      {...props}
-      className={
-        "w-full rounded-lg border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 " +
-        "bg-white/80 backdrop-blur placeholder-slate-400 border px-3 py-2 outline-none transition"
-      }
-    />
-  );
-
   const Select = (props) => (
     <select
       {...props}
@@ -82,38 +111,30 @@ export default function Parametros({
 
       {/* 1) Sector */}
       <div className="mb-4">
-        <span className="block text-sm font-medium text-slate-600 mb-2">Sector</span>
+        <span className="text-sm font-medium text-slate-600 mb-2 block">Sector</span>
         <div className="flex gap-2">
           <Btn active={sector === "publico"} onClick={() => setSector("publico")}>Público</Btn>
           <Btn active={sector === "privado"} onClick={() => setSector("privado")}>Privado</Btn>
         </div>
       </div>
 
-      {/* 2) Convenio (depende de Sector) */}
+      {/* 2) Convenio (depende del sector) */}
       <div className="mb-4">
-        <span className="block text-sm font-medium text-slate-600 mb-2">Convenio</span>
-        {sector === "publico" ? (
-          <div className="flex gap-2">
-            <Btn
-              active={convenio === "municipalidad"}
-              onClick={() => setConvenio("municipalidad")}
-            >
-              Municipalidad de Tandil
-            </Btn>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            <Btn
-              active={convenio === "comercio"}
-              onClick={() => setConvenio("comercio")}
-            >
-              Empleados de Comercio (130/75)
-            </Btn>
-          </div>
-        )}
+        <Field label="Convenio">
+          <Select
+            value={convenio}
+            onChange={(e) => setConvenio(e.target.value)}
+          >
+            {sector === "publico" ? (
+              <option value="municipalidad">Municipalidad de Tandil</option>
+            ) : (
+              <option value="comercio">Empleados de Comercio (CCT 130/75)</option>
+            )}
+          </Select>
+        </Field>
       </div>
 
-      {/* 3) Sub-régimen (solo si Sector=publico y Convenio=municipalidad) */}
+      {/* 3) Sub-régimen (solo si Público + Municipalidad) */}
       {sector === "publico" && convenio === "municipalidad" && (
         <div className="mb-4">
           <span className="block text-sm font-medium text-slate-600 mb-2">Sub-régimen</span>
@@ -147,13 +168,7 @@ export default function Parametros({
       {/* Antigüedad y Régimen */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         <Field label="Años de antigüedad">
-          <Input
-            type="number"
-            min={0}
-            value={aniosAntiguedad}
-            onChange={(e) => setAniosAntiguedad(Number(e.target.value || 0))}
-            placeholder="0"
-          />
+          <NumericInput value={aniosAntiguedad} onCommit={setAniosAntiguedad} placeholder="0" min={0} />
         </Field>
 
         {sector === "publico" ? (
@@ -166,7 +181,11 @@ export default function Parametros({
           </Field>
         ) : (
           <Field label="Régimen horario semanal">
-            <Input disabled value="48 hs (fijo comercio)" />
+            <input
+              disabled
+              value="48 hs (fijo comercio)"
+              className="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2"
+            />
           </Field>
         )}
       </div>
@@ -182,58 +201,28 @@ export default function Parametros({
         </Field>
 
         <Field label="Bonificación por función (%)">
-          <Input
-            type="number"
-            min={0}
-            value={funcion}
-            onChange={(e) => setFuncion(Number(e.target.value || 0))}
-            placeholder="0"
-          />
+          <NumericInput value={funcion} onCommit={setFuncion} placeholder="0" min={0} />
         </Field>
       </div>
 
       {/* Horas extra */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
         <Field label="Horas extras al 50%">
-          <Input
-            type="number"
-            min={0}
-            value={horas50}
-            onChange={(e) => setHoras50(Number(e.target.value || 0))}
-            placeholder="0"
-          />
+          <NumericInput value={horas50} onCommit={setHoras50} placeholder="0" min={0} />
         </Field>
         <Field label="Horas extras al 100%">
-          <Input
-            type="number"
-            min={0}
-            value={horas100}
-            onChange={(e) => setHoras100(Number(e.target.value || 0))}
-            placeholder="0"
-          />
+          <NumericInput value={horas100} onCommit={setHoras100} placeholder="0" min={0} />
         </Field>
       </div>
 
       {/* Otros campos */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <Field label="Descuentos adicionales ($)">
-          <Input
-            type="number"
-            min={0}
-            value={descuentosExtras}
-            onChange={(e) => setDescuentosExtras(Number(e.target.value || 0))}
-            placeholder="0"
-          />
+          <NumericInput value={descuentosExtras} onCommit={setDescuentosExtras} placeholder="0" min={0} />
         </Field>
 
         <Field label="No remunerativo / productividad ($)">
-          <Input
-            type="number"
-            min={0}
-            value={noRemunerativo}
-            onChange={(e) => setNoRemunerativo(Number(e.target.value || 0))}
-            placeholder="0"
-          />
+          <NumericInput value={noRemunerativo} onCommit={setNoRemunerativo} placeholder="0" min={0} />
         </Field>
       </div>
 
