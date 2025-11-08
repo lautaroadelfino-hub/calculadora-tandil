@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 
 import { loadEscalasFromSheets } from "../lib/loadEscalasFromSheets";
 import { calcularPublico } from "../lib/calculoPublico";
@@ -31,6 +31,7 @@ export default function Home() {
 
   // Modal de reportes
   const [showReport, setShowReport] = useState(false);
+  const reportBtnRef = useRef(null);
 
   // Cargar escalas (Sheets)
   useEffect(() => {
@@ -231,13 +232,14 @@ export default function Home() {
 
             {/* Botón para abrir el modal */}
             <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setShowReport(true)}
-                className="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
-              >
-                Reportar error / sugerencia
-              </button>
+      <button
+        ref={reportBtnRef}
+        type="button"
+        onClick={() => setShowReport(true)}
+        className="mt-4 w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
+      >
+        Reportar error / sugerencia
+      </button>
             </div>
           </section>
         </div>
@@ -247,26 +249,27 @@ export default function Home() {
         </p>
 
         {/* Modal de reportes */}
-        <ReportModal
-          open={showReport}
-          onClose={() => setShowReport(false)}
-          context={{
-            sector,
-            convenio,
-            subRegimen,
-            mes,
-            categoria,
-            regimen,
-            aniosAntiguedad,
-            titulo,
-            funcion,
-            horas50,
-            horas100,
-            descuentosExtras,
-            noRemunerativo,
-            r,
-          }}
-        />
+    <ReportModal
+      open={showReport}
+      onClose={() => setShowReport(false)}
+      triggerRef={reportBtnRef}
+      context={{
+        sector,
+        convenio,
+        subRegimen,
+        mes,
+        categoria,
+        regimen,
+        aniosAntiguedad,
+        titulo,
+        funcion,
+        horas50,
+        horas100,
+        descuentosExtras,
+        noRemunerativo,
+        r,
+      }}
+    />
       </main>
 
       {/* FOOTER */}
