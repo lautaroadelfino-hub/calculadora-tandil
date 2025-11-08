@@ -67,7 +67,7 @@ export default function ReportModal({ open, onClose, context }) {
       setStatus("ok");
       setDescripcion("");
       setEmail("");
-    } catch (err) {
+    } catch {
       setStatus("err");
     } finally {
       setSending(false);
