@@ -7,6 +7,7 @@ import { calcularComercio } from "../lib/calculoComercio";
 
 import Parametros from "../components/Parametros";
 import Resultados from "../components/Resultados";
+import ReportModal from "../components/ReportModal";
 
 export default function Home() {
   const [escalas, setEscalas] = useState(null);
@@ -28,6 +29,9 @@ export default function Home() {
   const [descuentosExtras, setDescuentosExtras] = useState(0);
   const [noRemunerativo, setNoRemunerativo] = useState(0);
 
+  // Estado para abrir/cerrar el modal de reportes
+  const [showReport, setShowReport] = useState(false);
+  
   // Cargar escalas (Sheets)
   useEffect(() => {
     loadEscalasFromSheets().then((data) => {
@@ -227,11 +231,42 @@ export default function Home() {
             <Resultados r={r} money={money} />
           </section>
         </div>
+  
+         {/* Botón para abrir el modal */}
+  <button
+    type="button"
+    onClick={() => setShowReport(true)}
+    className="mt-4 w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
+  >
+    Reportar error / sugerencia
+  </button>
+</section>
 
         <p className="text-xs text-slate-500 mt-6">
           * Los valores se calculan con datos publicados y reglas vigentes. Verificá siempre con la liquidación oficial.
         </p>
       </main>
+  <ReportModal
+  open={showReport}
+  onClose={() => setShowReport(false)}
+  context={{
+    sector,
+    convenio,
+    subRegimen,
+    mes,
+    categoria,
+    regimen,
+    aniosAntiguedad,
+    titulo,
+    funcion,
+    horas50,
+    horas100,
+    descuentosExtras,
+    noRemunerativo,
+    r,
+  }}
+/>
+
 
       {/* FOOTER */}
       <footer className="border-t border-slate-200 mt-8">
