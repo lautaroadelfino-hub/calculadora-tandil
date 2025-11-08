@@ -12,7 +12,7 @@ import ReportModal from "../components/ReportModal";
 export default function Home() {
   const [escalas, setEscalas] = useState(null);
 
-  // Estado UI (con nuevo "convenio")
+  // Estado UI
   const [sector, setSector] = useState("publico");                // "publico" | "privado"
   const [convenio, setConvenio] = useState("municipalidad");      // municipalidad | comercio
   const [subRegimen, setSubRegimen] = useState("administracion"); // administracion | sisp | obras
@@ -29,9 +29,9 @@ export default function Home() {
   const [descuentosExtras, setDescuentosExtras] = useState(0);
   const [noRemunerativo, setNoRemunerativo] = useState(0);
 
-  // Estado para abrir/cerrar el modal de reportes
+  // Modal de reportes
   const [showReport, setShowReport] = useState(false);
-  
+
   // Cargar escalas (Sheets)
   useEffect(() => {
     loadEscalasFromSheets().then((data) => {
@@ -40,7 +40,7 @@ export default function Home() {
     });
   }, []);
 
-  // Defaults coherentes cuando cambia sector
+  // Defaults cuando cambia sector
   useEffect(() => {
     if (sector === "publico") {
       setConvenio("municipalidad");
@@ -48,18 +48,17 @@ export default function Home() {
     } else {
       setConvenio("comercio");
       setRegimen("48");
-      setSubRegimen("administracion"); // no se usa en privado, lo dejamos default
+      setSubRegimen("administracion"); // no se usa en privado
     }
-    // reiniciar mes/categoría al cambiar el origen de datos
     setMes("");
     setCategoria("");
   }, [sector]);
 
-  // Selección de bloque de escalas en función de sector/convenio/subrégimen
+  // Selección de bloque de escalas
   const escalasSector = useMemo(() => {
     if (!escalas) return null;
     if (sector === "publico" && convenio === "municipalidad") {
-      return escalas.publico[subRegimen]; // adm | sisp | obras
+      return escalas.publico[subRegimen];
     }
     if (sector === "privado" && convenio === "comercio") {
       return escalas.privado.comercio;
@@ -73,7 +72,7 @@ export default function Home() {
     return Object.keys(escalasSector ?? {}).sort();
   }, [escalasSector]);
 
-  // Auto-selección de primer mes válido
+  // Auto-set primer mes
   useEffect(() => {
     if (mesesDisponibles.length > 0 && !mes) setMes(mesesDisponibles[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,7 +84,7 @@ export default function Home() {
     return Object.keys(escalasSector[mes].categoria);
   }, [mes, escalasSector]);
 
-  // Auto-selección de primer categoría válida
+  // Auto-set primer categoría
   useEffect(() => {
     if (categoriasDisponibles.length > 0 && !categoria) {
       setCategoria(categoriasDisponibles[0]);
@@ -93,7 +92,7 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoriasDisponibles]);
 
-  // Revalidar mes/categoría si la fuente cambia
+  // Revalidar mes/categoría si cambia la fuente
   useEffect(() => {
     if (!escalasSector) return;
     const meses = Object.keys(escalasSector);
@@ -229,44 +228,46 @@ export default function Home() {
           {/* Panel de resultados */}
           <section className="bg-white/90 backdrop-blur rounded-2xl shadow p-5 border border-slate-100">
             <Resultados r={r} money={money} />
+
+            {/* Botón para abrir el modal */}
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => setShowReport(true)}
+                className="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
+              >
+                Reportar error / sugerencia
+              </button>
+            </div>
           </section>
         </div>
-  
-         {/* Botón para abrir el modal */}
-  <button
-    type="button"
-    onClick={() => setShowReport(true)}
-    className="mt-4 w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
-  >
-    Reportar error / sugerencia
-  </button>
-</section>
 
         <p className="text-xs text-slate-500 mt-6">
           * Los valores se calculan con datos publicados y reglas vigentes. Verificá siempre con la liquidación oficial.
         </p>
-      </main>
-  <ReportModal
-  open={showReport}
-  onClose={() => setShowReport(false)}
-  context={{
-    sector,
-    convenio,
-    subRegimen,
-    mes,
-    categoria,
-    regimen,
-    aniosAntiguedad,
-    titulo,
-    funcion,
-    horas50,
-    horas100,
-    descuentosExtras,
-    noRemunerativo,
-    r,
-  }}
-/>
 
+        {/* Modal de reportes */}
+        <ReportModal
+          open={showReport}
+          onClose={() => setShowReport(false)}
+          context={{
+            sector,
+            convenio,
+            subRegimen,
+            mes,
+            categoria,
+            regimen,
+            aniosAntiguedad,
+            titulo,
+            funcion,
+            horas50,
+            horas100,
+            descuentosExtras,
+            noRemunerativo,
+            r,
+          }}
+        />
+      </main>
 
       {/* FOOTER */}
       <footer className="border-t border-slate-200 mt-8">
