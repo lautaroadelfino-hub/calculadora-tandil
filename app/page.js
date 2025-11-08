@@ -150,7 +150,7 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center">
         <div className="p-6 text-center text-lg text-slate-700 bg-white shadow rounded-xl">
-          Cargando escalas salariales desde Google Sheets…
+          Cargando escalas salariales…
         </div>
       </div>
     );
