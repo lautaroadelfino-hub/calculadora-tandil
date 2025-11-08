@@ -12,6 +12,16 @@ export default function Resultados({ r, money }) {
 
   const moneyNoWrap = (v) => money(v) || "0,00";
 
+  // Disminuye la fuente en los montos larguísimos, sin cortar con “...”
+  const sizeFor = (v) => {
+    const len = moneyNoWrap(v).length; // incluye puntos y comas
+    if (len > 18) return "text-[1rem]";        // súper largo
+    if (len > 16) return "text-[1.05rem]";
+    if (len > 15) return "text-[1.12rem]";
+    if (len > 14) return "text-[1.2rem]";
+    return "text-[1.35rem]";                   // normal
+  };
+
   const Fila = ({ label, value, strong, negative }) => (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5">
       <span
@@ -52,13 +62,14 @@ export default function Resultados({ r, money }) {
         : "ring-1 ring-slate-200";
 
     return (
-      <div className={`rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0`}>
+      <div className={`rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-[260px] md:min-w-[280px]`}>
         <div className="text-[11px] uppercase tracking-wide text-slate-500">
           {label}
         </div>
         <div
-          className="font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight text-right whitespace-nowrap overflow-hidden text-ellipsis"
-          style={{ fontSize: "clamp(0.95rem, 1.8vw, 1.3rem)" }}
+          className={`font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight text-right whitespace-nowrap ${sizeFor(
+            value
+          )}`}
           title={moneyNoWrap(value)}
         >
           ${moneyNoWrap(value)}
@@ -90,9 +101,9 @@ export default function Resultados({ r, money }) {
 
   return (
     <section className="space-y-4">
-      {/* Resumen superior */}
+      {/* Resumen superior: 2 columnas por defecto para dar más ancho a cada tarjeta */}
       <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-4 gap-4">
           <Stat label="Remunerativo" value={r.totalRemunerativo} />
           <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
           <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
