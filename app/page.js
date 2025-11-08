@@ -165,7 +165,7 @@ export default function Home() {
             Calculadora de Sueldos – Tandil
           </h1>
           <p className="opacity-90 mt-1 text-sm md:text-base">
-            Cálculo para sector público (Adm. Central, SISP, Obras) y Empleados de Comercio.
+            Cálculo para sector público y Empleados de Comercio.
           </p>
         </div>
       </header>
@@ -212,7 +212,7 @@ export default function Home() {
         </div>
 
         <p className="text-xs text-slate-500 mt-6">
-          * Los valores se calculan con datos publicados de sitios oficiales y reglas provistas por la normativa vigente. Verificá siempre contra la liquidación oficial.
+          * Los valores se calculan con datos oficiales publicados y con las fórmulas previstas en la normativa vigente. Verificá siempre el resultado con la liquidación oficial..
         </p>
       </main>
 
