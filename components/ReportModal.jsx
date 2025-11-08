@@ -149,7 +149,7 @@ export default function ReportModal({ open, onClose, context }) {
         </form>
 
         <p className="mt-3 text-xs text-slate-500">
-          Se envía a Formspree; tu email es opcional y no se muestra públicamente.
+          Tu email es opcional y no se muestra públicamente.
         </p>
       </div>
     </div>
