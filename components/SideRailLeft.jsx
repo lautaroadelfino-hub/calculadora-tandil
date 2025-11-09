@@ -1,123 +1,108 @@
-// components/SideRailRight.jsx
 "use client";
 import React from "react";
 
-export default function SideRailRight({ r = {}, money: moneyProp, onReport = () => {} }) {
-  // Fallback seguro: si no viene money (o no es función), usamos Intl
-  const money = React.useMemo(() => {
-    if (typeof moneyProp === "function") return moneyProp;
-    const nf = new Intl.NumberFormat("es-AR", { maximumFractionDigits: 0 });
-    return (n) => nf.format(Math.round(Number(n) || 0));
-  }, [moneyProp]);
+function formatDate(ymd) {
+  // ymd = "YYYY-MM-DD"
+  if (!ymd) return "";
+  const [y, m, d] = ymd.split("-").map(Number);
+  if (!y || !m || !d) return ymd;
+  return `${d.toString().padStart(2, "0")}/${m.toString().padStart(2, "0")}`;
+}
 
-  const Stat = ({ label, value, tone = "neutral" }) => {
-    const ring =
-      tone === "good" ? "ring-1 ring-emerald-200" :
-      tone === "bad"  ? "ring-1 ring-rose-200"    :
-                        "ring-1 ring-slate-200";
+const FALLBACK = [];
 
-    return (
-      <div className={`rounded-xl bg-white/80 backdrop-blur p-3 ${ring}`}>
-        <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
-        <div className="mt-0.5 text-right font-semibold tabular-nums text-[clamp(1rem,2.6vw,1.3rem)] text-slate-800 whitespace-nowrap">
-          {"$"}{money(value || 0)}
-        </div>
-      </div>
-    );
-  };
+export default function SideRailLeft() {
+  const [news, setNews] = React.useState(FALLBACK);
+  const [loading, setLoading] = React.useState(true);
 
-  const [refValue, setRefValue] = React.useState(0);
-  const liquido = Number(r?.liquido || 0);
-  const delta = liquido - (Number(refValue) || 0);
-  const pct = !refValue ? 0 : (delta / refValue) * 100;
+  React.useEffect(() => {
+    let ignore = false;
+    (async () => {
+      try {
+        const base = process.env.NEXT_PUBLIC_API_BASE || "";
+        const r = await fetch(`${base}/api/news?limit=24`, { cache: "no-store" });
+        const data = await r.json().catch(() => FALLBACK);
+        if (!ignore) setNews(Array.isArray(data) ? data : FALLBACK);
+      } catch {
+        if (!ignore) setNews(FALLBACK);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    })();
+    return () => { ignore = true; };
+  }, []);
 
-  const MetaRow = ({ k, v }) => (
-    <div className="flex items-center justify-between text-[12px] text-slate-600">
-      <span className="text-slate-500">{k}</span>
-      <span className="font-medium text-slate-700">{v ?? "—"}</span>
-    </div>
-  );
+  // Publicadas y ordenadas (por si el backend no las trae ordenadas)
+  const published = (news || []).filter(n => n && n.published !== 0);
+  const byDateDesc = [...published].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
 
-  const lastUpdate = r?.meta?.lastUpdate || r?.meta?.updatedAt || null;
-  const fuente = r?.meta?.sourceName || r?.meta?.source || "Google Sheets";
+  const latest = byDateDesc.slice(0, 6);
+  const acuerdos = byDateDesc.filter(n => n.tag === "acuerdo").slice(0, 6);
 
   return (
-    <aside className="sticky top-24 space-y-4">
-      {/* Resumen */}
-      <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-slate-700">Resumen rápido</h3>
-        <div className="space-y-2">
-          <Stat label="Líquido" value={r?.liquido} tone="good" />
-          <Stat label="Remunerativo" value={r?.totalRemunerativo} />
-          <Stat label="Deducciones" value={r?.totalDeducciones} tone="bad" />
-        </div>
-        <button
-          type="button"
-          onClick={onReport}
-          className="w-full mt-2 rounded-lg bg-slate-800 text-white px-3 py-2 hover:bg-slate-900"
-        >
-          Reportar error / sugerencia
-        </button>
+    <aside className="space-y-4 xl:sticky xl:top-24">
+      {/* Últimas novedades */}
+      <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4">
+        <h3 className="text-sm font-semibold text-slate-700">Últimas novedades</h3>
+
+        {loading ? (
+          <ul className="mt-3 space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <li key={i} className="h-6 rounded bg-slate-100 animate-pulse" />
+            ))}
+          </ul>
+        ) : latest.length === 0 ? (
+          <p className="mt-2 text-[13px] text-slate-500">No hay novedades por ahora.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {latest.map((n) => (
+              <li key={n.id} className="flex items-start gap-2">
+                <span className="mt-0.5 inline-flex shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] text-slate-600">
+                  {formatDate(n.date)}
+                </span>
+                {n.url ? (
+                  <a href={n.url} className="text-sm leading-5 hover:underline">
+                    {n.title}
+                  </a>
+                ) : (
+                  <span className="text-sm leading-5">{n.title}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      {/* Comparador express */}
+      {/* Acuerdos recientes */}
       <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4">
-        <h3 className="text-sm font-semibold text-slate-700">Comparador express</h3>
-        <p className="mt-1 text-[12px] text-slate-600">
-          Ingresá un líquido de referencia (p. ej., el mes anterior) y compará.
-        </p>
-        <div className="mt-2 flex items-center gap-2">
-          <input
-            type="number"
-            inputMode="decimal"
-            placeholder="Ej: 350000"
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
-            onChange={(e) => setRefValue(Number(e.target.value || 0))}
-          />
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2">
-          <div className="rounded-lg bg-slate-50 p-2">
-            <div className="text-[11px] text-slate-500">Diferencia</div>
-            <div className={`text-sm font-semibold tabular-nums ${delta >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-              {delta >= 0 ? "+" : "-"}{"$"}{money(Math.abs(delta))}
-            </div>
-          </div>
-          <div className="rounded-lg bg-slate-50 p-2 text-right">
-            <div className="text-[11px] text-slate-500">Variación</div>
-            <div className={`text-sm font-semibold tabular-nums ${pct >= 0 ? "text-emerald-700" : "text-rose-700"}`}>
-              {refValue ? `${pct.toFixed(2)}%` : "—"}
-            </div>
-          </div>
-        </div>
-      </div>
+        <h3 className="text-sm font-semibold text-slate-700">Acuerdos recientes</h3>
 
-      {/* Estado de datos */}
-      <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4">
-        <h3 className="text-sm font-semibold text-slate-700">Estado de datos</h3>
-        <div className="mt-2 space-y-1.5">
-          <MetaRow k="Fuente" v={fuente} />
-          <MetaRow
-            k="Última actualización"
-            v={
-              lastUpdate
-                ? new Intl.DateTimeFormat("es-AR", { dateStyle: "medium", timeStyle: "short" })
-                    .format(new Date(lastUpdate))
-                : null
-            }
-          />
-        </div>
-      </div>
-
-      {/* Compartir */}
-      <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4">
-        <h3 className="text-sm font-semibold text-slate-700">Compartir</h3>
-        <button
-          type="button"
-          onClick={() => navigator.clipboard.writeText(window.location.href)}
-          className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm hover:border-slate-300"
-        >
-          Copiar enlace de esta página
-        </button>
+        {loading ? (
+          <ul className="mt-3 space-y-2">
+            {[...Array(3)].map((_, i) => (
+              <li key={i} className="h-6 rounded bg-slate-100 animate-pulse" />
+            ))}
+          </ul>
+        ) : acuerdos.length === 0 ? (
+          <p className="mt-2 text-[13px] text-slate-500">Aún no cargamos acuerdos.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {acuerdos.map((n) => (
+              <li key={n.id} className="flex items-start gap-2">
+                <span className="mt-0.5 inline-flex shrink-0 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] text-emerald-700">
+                  {formatDate(n.date)}
+                </span>
+                {n.url ? (
+                  <a href={n.url} className="text-sm leading-5 hover:underline">
+                    {n.title}
+                  </a>
+                ) : (
+                  <span className="text-sm leading-5">{n.title}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </aside>
   );
