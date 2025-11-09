@@ -1,7 +1,7 @@
+// next.config.mjs
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',              // genera la carpeta /out
-  images: { unoptimized: true }, // evita el loader de imágenes en export estático
-  trailingSlash: true,           // URLs con slash final (más compatible en hosting estático)
+  output: 'export',          // genera HTML estático
+  images: { unoptimized: true }, // evita Image Optimization (no hay server)
 };
-module.exports = nextConfig;
+export default nextConfig;
