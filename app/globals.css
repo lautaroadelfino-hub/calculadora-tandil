@@ -139,4 +139,15 @@ body {
   margin-inline: auto;
   padding-inline: clamp(16px, 2.5vw, 32px); }
 
+/* ==== Overrides anti-superposición en el panel central ==== */
+@media (max-width: 1535px) {
+  main .sticky { position: static !important; top: auto !important; }
+  main .fixed  { position: static !important; top: auto !important; right: auto !important; }
+}
+main .z-50, main .z-40, main .z-30 { z-index: auto !important; }
+main > * { isolation: isolate; }
+
+
+
+
 

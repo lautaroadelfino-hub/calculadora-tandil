@@ -9,7 +9,6 @@ import Parametros from "../components/Parametros";
 import Resultados from "../components/Resultados";
 import ReportModal from "../components/ReportModal";
 import SideRailLeft from "../components/SideRailLeft";
-import SideRailRight from "../components/SideRailRight";
 import MobileExtras from "../components/MobileExtras";
 
 export default function Home() {
@@ -40,7 +39,6 @@ export default function Home() {
   // Cargar escalas
   useEffect(() => {
     loadEscalasFromSheets().then((data) => {
-      console.log("ESCALAS CARGADAS ▶️", data);
       setEscalas(data);
     });
   }, []);
@@ -181,12 +179,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white">
-      {/* HEADER */}
+      {/* HEADER (full width) */}
       <header className="bg-gradient-to-r from-sky-600 to-indigo-700 text-white">
-        <div
-          className="w-full mx-auto px-6 py-10"
-          style={{ maxWidth: "min(98vw, 2000px)" }}
-        >
+        <div className="w-full px-6 py-10">
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             Calculadora de Sueldos
           </h1>
@@ -196,32 +191,32 @@ export default function Home() {
         </div>
       </header>
 
-      {/* CONTENIDO */}
-      <main
-        className="w-full mx-auto px-6 py-8"
-        style={{ maxWidth: "min(98vw, 2000px)" }}
-      >
-        {/* Grilla 3 columnas (rail izq / contenido / rail der) */}
-        <div className="
-          grid grid-cols-1
-          xl:grid-cols-[280px_minmax(0,1fr)_300px]
-          2xl:grid-cols-[320px_minmax(0,1.8fr)_360px]
-          gap-8 2xl:gap-12
-        ">
+      {/* CONTENIDO (full width) */}
+      <main className="w-full px-6 py-8">
+        {/* Grilla 2 columnas (rail izq / contenido) — SIN panel derecho */}
+        <div
+          className="
+            grid grid-cols-1
+            xl:grid-cols-[320px_minmax(0,1fr)]
+            2xl:grid-cols-[360px_minmax(0,1fr)]
+            gap-8 2xl:gap-12
+          "
+        >
           {/* Izquierda */}
           <div className="hidden xl:block">
             <SideRailLeft />
           </div>
 
           {/* Contenido principal */}
-          <div className="
-  grid grid-cols-1
-  lg:grid-cols-2
-  xl:grid-cols-[1.25fr_1.25fr]
-  2xl:grid-cols-[1.3fr_1.4fr]
-  gap-8 2xl:gap-12
-">
-
+          <div
+            className="
+              grid grid-cols-1
+              lg:grid-cols-2
+              xl:grid-cols-[1.25fr_1.35fr]
+              2xl:grid-cols-[1.3fr_1.7fr]
+              gap-8 2xl:gap-12
+            "
+          >
             <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 border border-slate-100">
               <Parametros
                 sector={sector}
@@ -268,11 +263,6 @@ export default function Home() {
                 </button>
               </div>
             </section>
-          </div>
-
-          {/* Derecha */}
-          <div className="hidden xl:block">
-            <SideRailRight r={r} money={money} onReport={() => setShowReport(true)} />
           </div>
         </div>
 
@@ -324,12 +314,9 @@ export default function Home() {
         onReport={() => setShowReport(true)}
       />
 
-      {/* FOOTER */}
+      {/* FOOTER (full width) */}
       <footer className="border-t border-slate-200 mt-10">
-        <div
-          className="w-full mx-auto px-6 py-4 text-xs text-slate-500"
-          style={{ maxWidth: "min(98vw, 2000px)" }}
-        >
+        <div className="w-full px-6 py-4 text-xs text-slate-500">
           © {new Date().getFullYear()} Calculadora de Sueldos.
         </div>
       </footer>

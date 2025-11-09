@@ -13,9 +13,15 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="es" className={inter.variable}>
-      <body className="font-sans antialiased bg-pattern">
+      <body className="font-sans antialiased bg-pattern min-h-screen">
         <AuthNavFloating />
-        {children}
+
+        {/* FULL-WIDTH: sin max-width ni centrado */}
+        <div className="relative z-0 w-full px-4 sm:px-6 lg:px-8 pt-16 pb-8">
+          <main className="space-y-6">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );

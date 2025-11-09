@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import SideRailLeft from "./SideRailLeft";
-import SideRailRight from "./SideRailRight";
+import SideRailRight from "./AppShell";
 
 export default function MobileExtras({ open, onClose, r, money, onReport }) {
   const panelRef = useRef(null);
