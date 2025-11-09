@@ -8,32 +8,36 @@ import { calcularComercio } from "../lib/calculoComercio";
 import Parametros from "../components/Parametros";
 import Resultados from "../components/Resultados";
 import ReportModal from "../components/ReportModal";
+import SideRailLeft from "../components/SideRailLeft";
+import SideRailRight from "../components/SideRailRight";
+import MobileExtras from "../components/MobileExtras";
 
 export default function Home() {
   const [escalas, setEscalas] = useState(null);
 
   // Estado UI
-  const [sector, setSector] = useState("publico");                // "publico" | "privado"
-  const [convenio, setConvenio] = useState("municipalidad");      // municipalidad | comercio
-  const [subRegimen, setSubRegimen] = useState("administracion"); // administracion | sisp | obras
+  const [sector, setSector] = useState("publico");
+  const [convenio, setConvenio] = useState("municipalidad");
+  const [subRegimen, setSubRegimen] = useState("administracion");
 
-  const [mes, setMes] = useState("");          // YYYY-MM
-  const [categoria, setCategoria] = useState(""); // clave de categoría
+  const [mes, setMes] = useState("");
+  const [categoria, setCategoria] = useState("");
 
   const [aniosAntiguedad, setAniosAntiguedad] = useState(0);
-  const [regimen, setRegimen] = useState("35");           // 35/40/48 (público), 48 (comercio)
-  const [titulo, setTitulo] = useState("ninguno");        // ninguno | terciario | universitario
+  const [regimen, setRegimen] = useState("35");
+  const [titulo, setTitulo] = useState("ninguno");
   const [funcion, setFuncion] = useState(0);
   const [horas50, setHoras50] = useState(0);
   const [horas100, setHoras100] = useState(0);
   const [descuentosExtras, setDescuentosExtras] = useState(0);
   const [noRemunerativo, setNoRemunerativo] = useState(0);
 
-  // Modal de reportes
+  // Modal / extras
   const [showReport, setShowReport] = useState(false);
   const reportBtnRef = useRef(null);
+  const [showExtras, setShowExtras] = useState(false);
 
-  // Cargar escalas (Sheets)
+  // Cargar escalas
   useEffect(() => {
     loadEscalasFromSheets().then((data) => {
       console.log("ESCALAS CARGADAS ▶️", data);
@@ -41,7 +45,7 @@ export default function Home() {
     });
   }, []);
 
-  // Defaults cuando cambia sector
+  // Defaults al cambiar sector
   useEffect(() => {
     if (sector === "publico") {
       setConvenio("municipalidad");
@@ -49,7 +53,7 @@ export default function Home() {
     } else {
       setConvenio("comercio");
       setRegimen("48");
-      setSubRegimen("administracion"); // no se usa en privado
+      setSubRegimen("administracion");
     }
     setMes("");
     setCategoria("");
@@ -73,7 +77,7 @@ export default function Home() {
     return Object.keys(escalasSector ?? {}).sort();
   }, [escalasSector]);
 
-  // Auto-set primer mes
+  // Auto-selección de mes
   useEffect(() => {
     if (mesesDisponibles.length > 0 && !mes) setMes(mesesDisponibles[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -85,7 +89,7 @@ export default function Home() {
     return Object.keys(escalasSector[mes].categoria);
   }, [mes, escalasSector]);
 
-  // Auto-set primer categoría
+  // Auto-selección de categoría
   useEffect(() => {
     if (categoriasDisponibles.length > 0 && !categoria) {
       setCategoria(categoriasDisponibles[0]);
@@ -179,7 +183,10 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white">
       {/* HEADER */}
       <header className="bg-gradient-to-r from-sky-600 to-indigo-700 text-white">
-        <div className="max-w-6xl mx-auto px-4 py-8">
+        <div
+          className="w-full mx-auto px-6 py-10"
+          style={{ maxWidth: "min(98vw, 2000px)" }}
+        >
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
             Calculadora de Sueldos
           </h1>
@@ -190,58 +197,94 @@ export default function Home() {
       </header>
 
       {/* CONTENIDO */}
-      <main className="max-w-6xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-6">
-          {/* Panel de parámetros */}
-          <section className="bg-white/90 backdrop-blur rounded-2xl shadow p-5 border border-slate-100">
-            <Parametros
-              sector={sector}
-              setSector={setSector}
-              convenio={convenio}
-              setConvenio={setConvenio}
-              subRegimen={subRegimen}
-              setSubRegimen={setSubRegimen}
-              mes={mes}
-              setMes={setMes}
-              mesesDisponibles={mesesDisponibles}
-              categoria={categoria}
-              setCategoria={setCategoria}
-              categoriasDisponibles={categoriasDisponibles}
-              aniosAntiguedad={aniosAntiguedad}
-              setAniosAntiguedad={setAniosAntiguedad}
-              regimen={regimen}
-              setRegimen={setRegimen}
-              titulo={titulo}
-              setTitulo={setTitulo}
-              funcion={funcion}
-              setFuncion={setFuncion}
-              horas50={horas50}
-              setHoras50={setHoras50}
-              horas100={horas100}
-              setHoras100={setHoras100}
-              descuentosExtras={descuentosExtras}
-              setDescuentosExtras={setDescuentosExtras}
-              noRemunerativo={noRemunerativo}
-              setNoRemunerativo={setNoRemunerativo}
-            />
-          </section>
-
-          {/* Panel de resultados */}
-          <section className="bg-white/90 backdrop-blur rounded-2xl shadow p-5 border border-slate-100">
-            <Resultados r={r} money={money} />
-
-            {/* Botón para abrir el modal */}
-            <div className="mt-4">
-      <button
-        ref={reportBtnRef}
-        type="button"
-        onClick={() => setShowReport(true)}
-        className="mt-4 w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
+      <main
+        className="w-full mx-auto px-6 py-8"
+        style={{ maxWidth: "min(98vw, 2000px)" }}
       >
-        Reportar error / sugerencia
-      </button>
-            </div>
-          </section>
+        {/* Grilla 3 columnas (rail izq / contenido / rail der) */}
+        <div className="
+          grid grid-cols-1
+          xl:grid-cols-[280px_minmax(0,1fr)_300px]
+          2xl:grid-cols-[320px_minmax(0,1.8fr)_360px]
+          gap-8 2xl:gap-12
+        ">
+          {/* Izquierda */}
+          <div className="hidden xl:block">
+            <SideRailLeft />
+          </div>
+
+          {/* Contenido principal */}
+          <div className="
+  grid grid-cols-1
+  lg:grid-cols-2
+  xl:grid-cols-[1.25fr_1.25fr]
+  2xl:grid-cols-[1.3fr_1.4fr]
+  gap-8 2xl:gap-12
+">
+
+            <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 border border-slate-100">
+              <Parametros
+                sector={sector}
+                setSector={setSector}
+                convenio={convenio}
+                setConvenio={setConvenio}
+                subRegimen={subRegimen}
+                setSubRegimen={setSubRegimen}
+                mes={mes}
+                setMes={setMes}
+                mesesDisponibles={mesesDisponibles}
+                categoria={categoria}
+                setCategoria={setCategoria}
+                categoriasDisponibles={categoriasDisponibles}
+                aniosAntiguedad={aniosAntiguedad}
+                setAniosAntiguedad={setAniosAntiguedad}
+                regimen={regimen}
+                setRegimen={setRegimen}
+                titulo={titulo}
+                setTitulo={setTitulo}
+                funcion={funcion}
+                setFuncion={setFuncion}
+                horas50={horas50}
+                setHoras50={setHoras50}
+                horas100={horas100}
+                setHoras100={setHoras100}
+                descuentosExtras={descuentosExtras}
+                setDescuentosExtras={setDescuentosExtras}
+                noRemunerativo={noRemunerativo}
+                setNoRemunerativo={setNoRemunerativo}
+              />
+            </section>
+
+            <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 border border-slate-100">
+              <Resultados r={r} money={money} />
+              <div className="mt-5">
+                <button
+                  ref={reportBtnRef}
+                  type="button"
+                  onClick={() => setShowReport(true)}
+                  className="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
+                >
+                  Reportar error / sugerencia
+                </button>
+              </div>
+            </section>
+          </div>
+
+          {/* Derecha */}
+          <div className="hidden xl:block">
+            <SideRailRight r={r} money={money} onReport={() => setShowReport(true)} />
+          </div>
+        </div>
+
+        {/* Botón móvil para abrir extras (drawer) */}
+        <div className="xl:hidden mt-4">
+          <button
+            type="button"
+            onClick={() => setShowExtras(true)}
+            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-slate-800"
+          >
+            Ver herramientas y resumen
+          </button>
         </div>
 
         <p className="text-xs text-slate-500 mt-6">
@@ -249,32 +292,44 @@ export default function Home() {
         </p>
 
         {/* Modal de reportes */}
-    <ReportModal
-      open={showReport}
-      onClose={() => setShowReport(false)}
-      triggerRef={reportBtnRef}
-      context={{
-        sector,
-        convenio,
-        subRegimen,
-        mes,
-        categoria,
-        regimen,
-        aniosAntiguedad,
-        titulo,
-        funcion,
-        horas50,
-        horas100,
-        descuentosExtras,
-        noRemunerativo,
-        r,
-      }}
-    />
+        <ReportModal
+          open={showReport}
+          onClose={() => setShowReport(false)}
+          triggerRef={reportBtnRef}
+          context={{
+            sector,
+            convenio,
+            subRegimen,
+            mes,
+            categoria,
+            regimen,
+            aniosAntiguedad,
+            titulo,
+            funcion,
+            horas50,
+            horas100,
+            descuentosExtras,
+            noRemunerativo,
+            r,
+          }}
+        />
       </main>
 
+      {/* Drawer móvil con extras */}
+      <MobileExtras
+        open={showExtras}
+        onClose={() => setShowExtras(false)}
+        r={r}
+        money={money}
+        onReport={() => setShowReport(true)}
+      />
+
       {/* FOOTER */}
-      <footer className="border-t border-slate-200 mt-8">
-        <div className="max-w-6xl mx-auto px-4 py-4 text-xs text-slate-500">
+      <footer className="border-t border-slate-200 mt-10">
+        <div
+          className="w-full mx-auto px-6 py-4 text-xs text-slate-500"
+          style={{ maxWidth: "min(98vw, 2000px)" }}
+        >
           © {new Date().getFullYear()} Calculadora de Sueldos.
         </div>
       </footer>

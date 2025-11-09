@@ -133,4 +133,10 @@ body {
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* Contenedor fluido centrado */
+.page-wrap{
+  max-width: clamp(1100px, 92vw, 1680px);
+  margin-inline: auto;
+  padding-inline: clamp(16px, 2.5vw, 32px); }
+
 

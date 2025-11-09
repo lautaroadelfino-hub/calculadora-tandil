@@ -12,7 +12,6 @@ export default function Resultados({ r, money }) {
 
   const moneyNoWrap = (v) => money(v) || "0,00";
 
-  // Tamaño de fuente adaptable con clamp para valores muy largos
   const sizeFor = (v) => {
     const len = moneyNoWrap(v).length;
     if (len > 18) return "text-[clamp(1rem,2.2vw,1.15rem)]";
@@ -99,19 +98,9 @@ export default function Resultados({ r, money }) {
       : [{ label: "Deducciones", monto: r.totalDeducciones || 0 }];
 
   return (
-    <section className="space-y-4">
-      {/* Resumen superior: auto-fit con minmax para evitar problemas de zoom */}
-      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-4">
-        <div className="grid [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))] gap-4">
-          <Stat label="Remunerativo" value={r.totalRemunerativo} />
-          <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
-          <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
-          <Stat label="Líquido" value={r.liquido} tone="good" />
-        </div>
-      </div>
-
-      {/* Detalle por bloques */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <section className="space-y-4 relative">
+      {/* Detalle (dejamos espacio inferior para que no tape el sticky) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-[140px]">
         <Block title="Remunerativos">
           {remRows.map(([label, val]) => (
             <Fila key={label} label={label} value={val} />
@@ -146,6 +135,21 @@ export default function Resultados({ r, money }) {
             <Fila label="Total deducciones" value={r.totalDeducciones} strong negative />
           </div>
         </Block>
+      </div>
+
+      {/* Totales sticky al fondo del panel */}
+      <div className="sticky bottom-0 z-10 left-0 right-0">
+        {/* Fondo/blur que cubre el ancho del panel (ajustado al padding p-5 del contenedor) */}
+        <div className="-mx-5 px-5 pb-2 pt-3 bg-gradient-to-t from-white/95 via-white/70 to-transparent backdrop-blur supports-[backdrop-filter]:bg-white/70 shadow-[0_-8px_20px_-8px_rgba(2,6,23,0.08)]">
+          <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-4">
+            <div className="grid [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))] gap-4">
+              <Stat label="Remunerativo" value={r.totalRemunerativo} />
+              <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
+              <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
+              <Stat label="Líquido" value={r.liquido} tone="good" />
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
