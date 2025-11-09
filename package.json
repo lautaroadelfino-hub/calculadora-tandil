@@ -2,17 +2,16 @@
   "name": "calculadora-tandil",
   "version": "0.1.0",
   "private": true,
-"scripts": {
-  "dev": "next dev",
-  "build": "next build && next export -o out",
-  "start": "next start",
-  "lint": "eslint"
-},
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build && next export -o out",
+    "start": "next start",
+    "lint": "eslint"
+  },
   "dependencies": {
     "next": "16.0.1",
     "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "bcryptjs": "^2.4.3"
+    "react-dom": "19.2.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -21,4 +20,3 @@
     "eslint-config-next": "16.0.1"
   }
 }
-
