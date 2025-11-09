@@ -69,7 +69,7 @@ export function requireAdmin(user){
 }
 
 // --- Password hashing: PBKDF2(SHA-256) ---
-const PBKDF2_ITER = 150_000; // costo (subilo si querés más dureza)
+const PBKDF2_ITER = 100_000; // costo (subilo si querés más dureza)
 
 export async function hashPassword(password){
   const salt = crypto.getRandomValues(new Uint8Array(16));
