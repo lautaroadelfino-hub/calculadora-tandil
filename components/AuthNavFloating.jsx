@@ -1,7 +1,6 @@
 // components/AuthNavFloating.jsx
 "use client";
 import React from "react";
-import { doLogout } from "../lib/doLogout";
 
 export default function AuthNavFloating() {
   const [user, setUser] = React.useState(null);
@@ -17,6 +16,24 @@ export default function AuthNavFloating() {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleLogout = React.useCallback(async () => {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_BASE || "";
+      await fetch(`${base}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      // ignoramos errores de red
+    } finally {
+      // redirige sí o sí a inicio y evita volver con "Atrás"
+      if (typeof window !== "undefined") window.location.replace("/");
+    }
+  }, [signingOut]);
+
   if (loading) return null;
 
   return (
@@ -29,10 +46,9 @@ export default function AuthNavFloating() {
           >
             Admin
           </a>
-
           <button
             type="button"
-            onClick={() => { setSigningOut(true); doLogout(); }}
+            onClick={handleLogout}
             disabled={signingOut}
             className="text-xs rounded-full border px-3 py-1 hover:bg-slate-50 disabled:opacity-60"
           >
