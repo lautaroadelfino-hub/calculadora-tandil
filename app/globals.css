@@ -147,6 +147,17 @@ body {
 main .z-50, main .z-40, main .z-30 { z-index: auto !important; }
 main > * { isolation: isolate; }
 
+/* Evitar overflow horizontal accidental en mobile */
+@media (max-width: 640px) {
+  html, body {
+    overflow-x: hidden;
+  }
+  /* Si algún sticky insiste en empujar, lo “despegamos” en mobile */
+  .md\:sticky:not([class*="sm:"]):not([class*="md:sticky"]) {
+    position: static;
+  }
+}
+
 
 
 

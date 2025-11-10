@@ -11,34 +11,25 @@ export default function Resultados({ r, money }) {
     );
   }
 
-  const moneyNoWrap = (v) => money(v) || "0,00";
-
-  const sizeFor = (v) => {
-    const len = moneyNoWrap(v).length;
-    if (len > 18) return "text-[clamp(1rem,2.2vw,1.15rem)]";
-    if (len > 16) return "text-[clamp(1rem,2.4vw,1.22rem)]";
-    if (len > 14) return "text-[clamp(1.05rem,2.6vw,1.3rem)]";
-    return "text-[clamp(1.1rem,2.8vw,1.4rem)]";
-  };
+  const fmt = (v) =>
+    money ? money(Number.isFinite(+v) ? +v : 0) : (Number(v || 0)).toFixed(2);
 
   const Fila = ({ label, value, strong, negative }) => (
     <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5 min-w-0">
       <span
-        className={`text-sm ${strong ? "font-semibold text-slate-800" : "text-slate-600"} truncate`}
-        title={label}
+        className={`text-sm ${strong ? "font-semibold text-slate-800" : "text-slate-600"} break-words`}
       >
         {label}
       </span>
       <span
         className={[
-          "text-sm tabular-nums leading-tight",
-          "text-right whitespace-nowrap overflow-hidden text-ellipsis",
+          "text-sm tabular-nums leading-tight text-right",
+          "whitespace-normal break-words", // ← sin elipsis; permite salto de línea
           strong ? "font-semibold" : "",
           negative ? "text-rose-600" : "text-slate-800",
         ].join(" ")}
-        title={moneyNoWrap(value)}
       >
-        {negative ? "-" : ""}${moneyNoWrap(Math.abs(value || 0))}
+        {negative ? "-" : ""}$ {fmt(Math.abs(value || 0))}
       </span>
     </div>
   );
@@ -59,21 +50,17 @@ export default function Resultados({ r, money }) {
         : tone === "warn"
         ? "ring-1 ring-amber-200"
         : "ring-1 ring-slate-200";
-
     return (
       <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0`}>
-        <div className="text-[11px] uppercase tracking-wide text-slate-500">
-          {label}
-        </div>
+        <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
         <div
           className={[
-            "font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight",
-            "text-right whitespace-nowrap overflow-hidden text-ellipsis",
-            sizeFor(value),
+            "font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight text-right",
+            "whitespace-normal break-words", // ← sin elipsis; permite salto de línea
+            "text-base md:text-lg",
           ].join(" ")}
-          title={moneyNoWrap(value)}
         >
-          ${moneyNoWrap(value)}
+          $ {fmt(value)}
         </div>
       </div>
     );
@@ -124,9 +111,7 @@ export default function Resultados({ r, money }) {
               </div>
             </>
           ) : (
-            <div className="text-sm text-slate-500">
-              No hay conceptos no remunerativos.
-            </div>
+            <div className="text-sm text-slate-500">No hay conceptos no remunerativos.</div>
           )}
         </Block>
 
