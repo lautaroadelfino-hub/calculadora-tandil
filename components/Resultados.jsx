@@ -14,25 +14,48 @@ export default function Resultados({ r, money }) {
   const fmt = (v) =>
     money ? money(Number.isFinite(+v) ? +v : 0) : (Number(v || 0)).toFixed(2);
 
-  const Fila = ({ label, value, strong, negative }) => (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5 min-w-0">
-      <span
-        className={`text-sm ${strong ? "font-semibold text-slate-800" : "text-slate-600"} break-words`}
-      >
-        {label}
-      </span>
-      <span
-        className={[
-          "text-sm tabular-nums leading-tight text-right",
-          "whitespace-normal break-words", // ← sin elipsis; permite salto de línea
-          strong ? "font-semibold" : "",
-          negative ? "text-rose-600" : "text-slate-800",
-        ].join(" ")}
-      >
-        {negative ? "-" : ""}$ {fmt(Math.abs(value || 0))}
-      </span>
-    </div>
-  );
+  // Ajusta la fuente según la cantidad de caracteres del número formateado.
+  // kind = 'row' (líneas) o 'stat' (totales grandes).
+  const sizeFor = (str, kind = "row") => {
+    const len = String(str || "").length;
+    if (kind === "stat") {
+      if (len > 18) return "text-[clamp(0.90rem,3.2vw,1.10rem)]";
+      if (len > 16) return "text-[clamp(1.00rem,3.4vw,1.25rem)]";
+      if (len > 14) return "text-[clamp(1.05rem,3.6vw,1.35rem)]";
+      return "text-[clamp(1.10rem,3.8vw,1.50rem)]";
+    } else {
+      if (len > 18) return "text-[clamp(0.80rem,3.0vw,1.00rem)]";
+      if (len > 16) return "text-[clamp(0.90rem,3.2vw,1.05rem)]";
+      if (len > 14) return "text-[clamp(0.95rem,3.4vw,1.10rem)]";
+      return "text-[clamp(1.00rem,3.6vw,1.20rem)]";
+    }
+  };
+
+  const Fila = ({ label, value, strong, negative }) => {
+    const vStr = fmt(Math.abs(value || 0));
+    return (
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5 min-w-0">
+        <span
+          className={`text-sm ${strong ? "font-semibold text-slate-800" : "text-slate-600"} truncate`}
+          title={label}
+        >
+          {label}
+        </span>
+        <span
+          className={[
+            "tabular-nums leading-tight text-right",
+            "whitespace-nowrap", // no se parte en renglones
+            strong ? "font-semibold" : "text-sm",
+            negative ? "text-rose-600" : "text-slate-800",
+            sizeFor(vStr, "row"),
+          ].join(" ")}
+          title={`${negative ? "-" : ""}$ ${vStr}`}
+        >
+          {negative ? "-" : ""}$ {vStr}
+        </span>
+      </div>
+    );
+  };
 
   const Block = ({ title, children }) => (
     <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 min-w-0">
@@ -50,17 +73,19 @@ export default function Resultados({ r, money }) {
         : tone === "warn"
         ? "ring-1 ring-amber-200"
         : "ring-1 ring-slate-200";
+    const vStr = fmt(value);
     return (
       <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0`}>
         <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
         <div
           className={[
             "font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight text-right",
-            "whitespace-normal break-words", // ← sin elipsis; permite salto de línea
-            "text-base md:text-lg",
+            "whitespace-nowrap", // no-wrap
+            sizeFor(vStr, "stat"),
           ].join(" ")}
+          title={`$ ${vStr}`}
         >
-          $ {fmt(value)}
+          $ {vStr}
         </div>
       </div>
     );
