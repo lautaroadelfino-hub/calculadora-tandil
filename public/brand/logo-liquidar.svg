@@ -1,0 +1,21 @@
+<svg viewBox="0 0 900 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="LiquidAR">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10B981"/><stop offset="1" stop-color="#34D399"/>
+    </linearGradient>
+  </defs>
+  <!-- Isotipo -->
+  <g transform="translate(0,28)">
+    <rect x="0" y="0" width="144" height="144" rx="32" fill="url(#g)"/>
+    <text x="72" y="103" font-family="Inter, Manrope, system-ui, Arial" font-size="90" font-weight="800" text-anchor="middle" fill="#FFFFFF" letter-spacing="2">AR</text>
+  </g>
+
+  <!-- Wordmark -->
+  <g transform="translate(176,40)">
+    <text x="0" y="80" font-family="Inter, Manrope, system-ui, Arial" font-weight="800" font-size="92" letter-spacing="0.5">
+      <tspan fill="#111827">Liquid</tspan><tspan fill="#10B981">AR</tspan>
+    </text>
+    <!-- Lema opcional: descomentar si querés verlo debajo -->
+    <!-- <text x="2" y="128" font-family="Inter, system-ui" font-weight="500" font-size="28" fill="#6B7280">Tu sueldo, claro y en mano.</text> -->
+  </g>
+</svg>
