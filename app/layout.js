@@ -8,8 +8,8 @@ import Header from "../components/Header";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata = {
-  title: { default: "LiquidAR — Calculadora de sueldos", template: "%s — LiquidAR" },
-  description: "Cálculo rápido de remunerativos, no remunerativos y deducciones",
+  title: { default: "LiquidAR", template: "%s — LiquidAR" },
+  description: "Cálculo rápido de tu sueldo",
   icons: {
     icon: [
       { url: "/brand/favicon.svg", type: "image/svg+xml" },
