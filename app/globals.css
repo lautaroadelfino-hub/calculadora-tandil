@@ -158,6 +158,52 @@ main > * { isolation: isolate; }
   }
 }
 
+/* ===== UI utilities: paneles, números y grillas ===== */
+@layer utilities {
+  /* Números tabulares y compactos */
+  .num {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+    letter-spacing: -0.01em;
+  }
+
+  /* Valores en filas (detalle) — fluid y sin saltos */
+  .num-row {
+    /* No wrap; se adapta con clamp según viewport */
+    white-space: nowrap;
+    text-align: right;
+    line-height: 1.1;
+    font-size: clamp(0.95rem, 2.6vw, 1.15rem);
+  }
+
+  /* Valores en totales grandes (cards verdes) */
+  .num-stat {
+    white-space: nowrap;
+    text-align: right;
+    line-height: 1.05;
+    font-size: clamp(1.00rem, 3.6vw, 1.45rem);
+  }
+
+  /* Contenedor seguro para tarjetas/paneles */
+  .panel {
+    @apply rounded-2xl border border-slate-200 bg-white/90 backdrop-blur p-4 md:p-6 min-w-0 overflow-hidden;
+  }
+
+  /* Tarjeta suave (bloques de detalle) */
+  .soft-card {
+    @apply rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 min-w-0;
+  }
+
+  /* Grilla de totales robusta: 1/2/4 */
+  .grid-stats {
+    @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 md:gap-4;
+  }
+
+  /* Seguridad extra en móviles contra scroll lateral accidental */
+  @media (max-width: 640px) {
+    html, body { overflow-x: hidden; }
+  }
+}
 
 
 
