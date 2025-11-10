@@ -14,21 +14,27 @@ export default function Resultados({ r, money }) {
   const fmt = (v) =>
     money ? money(Number.isFinite(+v) ? +v : 0) : (Number(v || 0)).toFixed(2);
 
-  // Tamaño adaptativo: más agresivo para asegurar que no desborde
+  /**
+   * Tamaños adaptativos con container queries (cqw)
+   * - "stat": para los totales grandes (cards de abajo)
+   * - "row": para filas del detalle
+   * Usamos clamp con cqw (ancho del CONTENEDOR) para evitar desborde sin truncar.
+   */
   const sizeFor = (str, kind = "row") => {
     const len = String(str || "").length;
+
     if (kind === "stat") {
-      if (len > 20) return "text-[clamp(0.85rem,3.0vw,1.05rem)]";
-      if (len > 18) return "text-[clamp(0.90rem,3.2vw,1.10rem)]";
-      if (len > 16) return "text-[clamp(0.95rem,3.4vw,1.20rem)]";
-      if (len > 14) return "text-[clamp(1.00rem,3.6vw,1.30rem)]";
-      return "text-[clamp(1.05rem,3.8vw,1.45rem)]";
+      if (len > 20) return "text-[clamp(0.85rem,6.5cqw,1.05rem)]";
+      if (len > 18) return "text-[clamp(0.95rem,7.5cqw,1.20rem)]";
+      if (len > 16) return "text-[clamp(1.05rem,8.5cqw,1.30rem)]";
+      if (len > 14) return "text-[clamp(1.10rem,9.5cqw,1.45rem)]";
+      return "text-[clamp(1.20rem,10.5cqw,1.60rem)]";
     } else {
-      if (len > 20) return "text-[clamp(0.80rem,2.8vw,0.95rem)]";
-      if (len > 18) return "text-[clamp(0.85rem,3.0vw,1.00rem)]";
-      if (len > 16) return "text-[clamp(0.90rem,3.2vw,1.05rem)]";
-      if (len > 14) return "text-[clamp(0.95rem,3.4vw,1.10rem)]";
-      return "text-[clamp(1.00rem,3.6vw,1.20rem)]";
+      if (len > 20) return "text-[clamp(0.80rem,6.0cqw,0.95rem)]";
+      if (len > 18) return "text-[clamp(0.85rem,6.8cqw,1.05rem)]";
+      if (len > 16) return "text-[clamp(0.90rem,7.6cqw,1.15rem)]";
+      if (len > 14) return "text-[clamp(0.95rem,8.4cqw,1.20rem)]";
+      return "text-[clamp(1.00rem,9.2cqw,1.30rem)]";
     }
   };
 
@@ -45,7 +51,7 @@ export default function Resultados({ r, money }) {
         <span
           className={[
             "tabular-nums leading-snug text-right",
-            "whitespace-nowrap max-w-full overflow-hidden tracking-tight",
+            "whitespace-nowrap max-w-full tracking-tight",
             strong ? "font-semibold" : "text-sm",
             negative ? "text-rose-600" : "text-slate-800",
             sizeFor(vStr, "row"),
@@ -58,8 +64,9 @@ export default function Resultados({ r, money }) {
     );
   };
 
+  // 👇 Agrego container queries por tarjeta (no en todo el section)
   const Block = ({ title, children }) => (
-    <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 min-w-0">
+    <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 min-w-0 [container-type:inline-size]">
       <h3 className="text-sm font-semibold text-slate-700 mb-2">{title}</h3>
       <div className="min-w-0">{children}</div>
     </div>
@@ -76,12 +83,12 @@ export default function Resultados({ r, money }) {
         : "ring-1 ring-slate-200";
     const vStr = fmt(value);
     return (
-      <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0`}>
+      <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0 [container-type:inline-size]`}>
         <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
         <div
           className={[
             "font-semibold text-slate-800 mt-0.5 tabular-nums leading-snug text-right",
-            "whitespace-nowrap max-w-full overflow-hidden tracking-tight",
+            "whitespace-nowrap max-w-full tracking-tight",
             sizeFor(vStr, "stat"),
           ].join(" ")}
           title={`$ ${vStr}`}
@@ -114,6 +121,11 @@ export default function Resultados({ r, money }) {
       : [{ label: "Deducciones", monto: r.totalDeducciones || 0 }];
 
   return (
+    /**
+     * NOTA: ahora NO activamos container queries a nivel sección,
+     * solo por tarjeta (Block/Stat). Así cada número escala según
+     * el ancho de SU card y no del panel completo.
+     */
     <section className="space-y-4 min-w-0">
       {/* Detalle */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0 md:pb-[140px]">

@@ -254,7 +254,22 @@ main > * { isolation: isolate; }
 .auto-wrap-anywhere {
   overflow-wrap: anywhere;  /* si el contenedor es minúsculo, priorizar ver todos los dígitos */
 }
+/* === Anti-desborde (mínimo y no invasivo) === */
+.cq {               /* Activa container queries sólo donde la uses */
+  container-type: inline-size;
+}
 
+.num-shrink {       /* Números en filas: se adaptan al ancho del contenedor */
+  white-space: nowrap;
+  line-height: 1.12;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(0.95rem, 8cqw, 1.15rem);
+}
 
-
-
+.num-shrink-xl {    /* Números grandes (totales): fluidos por contenedor */
+  white-space: nowrap;
+  line-height: 1.06;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(1.05rem, 10cqw, 1.70rem);
+}
