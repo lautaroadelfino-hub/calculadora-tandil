@@ -171,30 +171,27 @@ export default function Parametros({
           <NumericInput value={aniosAntiguedad} onCommit={setAniosAntiguedad} placeholder="0" min={0} />
         </Field>
 
-        {sector === "publico" ? (
-          <Field label="Régimen horario semanal">
-            <div className="flex gap-2">
-              <Btn active={regimen === "35"} onClick={() => setRegimen("35")}>35 hs</Btn>
-              <Btn active={regimen === "40"} onClick={() => setRegimen("40")}>40 hs</Btn>
-              <Btn active={regimen === "48"} onClick={() => setRegimen("48")}>48 hs</Btn>
-            </div>
-          </Field>
-        ) : (
-          <Field label="Régimen horario semanal">
-            {/* ✅ COMERCIO: desbloqueado, seleccionable */}
-            <Select
-              value={regimen}
-              onChange={(e) => setRegimen(e.target.value)}
-            >
-              {[12, 18, 20, 24, 30, 36, 40, 44, 48].map((h) => (
-                <option key={h} value={String(h)}>{h} hs</option>
-              ))}
-            </Select>
-            <p className="mt-1 text-[11px] text-slate-500">
-              Se calcula sobre el básico de 48 hs (ej.: 24 hs = básico 48 × 24/48).
-            </p>
-          </Field>
-        )}
+{sector === "publico" ? (
+  <Field label="Régimen horario semanal">
+    <div className="flex gap-2">
+      <Btn active={regimen === "35"} onClick={() => setRegimen("35")}>35 hs</Btn>
+      <Btn active={regimen === "40"} onClick={() => setRegimen("40")}>40 hs</Btn>
+      <Btn active={regimen === "48"} onClick={() => setRegimen("48")}>48 hs</Btn>
+    </div>
+  </Field>
+) : (
+  <Field label="Régimen horario semanal">
+    {/* ✅ COMERCIO: desbloqueado, seleccionable */}
+    <Select
+      value={regimen}
+      onChange={(e) => setRegimen(e.target.value)}
+    >
+      {[12, 18, 20, 24, 30, 36, 40, 44, 48].map((h) => (
+        <option key={h} value={String(h)}>{h} hs</option>
+      ))}
+    </Select>
+  </Field>
+)}
       </div>
 
       {/* Título y Función */}
