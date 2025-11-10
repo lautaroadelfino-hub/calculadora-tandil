@@ -205,6 +205,24 @@ main > * { isolation: isolate; }
   }
 }
 
+/* === Altura del header por breakpoint/altura === */
+:root { --h-header: 88px; }                    /* base */
+@media (min-width: 768px){ :root { --h-header: 104px; } }     /* md */
+@media (min-width: 1280px){ :root { --h-header: 116px; } }    /* xl */
+
+/* Escritorios de poca altura */
+@media (max-height: 740px){ :root { --h-header: 96px; } }     
+@media (min-width:1280px) and (max-height:740px){ 
+  :root { --h-header: 88px; } 
+}
+
+@layer utilities {
+  /* Forzar contenedores a permitir scroll interno cuando están en grids/flex */
+  .min-h-0 { min-height: 0 !important; }
+
+  /* Vista corta: compactar paddings verticales */
+  .compact-block { padding-block: .75rem; }
+}
 
 
 

@@ -171,29 +171,30 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white">
-      <main className="w-full px-6 py-8">
+      {/* padding y altura seguros en todas las vistas, incluida 1280×720 */}
+      <main className="w-full px-6 py-8 short-xl:py-4 min-h-[calc(100svh-var(--h-header))]">
         <div
           className="
-            grid grid-cols-1
+            grid grid-cols-1 min-h-0
             xl:grid-cols-[320px_minmax(0,1fr)]
             2xl:grid-cols-[360px_minmax(0,1fr)]
-            gap-8 2xl:gap-12
+            gap-8 2xl:gap-12 short-xl:gap-6
           "
         >
-          <div className="hidden xl:block">
+          <div className="hidden xl:block min-h-0">
             <SideRailLeft />
           </div>
 
           <div
             className="
-              grid grid-cols-1
+              grid grid-cols-1 min-h-0
               lg:grid-cols-2
               xl:grid-cols-[1.25fr_1.35fr]
               2xl:grid-cols-[1.3fr_1.7fr]
-              gap-8 2xl:gap-12
+              gap-8 2xl:gap-12 short-xl:gap-6
             "
           >
-            <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 border border-slate-100">
+            <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 short-xl:p-4 border border-slate-100">
               <Parametros
                 sector={sector}
                 setSector={setSector}
@@ -226,9 +227,10 @@ export default function Home() {
               />
             </section>
 
-            <section className="panel shadow">
+            {/* panel de resultados preparado para no solaparse */}
+            <section className="panel shadow min-h-0">
               <Resultados r={r} money={money} />
-              <div className="mt-5">
+              <div className="mt-5 short-xl:mt-3">
                 <button
                   ref={reportBtnRef}
                   type="button"
