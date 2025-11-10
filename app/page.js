@@ -23,7 +23,7 @@ export default function Home() {
   const [categoria, setCategoria] = useState("");
 
   const [aniosAntiguedad, setAniosAntiguedad] = useState(0);
-  const [regimen, setRegimen] = useState("35");
+  const [regimen, setRegimen] = useState("35"); // << se sigue usando para horas/semana
   const [titulo, setTitulo] = useState("ninguno");
   const [funcion, setFuncion] = useState(0);
   const [horas50, setHoras50] = useState(0);
@@ -36,11 +36,8 @@ export default function Home() {
   const reportBtnRef = useRef(null);
   const [showExtras, setShowExtras] = useState(false);
 
-  // Cargar escalas
   useEffect(() => {
-    loadEscalasFromSheets().then((data) => {
-      setEscalas(data);
-    });
+    loadEscalasFromSheets().then((data) => setEscalas(data));
   }, []);
 
   // Defaults al cambiar sector
@@ -50,14 +47,13 @@ export default function Home() {
       setRegimen("35");
     } else {
       setConvenio("comercio");
-      setRegimen("48");
+      setRegimen("48"); // << por defecto full-time comercio
       setSubRegimen("administracion");
     }
     setMes("");
     setCategoria("");
   }, [sector]);
 
-  // Selección de bloque de escalas
   const escalasSector = useMemo(() => {
     if (!escalas) return null;
     if (sector === "publico" && convenio === "municipalidad") {
@@ -69,25 +65,21 @@ export default function Home() {
     return null;
   }, [escalas, sector, convenio, subRegimen]);
 
-  // Meses disponibles
   const mesesDisponibles = useMemo(() => {
     if (!escalasSector) return [];
     return Object.keys(escalasSector ?? {}).sort();
   }, [escalasSector]);
 
-  // Auto-selección de mes
   useEffect(() => {
     if (mesesDisponibles.length > 0 && !mes) setMes(mesesDisponibles[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mesesDisponibles]);
 
-  // Categorías disponibles
   const categoriasDisponibles = useMemo(() => {
     if (!mes || !escalasSector?.[mes]?.categoria) return [];
     return Object.keys(escalasSector[mes].categoria);
   }, [mes, escalasSector]);
 
-  // Auto-selección de categoría
   useEffect(() => {
     if (categoriasDisponibles.length > 0 && !categoria) {
       setCategoria(categoriasDisponibles[0]);
@@ -95,7 +87,6 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoriasDisponibles]);
 
-  // Revalidar mes/categoría si cambia la fuente
   useEffect(() => {
     if (!escalasSector) return;
     const meses = Object.keys(escalasSector);
@@ -116,7 +107,6 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [escalasSector, mes, categoria]);
 
-  // Cálculo
   const r = useMemo(() => {
     if (!escalasSector || !mes || !categoria) return null;
     const entry = escalasSector[mes]?.categoria?.[categoria];
@@ -125,7 +115,7 @@ export default function Home() {
     return sector === "publico"
       ? calcularPublico({
           entry,
-          regimen,
+          regimen, // lo que ya usabas para público (35/…)
           aniosAntiguedad,
           titulo,
           funcion,
@@ -144,6 +134,8 @@ export default function Home() {
           horas100,
           descuentosExtras,
           noRemunerativo,
+          // ✅ acá usamos el MISMO "regimen" como horas/semana para Comercio
+          cargaHoraria: Number(regimen),
         });
   }, [
     escalasSector,
@@ -179,10 +171,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white">
-
-      {/* CONTENIDO (full width) */}
       <main className="w-full px-6 py-8">
-        {/* Grilla 2 columnas (rail izq / contenido) — SIN panel derecho */}
         <div
           className="
             grid grid-cols-1
@@ -191,12 +180,10 @@ export default function Home() {
             gap-8 2xl:gap-12
           "
         >
-          {/* Izquierda */}
           <div className="hidden xl:block">
             <SideRailLeft />
           </div>
 
-          {/* Contenido principal */}
           <div
             className="
               grid grid-cols-1
@@ -223,7 +210,7 @@ export default function Home() {
                 aniosAntiguedad={aniosAntiguedad}
                 setAniosAntiguedad={setAniosAntiguedad}
                 regimen={regimen}
-                setRegimen={setRegimen}
+                setRegimen={setRegimen}      // << el mismo control maneja las horas
                 titulo={titulo}
                 setTitulo={setTitulo}
                 funcion={funcion}
@@ -255,7 +242,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Botón móvil para abrir extras (drawer) */}
         <div className="xl:hidden mt-4">
           <button
             type="button"
@@ -270,7 +256,6 @@ export default function Home() {
           * Los valores se calculan con datos publicados y reglas vigentes. Verificá siempre con la liquidación oficial.
         </p>
 
-        {/* Modal de reportes */}
         <ReportModal
           open={showReport}
           onClose={() => setShowReport(false)}
@@ -294,7 +279,6 @@ export default function Home() {
         />
       </main>
 
-      {/* Drawer móvil con extras */}
       <MobileExtras
         open={showExtras}
         onClose={() => setShowExtras(false)}
@@ -303,7 +287,6 @@ export default function Home() {
         onReport={() => setShowReport(true)}
       />
 
-      {/* FOOTER (full width) */}
       <footer className="border-t border-slate-200 mt-10">
         <div className="w-full px-6 py-4 text-xs text-slate-500">
           © {new Date().getFullYear()} Calculadora de Sueldos.

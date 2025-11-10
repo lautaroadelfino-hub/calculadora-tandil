@@ -181,11 +181,18 @@ export default function Parametros({
           </Field>
         ) : (
           <Field label="Régimen horario semanal">
-            <input
-              disabled
-              value="48 hs (fijo comercio)"
-              className="w-full rounded-lg border-slate-200 bg-slate-50 px-3 py-2"
-            />
+            {/* ✅ COMERCIO: desbloqueado, seleccionable */}
+            <Select
+              value={regimen}
+              onChange={(e) => setRegimen(e.target.value)}
+            >
+              {[12, 18, 20, 24, 30, 36, 40, 44, 48].map((h) => (
+                <option key={h} value={String(h)}>{h} hs</option>
+              ))}
+            </Select>
+            <p className="mt-1 text-[11px] text-slate-500">
+              Se calcula sobre el básico de 48 hs (ej.: 24 hs = básico 48 × 24/48).
+            </p>
           </Field>
         )}
       </div>
