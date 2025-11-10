@@ -14,17 +14,18 @@ export default function Resultados({ r, money }) {
   const fmt = (v) =>
     money ? money(Number.isFinite(+v) ? +v : 0) : (Number(v || 0)).toFixed(2);
 
-  // Ajusta la fuente según la cantidad de caracteres del número formateado.
-  // kind = 'row' (líneas) o 'stat' (totales grandes).
+  // Tamaño adaptativo: más agresivo para asegurar que no desborde
   const sizeFor = (str, kind = "row") => {
     const len = String(str || "").length;
     if (kind === "stat") {
+      if (len > 20) return "text-[clamp(0.85rem,3.0vw,1.05rem)]";
       if (len > 18) return "text-[clamp(0.90rem,3.2vw,1.10rem)]";
-      if (len > 16) return "text-[clamp(1.00rem,3.4vw,1.25rem)]";
-      if (len > 14) return "text-[clamp(1.05rem,3.6vw,1.35rem)]";
-      return "text-[clamp(1.10rem,3.8vw,1.50rem)]";
+      if (len > 16) return "text-[clamp(0.95rem,3.4vw,1.20rem)]";
+      if (len > 14) return "text-[clamp(1.00rem,3.6vw,1.30rem)]";
+      return "text-[clamp(1.05rem,3.8vw,1.45rem)]";
     } else {
-      if (len > 18) return "text-[clamp(0.80rem,3.0vw,1.00rem)]";
+      if (len > 20) return "text-[clamp(0.80rem,2.8vw,0.95rem)]";
+      if (len > 18) return "text-[clamp(0.85rem,3.0vw,1.00rem)]";
       if (len > 16) return "text-[clamp(0.90rem,3.2vw,1.05rem)]";
       if (len > 14) return "text-[clamp(0.95rem,3.4vw,1.10rem)]";
       return "text-[clamp(1.00rem,3.6vw,1.20rem)]";
@@ -43,8 +44,8 @@ export default function Resultados({ r, money }) {
         </span>
         <span
           className={[
-            "tabular-nums leading-tight text-right",
-            "whitespace-nowrap", // no se parte en renglones
+            "tabular-nums leading-snug text-right",
+            "whitespace-nowrap max-w-full overflow-hidden tracking-tight",
             strong ? "font-semibold" : "text-sm",
             negative ? "text-rose-600" : "text-slate-800",
             sizeFor(vStr, "row"),
@@ -79,8 +80,8 @@ export default function Resultados({ r, money }) {
         <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
         <div
           className={[
-            "font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight text-right",
-            "whitespace-nowrap", // no-wrap
+            "font-semibold text-slate-800 mt-0.5 tabular-nums leading-snug text-right",
+            "whitespace-nowrap max-w-full overflow-hidden tracking-tight",
             sizeFor(vStr, "stat"),
           ].join(" ")}
           title={`$ ${vStr}`}
@@ -150,10 +151,10 @@ export default function Resultados({ r, money }) {
         </Block>
       </div>
 
-      {/* Totales: no-sticky en mobile, sticky desde md */}
+      {/* Totales: 1 col en xs, 2 en sm, 4 en md */}
       <div className="min-w-0 md:sticky md:bottom-0 md:z-10">
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-3 md:p-4 min-w-0">
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4 min-w-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 min-w-0">
             <Stat label="Remunerativo" value={r.totalRemunerativo} />
             <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
             <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
