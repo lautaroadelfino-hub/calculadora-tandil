@@ -226,7 +226,7 @@ export default function Home() {
               />
             </section>
 
-            <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 border border-slate-100">
+            <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 border border-slate-100 overflow-hidden">
               <Resultados r={r} money={money} />
               <div className="mt-5">
                 <button
