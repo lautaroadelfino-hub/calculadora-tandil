@@ -69,18 +69,21 @@ export default function Admin() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 space-y-6">
+      {/* Encabezado: sin botón de salir (queda en AuthNavFloating) */}
       <header className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Panel de noticias</h1>
         <div className="flex items-center gap-3">
           <span className="text-xs text-slate-500 hidden sm:block">
             {user?.email}
           </span>
-          {/* Se removió el botón 'Salir'. El logout queda en el botón global (AuthNavFloating). */}
         </div>
       </header>
 
       {/* Formulario de alta */}
-      <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-6 gap-3 p-4 border rounded-xl bg-white/80">
+      <form
+        onSubmit={save}
+        className="grid grid-cols-1 md:grid-cols-6 gap-3 p-4 border rounded-xl bg-white/80"
+      >
         <input
           type="date"
           value={form.date}
@@ -120,7 +123,9 @@ export default function Admin() {
         <button className="md:col-span-1 bg-slate-800 text-white rounded py-2">
           Guardar
         </button>
-        {msg && <div className="md:col-span-6 text-sm text-rose-700">{msg}</div>}
+        {msg && (
+          <div className="md:col-span-6 text-sm text-rose-700">{msg}</div>
+        )}
       </form>
 
       {/* Listado */}
@@ -135,4 +140,21 @@ export default function Admin() {
                 <span className="text-[11px] text-slate-500 w-24">
                   {new Date(n.date + "T00:00:00").toLocaleDateString("es-AR")}
                 </span>
-                <span classNa
+                <span className="flex-1">{n.title}</span>
+                <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100">
+                  {n.tag}
+                </span>
+                <button
+                  onClick={() => del(n.id)}
+                  className="text-rose-700 text-sm"
+                >
+                  Eliminar
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
