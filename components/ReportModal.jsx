@@ -106,7 +106,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
         ),
       };
 
-      const res = await fetch("https://formspree.io/f/mrbonwdv", {
+      const res = await fetch("https://formspree.io/f/manaynzy", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
