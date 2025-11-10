@@ -75,11 +75,7 @@ export default function Admin() {
           <span className="text-xs text-slate-500 hidden sm:block">
             {user?.email}
           </span>
-          <form method="post" action="/api/auth/logout">
-            <button className="text-sm rounded-lg border px-3 py-1 hover:bg-slate-50">
-              Salir
-            </button>
-          </form>
+          {/* Se removió el botón 'Salir'. El logout queda en el botón global (AuthNavFloating). */}
         </div>
       </header>
 
@@ -139,16 +135,4 @@ export default function Admin() {
                 <span className="text-[11px] text-slate-500 w-24">
                   {new Date(n.date + "T00:00:00").toLocaleDateString("es-AR")}
                 </span>
-                <span className="flex-1">{n.title}</span>
-                <span className="text-[11px] px-2 py-0.5 rounded bg-slate-100">{n.tag}</span>
-                <button onClick={() => del(n.id)} className="text-rose-700 text-sm">
-                  Eliminar
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </div>
-  );
-}
+                <span classNa
