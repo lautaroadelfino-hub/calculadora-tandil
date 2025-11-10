@@ -7,7 +7,7 @@ import Header from "../components/Header";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata = {
-  title: "Calculadora de Sueldos – Tandil",
+  title: "LiquidAR",
   description: "Cálculo rápido de remunerativos, no remunerativos y deducciones",
 };
 
