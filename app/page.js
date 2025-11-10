@@ -10,6 +10,7 @@ import Resultados from "../components/Resultados";
 import ReportModal from "../components/ReportModal";
 import SideRailLeft from "../components/SideRailLeft";
 import MobileExtras from "../components/MobileExtras";
+import FunnyEscalasLoader from "../components/FunnyEscalasLoader";
 
 export default function Home() {
   const [escalas, setEscalas] = useState(null);
@@ -159,15 +160,7 @@ export default function Home() {
       maximumFractionDigits: 2,
     }).format(Number(v || 0));
 
-  if (!escalas) {
-    return (
-      <div className="min-h-screen bg-slate-100 flex items-center justify-center">
-        <div className="p-6 text-center text-lg text-slate-700 bg-white shadow rounded-xl">
-          Cargando escalas salariales…
-        </div>
-      </div>
-    );
-  }
+  if (!escalas) return <FunnyEscalasLoader />;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white">
