@@ -179,17 +179,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white">
-      {/* HEADER (full width) */}
-      <header className="bg-gradient-to-r from-sky-600 to-indigo-700 text-white">
-        <div className="w-full px-6 py-10">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-            Calculadora de Sueldos
-          </h1>
-          <p className="opacity-90 mt-1 text-sm md:text-base">
-            Cálculo para sector público y privado.
-          </p>
-        </div>
-      </header>
 
       {/* CONTENIDO (full width) */}
       <main className="w-full px-6 py-8">
