@@ -1,3 +1,4 @@
+// components/SideRailLeft.jsx
 "use client";
 import React from "react";
 
@@ -104,6 +105,19 @@ export default function SideRailLeft() {
           </ul>
         )}
       </div>
+
+{/* Próximas actualizaciones */}
+<div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4">
+  <h3 className="text-sm font-semibold text-slate-700">Próximas actualizaciones</h3>
+  <ul className="mt-3 space-y-2">
+    <li className="text-sm leading-5">Liquidación del Impuesto a las Ganancias (empleados)</li>
+    <li className="text-sm leading-5">Convenio colectivo Municipalidad de General Pueyrredón</li>
+    <li className="text-sm leading-5">Empleados de Comercio – Rama Turismo</li>
+    <li className="text-sm leading-5">Convenio UOCRA</li>
+    <li className="text-sm leading-5">Función para empleadores: costo laboral total del empleado</li>
+  </ul>
+</div>
+
     </aside>
   );
 }
