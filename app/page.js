@@ -248,7 +248,7 @@ export default function Home() {
             onClick={() => setShowExtras(true)}
             className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-slate-800"
           >
-            Ver herramientas y resumen
+            Novedades / Actualizaciones
           </button>
         </div>
 

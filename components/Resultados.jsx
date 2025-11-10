@@ -1,3 +1,4 @@
+// components/Resultados.jsx
 "use client";
 import React from "react";
 
@@ -21,7 +22,7 @@ export default function Resultados({ r, money }) {
   };
 
   const Fila = ({ label, value, strong, negative }) => (
-    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5">
+    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5 min-w-0">
       <span
         className={`text-sm ${strong ? "font-semibold text-slate-800" : "text-slate-600"} truncate`}
         title={label}
@@ -31,7 +32,7 @@ export default function Resultados({ r, money }) {
       <span
         className={[
           "text-sm tabular-nums leading-tight",
-          "text-right whitespace-nowrap",
+          "text-right whitespace-nowrap overflow-hidden text-ellipsis",
           strong ? "font-semibold" : "",
           negative ? "text-rose-600" : "text-slate-800",
         ].join(" ")}
@@ -43,9 +44,9 @@ export default function Resultados({ r, money }) {
   );
 
   const Block = ({ title, children }) => (
-    <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4">
+    <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 min-w-0">
       <h3 className="text-sm font-semibold text-slate-700 mb-2">{title}</h3>
-      {children}
+      <div className="min-w-0">{children}</div>
     </div>
   );
 
@@ -60,14 +61,16 @@ export default function Resultados({ r, money }) {
         : "ring-1 ring-slate-200";
 
     return (
-      <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-3 ${ring}`}>
+      <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0`}>
         <div className="text-[11px] uppercase tracking-wide text-slate-500">
           {label}
         </div>
         <div
-          className={`font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight text-right whitespace-nowrap ${sizeFor(
-            value
-          )}`}
+          className={[
+            "font-semibold text-slate-800 mt-0.5 tabular-nums leading-tight",
+            "text-right whitespace-nowrap overflow-hidden text-ellipsis",
+            sizeFor(value),
+          ].join(" ")}
           title={moneyNoWrap(value)}
         >
           ${moneyNoWrap(value)}
@@ -98,9 +101,9 @@ export default function Resultados({ r, money }) {
       : [{ label: "Deducciones", monto: r.totalDeducciones || 0 }];
 
   return (
-    <section className="space-y-4 relative">
-      {/* Detalle (dejamos espacio inferior para que no tape el sticky) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-[140px]">
+    <section className="space-y-4 min-w-0">
+      {/* Detalle */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0 md:pb-[140px]">
         <Block title="Remunerativos">
           {remRows.map(([label, val]) => (
             <Fila key={label} label={label} value={val} />
@@ -137,17 +140,14 @@ export default function Resultados({ r, money }) {
         </Block>
       </div>
 
-      {/* Totales sticky al fondo del panel */}
-      <div className="sticky bottom-0 z-10 left-0 right-0">
-        {/* Fondo/blur que cubre el ancho del panel (ajustado al padding p-5 del contenedor) */}
-        <div className="-mx-5 px-5 pb-2 pt-3 bg-gradient-to-t from-white/95 via-white/70 to-transparent backdrop-blur supports-[backdrop-filter]:bg-white/70 shadow-[0_-8px_20px_-8px_rgba(2,6,23,0.08)]">
-          <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-4">
-            <div className="grid [grid-template-columns:repeat(auto-fit,minmax(260px,1fr))] gap-4">
-              <Stat label="Remunerativo" value={r.totalRemunerativo} />
-              <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
-              <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
-              <Stat label="Líquido" value={r.liquido} tone="good" />
-            </div>
+      {/* Totales: no-sticky en mobile, sticky desde md */}
+      <div className="min-w-0 md:sticky md:bottom-0 md:z-10">
+        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-3 md:p-4 min-w-0">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4 min-w-0">
+            <Stat label="Remunerativo" value={r.totalRemunerativo} />
+            <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
+            <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
+            <Stat label="Líquido" value={r.liquido} tone="good" />
           </div>
         </div>
       </div>
