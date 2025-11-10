@@ -1,6 +1,7 @@
 // components/Resultados.jsx
 "use client";
 import React from "react";
+import AutoFitText from "./AutoFitText";
 
 export default function Resultados({ r, money }) {
   if (!r) {
@@ -73,31 +74,31 @@ export default function Resultados({ r, money }) {
   );
 
   const Stat = ({ label, value, tone = "neutral" }) => {
-    const ring =
-      tone === "good"
-        ? "ring-1 ring-emerald-200"
-        : tone === "bad"
-        ? "ring-1 ring-rose-200"
-        : tone === "warn"
-        ? "ring-1 ring-amber-200"
-        : "ring-1 ring-slate-200";
-    const vStr = fmt(value);
-    return (
-      <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0 [container-type:inline-size]`}>
-        <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
-        <div
-          className={[
-            "font-semibold text-slate-800 mt-0.5 tabular-nums leading-snug text-right",
-            "whitespace-nowrap max-w-full tracking-tight",
-            sizeFor(vStr, "stat"),
-          ].join(" ")}
-          title={`$ ${vStr}`}
-        >
+  const ring =
+    tone === "good"
+      ? "ring-1 ring-emerald-200"
+      : tone === "bad"
+      ? "ring-1 ring-rose-200"
+      : tone === "warn"
+      ? "ring-1 ring-amber-200"
+      : "ring-1 ring-slate-200";
+
+  const vStr = fmt(value);
+
+  return (
+    <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0`}>
+      <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
+
+      {/* Wrapper con colapso correcto */}
+      <div className="mt-0.5 text-right min-w-0 overflow-hidden">
+        {/* Tu AutoFit asegura UNA sola línea y reduce font-size hasta que entra */}
+        <AutoFitText min={18} max={36} className="tabular-nums font-semibold leading-snug tracking-tight inline-block whitespace-nowrap">
           $ {vStr}
-        </div>
+        </AutoFitText>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   const remRows = [
     ["Básico", r.basico],
@@ -166,7 +167,7 @@ export default function Resultados({ r, money }) {
       {/* Totales: 1 col en xs, 2 en sm, 4 en md */}
       <div className="min-w-0 md:sticky md:bottom-0 md:z-10">
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-3 md:p-4 min-w-0">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 min-w-0">
+          <div className="grid gap-2 md:gap-4 min-w-0 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
             <Stat label="Remunerativo" value={r.totalRemunerativo} />
             <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
             <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
