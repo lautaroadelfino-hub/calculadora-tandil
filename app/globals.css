@@ -224,5 +224,37 @@ main > * { isolation: isolate; }
   .compact-block { padding-block: .75rem; }
 }
 
+/* --- Paneles y tarjetas: habilitar container queries por ancho --- */
+.panel,
+.card,
+.metric-card {
+  container-type: inline-size; /* habilita cqw/cqh adentro */
+  min-width: 0;               /* permite que el contenido se achique sin empujar */
+}
+
+/* --- Texto numérico grande que se adapta al ancho del contenedor --- */
+.auto-num {
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  white-space: nowrap;                 /* no partir el número */
+  /* Ajuste de tamaño por ancho del contenedor (cqw), con límites */
+  font-size: clamp(1rem, 8cqw, 2.5rem);
+}
+
+/* Variante XL (por si tenés el "Líquido" gigante en verde) */
+.auto-num-xl {
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+  font-weight: 800;
+  font-size: clamp(1.25rem, 10cqw, 3rem);
+}
+
+/* Cuando el contenedor es MUY chico, permitir partir en cualquier punto ANTES de truncar */
+.auto-wrap-anywhere {
+  overflow-wrap: anywhere;  /* si el contenedor es minúsculo, priorizar ver todos los dígitos */
+}
+
+
 
 
