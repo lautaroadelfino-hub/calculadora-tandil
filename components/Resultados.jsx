@@ -75,24 +75,18 @@ export default function Resultados({ r, money }) {
 
   const Stat = ({ label, value, tone = "neutral" }) => {
   const ring =
-    tone === "good"
-      ? "ring-1 ring-emerald-200"
-      : tone === "bad"
-      ? "ring-1 ring-rose-200"
-      : tone === "warn"
-      ? "ring-1 ring-amber-200"
-      : "ring-1 ring-slate-200";
+    tone === "good" ? "ring-1 ring-emerald-200" :
+    tone === "bad"  ? "ring-1 ring-rose-200"    :
+    tone === "warn" ? "ring-1 ring-amber-200"   :
+                      "ring-1 ring-slate-200";
 
   const vStr = fmt(value);
 
   return (
-    <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-3 ${ring} min-w-0`}>
-      <div className="text-[11px] uppercase tracking-wide text-slate-500">{label}</div>
-
-      {/* Wrapper con colapso correcto */}
+    <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-2.5 ${ring} min-w-0`}>
+      <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
       <div className="mt-0.5 text-right min-w-0 overflow-hidden">
-        {/* Tu AutoFit asegura UNA sola línea y reduce font-size hasta que entra */}
-        <AutoFitText min={18} max={36} className="tabular-nums font-semibold leading-snug tracking-tight inline-block whitespace-nowrap">
+        <AutoFitText min={14} max={26} className="tabular-nums font-semibold leading-tight inline-block whitespace-nowrap">
           $ {vStr}
         </AutoFitText>
       </div>
@@ -167,7 +161,7 @@ export default function Resultados({ r, money }) {
       {/* Totales: 1 col en xs, 2 en sm, 4 en md */}
       <div className="min-w-0 md:sticky md:bottom-0 md:z-10">
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-3 md:p-4 min-w-0">
-          <div className="grid gap-2 md:gap-4 min-w-0 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
+          <div className="grid gap-2 md:gap-3 min-w-0 [grid-template-columns:repeat(auto-fit,minmax(360px,1fr))]">
             <Stat label="Remunerativo" value={r.totalRemunerativo} />
             <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
             <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
