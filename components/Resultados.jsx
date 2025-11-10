@@ -161,7 +161,7 @@ export default function Resultados({ r, money }) {
       {/* Totales: 1 col en xs, 2 en sm, 4 en md */}
       <div className="min-w-0 md:sticky md:bottom-0 md:z-10">
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-3 md:p-4 min-w-0">
-          <div className="grid gap-2 md:gap-3 min-w-0 [grid-template-columns:repeat(auto-fit,minmax(360px,1fr))]">
+          <div className="grid gap-2 md:gap-3 min-w-0 [grid-template-columns:repeat(auto-fit)]">
             <Stat label="Remunerativo" value={r.totalRemunerativo} />
             <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
             <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
