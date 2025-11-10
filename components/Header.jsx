@@ -31,7 +31,6 @@ export default function Header() {
             className="ml-auto md:hidden inline-flex items-center justify-center h-10 w-10 rounded-xl bg-white/15 ring-1 ring-white/25"
           >
             <span className="sr-only">Abrir menú</span>
-            {/* Icono hamburguesa */}
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path d="M4 7h16M4 12h16M4 17h16" stroke="white" strokeWidth="2" strokeLinecap="round"/>
             </svg>
@@ -40,7 +39,7 @@ export default function Header() {
           {/* Nav desktop */}
           <nav className="ml-auto hidden md:flex items-center gap-8">
             <a href="/" className="hover:text-emerald-100 whitespace-nowrap">Calculadora</a>
-            <a href="/paritarias" className="hover:text-emerald-100 whitespace-nowrap">Paritarias</a>
+            <a href="/novedades" className="hover:text-emerald-100 whitespace-nowrap">Novedades</a>
           </nav>
         </div>
 
@@ -58,11 +57,11 @@ export default function Header() {
               Calculadora
             </a>
             <a
-              href="/paritarias"
+              href="/novedades"
               onClick={() => setOpen(false)}
               className="block rounded-xl px-3 py-3 bg-white/10 hover:bg-white/15 whitespace-nowrap"
             >
-              Paritarias
+              Novedades
             </a>
           </nav>
         </div>
