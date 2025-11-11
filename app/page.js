@@ -1,3 +1,4 @@
+// app/page.js (estable: sin saltos al scrollear)
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
 
@@ -184,14 +185,15 @@ export default function Home() {
   if (!escalas) return <FunnyEscalasLoader />;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white">
-      <main className="w-full px-6 py-8 short-xl:py-4 min-h-[calc(100svh-var(--h-header))]">
+    // 🔒 Estabilizamos altura de viewport con 100dvh y quitamos variantes "short-*"
+    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-100 via-slate-50 to-white overflow-x-hidden">
+      <main className="w-full px-6 py-8 min-h-[100dvh]">
         <div
           className="
             grid grid-cols-1 min-h-0
             xl:grid-cols-[320px_minmax(0,1fr)]
             2xl:grid-cols-[360px_minmax(0,1fr)]
-            gap-8 2xl:gap-12 short-xl:gap-6
+            gap-8 2xl:gap-12
           "
         >
           <div className="hidden xl:block min-h-0">
@@ -199,10 +201,8 @@ export default function Home() {
           </div>
 
           {/* Parámetros arriba, Resultados abajo */}
-          <div className="grid grid-cols-1 min-h-0 gap-8 2xl:gap-12 short-xl:gap-6">
-            {/* Vacaciones props: mover el comentario afuera del opening tag */}
-            {/* Props nuevas de Vacaciones se pasan aquí abajo */}
-            <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 short-xl:p-4 border border-slate-100">
+          <div className="grid grid-cols-1 min-h-0 gap-8 2xl:gap-12">
+            <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 border border-slate-100">
               <Parametros
                 sector={sector}
                 setSector={setSector}
@@ -244,7 +244,7 @@ export default function Home() {
             <section className="panel shadow min-h-0">
               <Resultados r={r} money={money} />
 
-              <div className="mt-5 short-xl:mt-3">
+              <div className="mt-5">
                 <button
                   ref={reportBtnRef}
                   type="button"

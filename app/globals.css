@@ -273,3 +273,6 @@ main > * { isolation: isolate; }
   font-variant-numeric: tabular-nums;
   font-size: clamp(1.05rem, 10cqw, 1.70rem);
 }
+
+html { scrollbar-gutter: stable both-edges; } /* evita saltitos al aparecer la barra */
+
