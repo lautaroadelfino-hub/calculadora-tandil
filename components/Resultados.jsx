@@ -15,57 +15,37 @@ export default function Resultados({ r, money }) {
   const fmt = (v) =>
     money ? money(Number.isFinite(+v) ? +v : 0) : (Number(v || 0)).toFixed(2);
 
-  /**
-   * Tamaños adaptativos con container queries (cqw)
-   * - "stat": para los totales grandes (cards de abajo)
-   * - "row": para filas del detalle
-   * Usamos clamp con cqw (ancho del CONTENEDOR) para evitar desborde sin truncar.
-   */
-  const sizeFor = (str, kind = "row") => {
-    const len = String(str || "").length;
-
-    if (kind === "stat") {
-      if (len > 20) return "text-[clamp(0.85rem,6.5cqw,1.05rem)]";
-      if (len > 18) return "text-[clamp(0.95rem,7.5cqw,1.20rem)]";
-      if (len > 16) return "text-[clamp(1.05rem,8.5cqw,1.30rem)]";
-      if (len > 14) return "text-[clamp(1.10rem,9.5cqw,1.45rem)]";
-      return "text-[clamp(1.20rem,10.5cqw,1.60rem)]";
-    } else {
-      if (len > 20) return "text-[clamp(0.80rem,6.0cqw,0.95rem)]";
-      if (len > 18) return "text-[clamp(0.85rem,6.8cqw,1.05rem)]";
-      if (len > 16) return "text-[clamp(0.90rem,7.6cqw,1.15rem)]";
-      if (len > 14) return "text-[clamp(0.95rem,8.4cqw,1.20rem)]";
-      return "text-[clamp(1.00rem,9.2cqw,1.30rem)]";
-    }
-  };
-
+  // ---- Fila del detalle (con AutoFit en label y valor) ----
   const Fila = ({ label, value, strong, negative }) => {
     const vStr = fmt(Math.abs(value || 0));
     return (
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 py-1.5 min-w-0">
-        <span
-          className={`text-sm ${strong ? "font-semibold text-slate-800" : "text-slate-600"} truncate`}
-          title={label}
-        >
-          {label}
-        </span>
-        <span
-          className={[
-            "tabular-nums leading-snug text-right",
-            "whitespace-nowrap max-w-full tracking-tight",
-            strong ? "font-semibold" : "text-sm",
-            negative ? "text-rose-600" : "text-slate-800",
-            sizeFor(vStr, "row"),
-          ].join(" ")}
-          title={`${negative ? "-" : ""}$ ${vStr}`}
-        >
-          {negative ? "-" : ""}$ {vStr}
-        </span>
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(8rem,0.95fr)] items-center gap-3 py-1.5 min-w-0">
+        {/* Columna label: mide solo su celda */}
+        <div className="min-w-0">
+          <AutoFitText
+            className={`${strong ? "font-semibold text-slate-800" : "text-slate-600"} text-sm leading-snug block overflow-hidden text-ellipsis`}
+          >
+            {label}
+          </AutoFitText>
+        </div>
+
+        {/* Columna valor */}
+        <div className="min-w-0 text-right">
+          <AutoFitText
+            className={[
+              "tabular-nums leading-snug whitespace-nowrap tracking-tight inline-block",
+              strong ? "font-semibold" : "text-sm",
+              negative ? "text-rose-600" : "text-slate-800",
+            ].join(" ")}
+          >
+            {negative ? "-" : ""}$ {vStr}
+          </AutoFitText>
+        </div>
       </div>
     );
   };
 
-  // 👇 Agrego container queries por tarjeta (no en todo el section)
+  // Tarjeta con container queries locales
   const Block = ({ title, children }) => (
     <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 min-w-0 [container-type:inline-size]">
       <h3 className="text-sm font-semibold text-slate-700 mb-2">{title}</h3>
@@ -73,26 +53,27 @@ export default function Resultados({ r, money }) {
     </div>
   );
 
+  // Card de totales (Stat) con AutoFit automático
   const Stat = ({ label, value, tone = "neutral" }) => {
-  const ring =
-    tone === "good" ? "ring-1 ring-emerald-200" :
-    tone === "bad"  ? "ring-1 ring-rose-200"    :
-    tone === "warn" ? "ring-1 ring-amber-200"   :
-                      "ring-1 ring-slate-200";
+    const ring =
+      tone === "good" ? "ring-1 ring-emerald-200" :
+      tone === "bad"  ? "ring-1 ring-rose-200"    :
+      tone === "warn" ? "ring-1 ring-amber-200"   :
+                        "ring-1 ring-slate-200";
 
-  const vStr = fmt(value);
+    const vStr = fmt(value);
 
-  return (
-    <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-2.5 ${ring} min-w-0`}>
-      <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
-      <div className="mt-0.5 text-right min-w-0 overflow-hidden">
-        <AutoFitText min={14} max={26} className="tabular-nums font-semibold leading-tight inline-block whitespace-nowrap">
-          $ {vStr}
-        </AutoFitText>
+    return (
+      <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-2.5 ${ring} min-w-0`}>
+        <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
+        <div className="mt-0.5 text-right min-w-0 overflow-hidden">
+          <AutoFitText className="tabular-nums font-semibold leading-tight inline-block whitespace-nowrap">
+            $ {vStr}
+          </AutoFitText>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   const remRows = [
     ["Básico", r.basico],
@@ -116,11 +97,6 @@ export default function Resultados({ r, money }) {
       : [{ label: "Deducciones", monto: r.totalDeducciones || 0 }];
 
   return (
-    /**
-     * NOTA: ahora NO activamos container queries a nivel sección,
-     * solo por tarjeta (Block/Stat). Así cada número escala según
-     * el ancho de SU card y no del panel completo.
-     */
     <section className="space-y-4 min-w-0">
       {/* Detalle */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0 md:pb-[140px]">
@@ -158,10 +134,14 @@ export default function Resultados({ r, money }) {
         </Block>
       </div>
 
-      {/* Totales: 1 col en xs, 2 en sm, 4 en md */}
+      {/* Totales: grid fluida con auto-fit + fallback responsive */}
       <div className="min-w-0 md:sticky md:bottom-0 md:z-10">
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-3 md:p-4 min-w-0">
-          <div className="grid gap-2 md:gap-3 min-w-0 [grid-template-columns:repeat(auto-fit)]">
+          <div className="
+              grid gap-2 md:gap-3 min-w-0
+              grid-cols-1 sm:grid-cols-2 md:grid-cols-4
+              grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]
+            ">
             <Stat label="Remunerativo" value={r.totalRemunerativo} />
             <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
             <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
