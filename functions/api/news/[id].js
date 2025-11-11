@@ -1,10 +1,10 @@
 // functions/api/news/[id].js
 
-// --- CSRF helpers (fallback header <-> cookie) ---
+// --- CSRF helpers: header <-> cookie fallback ---
 function parseCookies(request) {
   const raw = request.headers.get('cookie') || '';
   const map = {};
-  raw.split(';').forEach(p => {
+  raw.split(';').forEach((p) => {
     const i = p.indexOf('=');
     if (i > -1) {
       const k = p.slice(0, i).trim();
@@ -27,7 +27,9 @@ function csrfHeaderMatchesCookie(request) {
 // GET /api/news/:id  (admin)
 export async function onRequestGet({ request, env, params }) {
   try {
-    if (!env.DB?.prepare) throw new Error('D1 binding "DB" ausente');
+    if (!env.DB || typeof env.DB.prepare !== 'function') {
+      throw new Error('D1 binding "DB" ausente');
+    }
     const { getSessionUser, requireAdmin } = await import('../../_lib/auth.js');
 
     const user = await getSessionUser(env, request);
@@ -35,7 +37,9 @@ export async function onRequestGet({ request, env, params }) {
 
     const id = params.id; // string o num
     const row = await env.DB
-      .prepare('select id, date, title, url, tag, published, created_at from news where id = ?')
+      .prepare(
+        'select id, date, title, url, tag, published, created_at from news where id = ?'
+      )
       .bind(id)
       .first();
 
@@ -60,7 +64,9 @@ export async function onRequestGet({ request, env, params }) {
 // PUT /api/news/:id  (editar)
 export async function onRequestPut({ request, env, params }) {
   try {
-    if (!env.DB?.prepare) throw new Error('D1 binding "DB" ausente');
+    if (!env.DB || typeof env.DB.prepare !== 'function') {
+      throw new Error('D1 binding "DB" ausente');
+    }
     const { getSessionUser, requireAdmin } = await import('../../_lib/auth.js');
     const { verifyCsrf } = await import('../../_lib/csrf.js');
 
@@ -72,8 +78,9 @@ export async function onRequestPut({ request, env, params }) {
       await verifyCsrf(request);
     } catch (e) {
       if (!csrfHeaderMatchesCookie(request)) {
+        const status = typeof e?.status === 'number' ? e.status : 403;
         return new Response(JSON.stringify({ ok: false, error: 'CSRF inválido' }), {
-          status: e?.status || 403,
+          status,
           headers: { 'Content-Type': 'application/json' },
         });
       }
@@ -96,9 +103,90 @@ export async function onRequestPut({ request, env, params }) {
     for (const k of allowed) {
       if (Object.prototype.hasOwnProperty.call(body, k)) {
         sets.push(`${k} = ?`);
-        vals.push(k === 'published' ? (body[k] ? 1 : 0) : (body[k] ?? null));
+        vals.push(k === 'published' ? (body[k] ? 1 : 0) : body[k] ?? null);
       }
     }
 
     if (!sets.length) {
       return new Response(JSON.stringify({ ok: false, error: 'No changes' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const id = params.id;
+    const sql = `update news set ${sets.join(', ')} where id = ?`;
+    vals.push(id);
+
+    const res = await env.DB.prepare(sql).bind(...vals).run();
+    const success = !!res?.success;
+    const changes = (res?.meta && res.meta.changes) || res?.changes || 0;
+    if (!success || changes === 0) {
+      return new Response(JSON.stringify({ ok: false, error: 'Update failed' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const row = await env.DB
+      .prepare(
+        'select id, date, title, url, tag, published, created_at from news where id = ?'
+      )
+      .bind(id)
+      .first();
+
+    return new Response(JSON.stringify({ ok: true, data: row }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+// DELETE /api/news/:id
+export async function onRequestDelete({ request, env, params }) {
+  try {
+    if (!env.DB || typeof env.DB.prepare !== 'function') {
+      throw new Error('D1 binding "DB" ausente');
+    }
+    const { getSessionUser, requireAdmin } = await import('../../_lib/auth.js');
+    const { verifyCsrf } = await import('../../_lib/csrf.js');
+
+    const user = await getSessionUser(env, request);
+    requireAdmin(user);
+
+    try {
+      await verifyCsrf(request);
+    } catch (e) {
+      if (!csrfHeaderMatchesCookie(request)) {
+        const status = typeof e?.status === 'number' ? e.status : 403;
+        return new Response(JSON.stringify({ ok: false, error: 'CSRF inválido' }), {
+          status,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    const id = params.id;
+    const res = await env.DB.prepare('delete from news where id = ?').bind(id).run();
+    const success = !!res?.success;
+    if (!success) {
+      return new Response(JSON.stringify({ ok: false, error: 'Delete failed' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err) {
+    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
