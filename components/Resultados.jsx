@@ -12,29 +12,69 @@ export default function Resultados({ r, money }) {
     );
   }
 
-  const fmt = (v) =>
-    money ? money(Number.isFinite(+v) ? +v : 0) : Number(v || 0).toFixed(2);
+  // Convierte strings en formato AR/US a número sin romper decimales
+  // Soporta: "1.234.567,89" (AR/UE), "1,234,567.89" (US), "1234567.89", "1234567"
+  const numify = (v) => {
+    if (typeof v === "number" && Number.isFinite(v)) return v;
+    if (typeof v === "string") {
+      let s = v.trim();
+      if (!s) return 0;
+      // Dejar solo dígitos, separadores y signo
+      s = s.replace(/[^0-9,.\-]/g, "");
+      const hasComma = s.includes(",");
+      const hasDot = s.includes(".");
 
-  // ======== Helpers de lectura robusta ========
-  const isNum = (x) => typeof x === "number" && isFinite(x);
+      if (hasComma && hasDot) {
+        // El separador decimal suele ser el último que aparece
+        const lastComma = s.lastIndexOf(",");
+        const lastDot = s.lastIndexOf(".");
+        if (lastComma > lastDot) {
+          // Estilo AR/UE: "." miles, "," decimal
+          s = s.replace(/\./g, "").replace(",", ".");
+        } else {
+          // Estilo US: "," miles, "." decimal
+          s = s.replace(/,/g, "");
+        }
+      } else if (hasComma) {
+        // Solo coma: tomarla como decimal
+        s = s.replace(/,/g, ".");
+      } else {
+        // Solo punto o entero: no tocar
+      }
+
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const fmt = (v) => {
+    const n = numify(v);
+    return money ? money(n) : n.toFixed(2);
+  };
+
+  // ======== Helpers =========
+  const isNum = (x) => Number.isFinite(numify(x));
   const pick = (obj, keys) => {
-    for (const k of keys) if (isNum(obj?.[k])) return obj[k];
+    for (const k of keys) {
+      const v = obj?.[k];
+      if (Number.isFinite(numify(v))) return numify(v);
+    }
     return undefined;
   };
 
-  // Base común de valor hora: preferí claves estandarizadas
-  const vhBase = pick(r, [
-    "valorHora", "valorHoraPublico", "valor_hora", "horaBase", "valorHoraNormal"
-  ]);
-  const vh50  = pick(r, ["valorHora50", "vh50", "hora50"]);
+  // Base común de valor hora
+  const vhBase = pick(r, ["valorHora", "valorHoraPublico", "valor_hora", "horaBase", "valorHoraNormal"]);
+  const vh50 = pick(r, ["valorHora50", "vh50", "hora50"]);
   const vh100 = pick(r, ["valorHora100", "vh100", "hora100"]);
 
-  // Detectores de filas (capturan “Hs”, “Horas extra”, etc.)
+  // Detectores
   const is50 = (label) => /ho?ra/i.test(label) && /(50|50%)/i.test(label);
   const is100 = (label) => /ho?ra/i.test(label) && /(100|100%)/i.test(label);
 
   // ----------------- Ítems del detalle -----------------
-  const remRows = [
+  const remRowsRaw = [
     ["Básico", r.basico],
     ["Antigüedad", r.antiguedad],
     ["Presentismo", r.presentismo],
@@ -44,21 +84,50 @@ export default function Resultados({ r, money }) {
     ["Horas 50%", r.horasExtras50],
     ["Horas 100%", r.horasExtras100],
     ["Plus vacacional (base 25 vs 30)", r.vacacionesPlus],
-  ].filter(([, v]) => (v ?? 0) !== 0);
+  ];
+  const remRows = remRowsRaw.filter(([, v]) => numify(v) !== 0);
 
-  const noRemRows = [
+  const noRemRowsRaw = [
     ["Suma no remunerativa fija (acuerdo)", r.noRemuFijo],
     ["Otras no remunerativas", r.noRemunerativoOtros],
-  ].filter(([, v]) => (v ?? 0) !== 0);
+    ["Antigüedad (no remunerativa)", r.antiguedadNoRemu],
+    ["Presentismo (no remunerativo)", r.presentismoNoRemu],
+  ];
+  const noRemRows = noRemRowsRaw.filter(([, v]) => numify(v) !== 0);
 
   const dedRows =
     Array.isArray(r.detalleDeducciones) && r.detalleDeducciones.length > 0
       ? r.detalleDeducciones
       : [{ label: "Deducciones", monto: r.totalDeducciones || 0 }];
 
+  // ------------ Totales seguros (recalculo si hace falta) ------------
+  const totalRemCalc =
+    numify(r.basico) +
+    numify(r.antiguedad) +
+    numify(r.presentismo) +
+    numify(r.adicionalHorario) +
+    numify(r.adicionalTitulo) +
+    numify(r.adicionalFuncion) +
+    numify(r.horasExtras50) +
+    numify(r.horasExtras100) +
+    numify(r.vacacionesPlus);
+
+  const totalRemSafe = isNum(r.totalRemunerativo) ? numify(r.totalRemunerativo) : totalRemCalc;
+
+  const totalNoRemCalc =
+    numify(r.noRemuFijo) + numify(r.noRemunerativoOtros) + numify(r.antiguedadNoRemu) + numify(r.presentismoNoRemu);
+
+  const totalNoRemSafe = isNum(r.totalNoRemunerativo) ? numify(r.totalNoRemunerativo) : totalNoRemCalc;
+
+  const totalDedCalc = Array.isArray(dedRows) ? dedRows.reduce((acc, d) => acc + numify(d.monto), 0) : 0;
+  const totalDedSafe = isNum(r.totalDeducciones) ? numify(r.totalDeducciones) : totalDedCalc;
+
+  const liquidoSafe = totalRemSafe + totalNoRemSafe - totalDedSafe;
+
   // ----------------- UI -----------------
   const Fila = ({ label, value, strong, negative, hint }) => {
-    const vStr = fmt(Math.abs(value || 0));
+    const valNum = numify(value);
+    const vStr = fmt(Math.abs(valNum));
     return (
       <div className="py-2 min-w-0">
         <div className="grid grid-cols-[minmax(0,1fr)_minmax(8.5rem,0.9fr)] items-center gap-3 min-w-0">
@@ -150,13 +219,13 @@ export default function Resultados({ r, money }) {
           })}
 
           <div className="pt-2 border-t border-slate-100 mt-2">
-            <Fila label="Total remunerativo" value={r.totalRemunerativo} strong />
-            {(r.vacacionesPlus ?? 0) > 0 && Number(r.vacacionesDias) > 0 && (
+            <Fila label="Total remunerativo" value={totalRemSafe} strong />
+            {(numify(r.vacacionesPlus) > 0) && Number(r.vacacionesDias) > 0 && (
               <div className="mt-1 text-xs text-emerald-700">
                 Vacaciones: <strong>{r.vacacionesDias}</strong> día(s).{" "}
-                Base/25: ${Number(r.valorDiaBase25 ?? 0).toFixed(2)} ·{" "}
-                Base/30: ${Number(r.valorDiaBase30 ?? 0).toFixed(2)} ·{" "}
-                Plus/día: ${Number(r.plusPorDia ?? 0).toFixed(2)}
+                Base/25: ${Number(numify(r.valorDiaBase25)).toFixed(2)} ·{" "}
+                Base/30: ${Number(numify(r.valorDiaBase30)).toFixed(2)} ·{" "}
+                Plus/día: ${Number(numify(r.plusPorDia)).toFixed(2)}
               </div>
             )}
           </div>
@@ -169,7 +238,7 @@ export default function Resultados({ r, money }) {
                 <Fila key={label} label={label} value={val} />
               ))}
               <div className="pt-2 border-t border-slate-100 mt-2">
-                <Fila label="Total no remunerativo" value={r.totalNoRemunerativo} strong />
+                <Fila label="Total no remunerativo" value={totalNoRemSafe} strong />
               </div>
             </>
           ) : (
@@ -179,10 +248,10 @@ export default function Resultados({ r, money }) {
 
         <Block title="Deducciones">
           {dedRows.map((d, i) => (
-            <Fila key={i} label={d.label} value={-Math.abs(d.monto)} negative />
+            <Fila key={i} label={d.label} value={-Math.abs(numify(d.monto))} negative />
           ))}
           <div className="pt-2 border-t border-slate-100 mt-2">
-            <Fila label="Total deducciones" value={r.totalDeducciones} strong negative />
+            <Fila label="Total deducciones" value={totalDedSafe} strong negative />
           </div>
         </Block>
       </div>
@@ -191,10 +260,10 @@ export default function Resultados({ r, money }) {
       <div className="min-w-0">
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-3 md:p-4 min-w-0">
           <div className="grid gap-2 md:gap-3 min-w-0 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
-            <Stat label="Remunerativo" value={r.totalRemunerativo} />
-            <Stat label="No remunerativo" value={r.totalNoRemunerativo} tone="warn" />
-            <Stat label="Deducciones" value={r.totalDeducciones} tone="bad" />
-            <Stat label="Líquido" value={r.liquido} tone="good" />
+            <Stat label="Remunerativo" value={totalRemSafe} />
+            <Stat label="No remunerativo" value={totalNoRemSafe} tone="warn" />
+            <Stat label="Deducciones" value={totalDedSafe} tone="bad" />
+            <Stat label="Líquido" value={liquidoSafe} tone="good" />
           </div>
         </div>
       </div>
