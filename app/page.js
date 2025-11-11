@@ -65,7 +65,8 @@ export default function Home() {
       setVacDiasTrabajados(0);
       setVacDiasManual(0);
     }
-  }, [sector]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sector]);
 
   const escalasSector = useMemo(() => {
     if (!escalas) return null;
@@ -199,6 +200,8 @@ export default function Home() {
 
           {/* Parámetros arriba, Resultados abajo */}
           <div className="grid grid-cols-1 min-h-0 gap-8 2xl:gap-12 short-xl:gap-6">
+            {/* Vacaciones props: mover el comentario afuera del opening tag */}
+            {/* Props nuevas de Vacaciones se pasan aquí abajo */}
             <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 short-xl:p-4 border border-slate-100">
               <Parametros
                 sector={sector}
@@ -229,8 +232,6 @@ export default function Home() {
                 setDescuentosExtras={setDescuentosExtras}
                 noRemunerativo={noRemunerativo}
                 setNoRemunerativo={setNoRemunerativo}
-
-                {/* >>> Props nuevas de Vacaciones */}
                 vacacionesOn={vacacionesOn}
                 setVacacionesOn={setVacacionesOn}
                 vacDiasTrabajados={vacDiasTrabajados}
