@@ -117,7 +117,7 @@ export default function Resultados({ r, money }) {
 
   return (
     <section className="space-y-4 min-w-0">
-      {/* Detalle (sin padding-extra, ya no hay sticky) */}
+      {/* Detalle */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
         <Block title="Remunerativos">
           {remRows.map(([label, val]) => (
@@ -125,6 +125,12 @@ export default function Resultados({ r, money }) {
           ))}
           <div className="pt-2 border-t border-slate-100 mt-2">
             <Fila label="Total remunerativo" value={r.totalRemunerativo} strong />
+            {/* Leyenda de vacaciones (si aplica) */}
+            {(r.vacacionesMonto ?? 0) > 0 && Number(r.vacacionesDias) > 0 && (
+              <div className="mt-1 text-xs text-emerald-700">
+                Incluye vacaciones: <strong>{r.vacacionesDias}</strong> día(s) (base 25).
+              </div>
+            )}
           </div>
         </Block>
 
@@ -153,7 +159,7 @@ export default function Resultados({ r, money }) {
         </Block>
       </div>
 
-      {/* Totales: ya sin sticky, ocupa su lugar natural */}
+      {/* Totales */}
       <div className="min-w-0">
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-3 md:p-4 min-w-0">
           <div
