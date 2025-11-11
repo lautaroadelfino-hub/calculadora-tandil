@@ -15,34 +15,36 @@ export default function Resultados({ r, money }) {
   const fmt = (v) =>
     money ? money(Number.isFinite(+v) ? +v : 0) : (Number(v || 0)).toFixed(2);
 
-  // ---- Fila del detalle (con AutoFit en label y valor, con mínimos) ----
+  // ---- Fila del detalle (labels fijos, valores con AutoFit y mínimos) ----
   const Fila = ({ label, value, strong, negative }) => {
     const vStr = fmt(Math.abs(value || 0));
-    return (
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(10rem,1fr)] items-center gap-3 py-1.5 min-w-0">
-        {/* Columna label */}
-        <div className="min-w-0">
-          <AutoFitText
-            min={12}
-            max={14}
-            className={`${strong ? "font-semibold text-slate-800" : "text-slate-600"} text-sm leading-snug block overflow-hidden text-ellipsis`}
-          >
-            {label}
-          </AutoFitText>
-        </div>
 
-        {/* Columna valor */}
+    return (
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(12rem,0.95fr)] items-baseline gap-3 py-2 min-w-0">
+        {/* Label fijo (mejor coherencia visual) */}
+        <span
+          className={[
+            "block min-w-0 truncate",
+            strong ? "font-semibold text-slate-800" : "text-slate-600",
+            "text-[13px] md:text-[14px] leading-5",
+          ].join(" ")}
+          title={label}
+        >
+          {label}
+        </span>
+
+        {/* Valor: tabular, una línea, con clamp 14–20px */}
         <div className="min-w-0 text-right">
           <AutoFitText
-            min={13}
-            max={17}
+            min={14}
+            max={20}
             className={[
-              "tabular-nums leading-snug whitespace-nowrap tracking-tight inline-block",
-              strong ? "font-semibold" : "text-sm",
-              negative ? "text-rose-600" : "text-slate-800",
+              "inline-block whitespace-nowrap tabular-nums leading-snug tracking-tight",
+              strong ? "font-semibold" : "font-medium",
+              negative ? "text-rose-600" : "text-slate-900",
             ].join(" ")}
           >
-            {negative ? "-" : ""}$ {vStr}
+            {negative ? "–" : ""}$ {vStr}
           </AutoFitText>
         </div>
       </div>
@@ -51,13 +53,13 @@ export default function Resultados({ r, money }) {
 
   // Tarjeta con container queries locales
   const Block = ({ title, children }) => (
-    <div className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur p-4 min-w-0 [container-type:inline-size]">
+    <div className="rounded-2xl border border-slate-200 bg-white/85 backdrop-blur p-4 min-w-0 [container-type:inline-size]">
       <h3 className="text-sm font-semibold text-slate-700 mb-2">{title}</h3>
       <div className="min-w-0">{children}</div>
     </div>
   );
 
-  // Card de totales (Stat) con mínimos/clamp
+  // Totales con jerarquía clara
   const Stat = ({ label, value, tone = "neutral" }) => {
     const ring =
       tone === "good" ? "ring-1 ring-emerald-200" :
@@ -65,16 +67,24 @@ export default function Resultados({ r, money }) {
       tone === "warn" ? "ring-1 ring-amber-200"   :
                         "ring-1 ring-slate-200";
 
+    const bg =
+      tone === "good" ? "from-emerald-50/90 to-emerald-50/40" :
+      tone === "bad"  ? "from-rose-50/90 to-rose-50/40" :
+      tone === "warn" ? "from-amber-50/90 to-amber-50/40" :
+                        "from-slate-50/90 to-slate-50/40";
+
     const vStr = fmt(value);
 
     return (
-      <div className={`w-full rounded-xl bg-white/80 backdrop-blur p-2.5 ${ring} min-w-0`}>
-        <div className="text-[10px] uppercase tracking-wide text-slate-500">{label}</div>
+      <div className={`w-full rounded-xl bg-gradient-to-br ${bg} backdrop-blur p-3 ${ring} min-w-0`}>
+        <div className="text-[11px] md:text-xs uppercase tracking-wide text-slate-500">
+          {label}
+        </div>
         <div className="mt-0.5 text-right min-w-0 overflow-hidden">
           <AutoFitText
-            min={16}
-            max={26}
-            className="tabular-nums font-semibold leading-tight inline-block whitespace-nowrap"
+            min={18}
+            max={30}
+            className="tabular-nums font-semibold leading-tight inline-block whitespace-nowrap text-slate-900"
           >
             $ {vStr}
           </AutoFitText>
@@ -149,7 +159,7 @@ export default function Resultados({ r, money }) {
             className="
               grid gap-2 md:gap-3 min-w-0
               grid-cols-1 sm:grid-cols-2 md:grid-cols-4
-              grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]
+              grid-cols-[repeat(auto-fit,minmax(12rem,1fr))]
             "
           >
             <Stat label="Remunerativo" value={r.totalRemunerativo} />
