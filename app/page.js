@@ -11,7 +11,6 @@ import ReportModal from "../components/ReportModal";
 import SideRailLeft from "../components/SideRailLeft";
 import MobileExtras from "../components/MobileExtras";
 import FunnyEscalasLoader from "../components/FunnyEscalasLoader";
-import VacacionesModal from "../components/VacacionesModal"; // <<< NUEVO
 
 export default function Home() {
   const [escalas, setEscalas] = useState(null);
@@ -25,7 +24,7 @@ export default function Home() {
   const [categoria, setCategoria] = useState("");
 
   const [aniosAntiguedad, setAniosAntiguedad] = useState(0);
-  const [regimen, setRegimen] = useState("35"); // sigue usándose como horas/semana
+  const [regimen, setRegimen] = useState("35"); // horas/semana
   const [titulo, setTitulo] = useState("ninguno");
   const [funcion, setFuncion] = useState(0);
   const [horas50, setHoras50] = useState(0);
@@ -33,14 +32,15 @@ export default function Home() {
   const [descuentosExtras, setDescuentosExtras] = useState(0);
   const [noRemunerativo, setNoRemunerativo] = useState(0);
 
+  // Vacaciones (controladas en Parámetros)
+  const [vacacionesOn, setVacacionesOn] = useState(false);
+  const [vacDiasTrabajados, setVacDiasTrabajados] = useState(0);
+  const [vacDiasManual, setVacDiasManual] = useState(0);
+
   // Modal / extras
   const [showReport, setShowReport] = useState(false);
   const reportBtnRef = useRef(null);
   const [showExtras, setShowExtras] = useState(false);
-
-  // Vacaciones (Comercio)
-  const [showVac, setShowVac] = useState(false);                 // <<< NUEVO
-  const [vac, setVac] = useState({ dias: 0, brutoRef: 0 });      // <<< NUEVO
 
   useEffect(() => {
     loadEscalasFromSheets().then((data) => setEscalas(data));
@@ -53,20 +53,19 @@ export default function Home() {
       setRegimen("35");
     } else {
       setConvenio("comercio");
-      setRegimen("48"); // por defecto full-time comercio
+      setRegimen("48");
       setSubRegimen("administracion");
     }
     setMes("");
     setCategoria("");
-  }, [sector]);
 
-  // Si salimos de Privado/Comercio, reseteamos vacaciones
-  useEffect(() => {
+    // si salimos de Privado/Comercio, apagamos vacaciones
     if (!(sector === "privado" && convenio === "comercio")) {
-      setVac({ dias: 0, brutoRef: 0 });
-      setShowVac(false);
+      setVacacionesOn(false);
+      setVacDiasTrabajados(0);
+      setVacDiasManual(0);
     }
-  }, [sector, convenio]);
+  }, [sector]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const escalasSector = useMemo(() => {
     if (!escalas) return null;
@@ -86,8 +85,7 @@ export default function Home() {
 
   useEffect(() => {
     if (mesesDisponibles.length > 0 && !mes) setMes(mesesDisponibles[0]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mesesDisponibles]);
+  }, [mesesDisponibles, mes]);
 
   const categoriasDisponibles = useMemo(() => {
     if (!mes || !escalasSector?.[mes]?.categoria) return [];
@@ -98,8 +96,7 @@ export default function Home() {
     if (categoriasDisponibles.length > 0 && !categoria) {
       setCategoria(categoriasDisponibles[0]);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoriasDisponibles]);
+  }, [categoriasDisponibles, categoria]);
 
   useEffect(() => {
     if (!escalasSector) return;
@@ -118,7 +115,6 @@ export default function Home() {
       return;
     }
     if (!cats.includes(categoria)) setCategoria(cats[0]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [escalasSector, mes, categoria]);
 
   const r = useMemo(() => {
@@ -129,7 +125,7 @@ export default function Home() {
     return sector === "publico"
       ? calcularPublico({
           entry,
-          regimen, // lo que ya usabas para público (35/…)
+          regimen,
           aniosAntiguedad,
           titulo,
           funcion,
@@ -148,20 +144,22 @@ export default function Home() {
           horas100,
           descuentosExtras,
           noRemunerativo,
-          // el mismo "regimen" como horas/semana para Comercio
           cargaHoraria: Number(regimen),
-          // <<< NUEVO: vacaciones integradas al cálculo
-          vacacionesDias:
-            sector === "privado" && convenio === "comercio" ? vac.dias : 0,
-          vacacionesBrutoRef:
-            sector === "privado" && convenio === "comercio" ? vac.brutoRef : 0,
+
+          // Vacaciones integradas
+          vacacionesOn:
+            sector === "privado" && convenio === "comercio" ? vacacionesOn : false,
+          vacDiasTrabajados:
+            sector === "privado" && convenio === "comercio" ? vacDiasTrabajados : 0,
+          vacDiasManual:
+            sector === "privado" && convenio === "comercio" ? vacDiasManual : 0,
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     escalasSector,
     mes,
     categoria,
     sector,
+    convenio,
     regimen,
     aniosAntiguedad,
     titulo,
@@ -171,7 +169,9 @@ export default function Home() {
     descuentosExtras,
     noRemunerativo,
     subRegimen,
-    vac, // <<< NUEVO (recalcula cuando se aplican vacaciones)
+    vacacionesOn,
+    vacDiasTrabajados,
+    vacDiasManual,
   ]);
 
   const money = (v) =>
@@ -182,14 +182,8 @@ export default function Home() {
 
   if (!escalas) return <FunnyEscalasLoader />;
 
-  // Sugerimos como bruto de referencia el rem+no rem del resultado actual (editable en el modal)
-  const brutoMensualSugerido = r
-    ? Number(r.totalRemunerativo || 0) + Number(r.totalNoRemunerativo || 0)
-    : 0;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white">
-      {/* padding y altura seguros en todas las vistas, incluida 1280×720 */}
       <main className="w-full px-6 py-8 short-xl:py-4 min-h-[calc(100svh-var(--h-header))]">
         <div
           className="
@@ -203,13 +197,8 @@ export default function Home() {
             <SideRailLeft />
           </div>
 
-          {/* Siempre apilado (Parámetros arriba, Resultados abajo) */}
-          <div
-            className="
-              grid grid-cols-1 min-h-0
-              gap-8 2xl:gap-12 short-xl:gap-6
-            "
-          >
+          {/* Parámetros arriba, Resultados abajo */}
+          <div className="grid grid-cols-1 min-h-0 gap-8 2xl:gap-12 short-xl:gap-6">
             <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-6 short-xl:p-4 border border-slate-100">
               <Parametros
                 sector={sector}
@@ -227,7 +216,7 @@ export default function Home() {
                 aniosAntiguedad={aniosAntiguedad}
                 setAniosAntiguedad={setAniosAntiguedad}
                 regimen={regimen}
-                setRegimen={setRegimen} // el mismo control maneja las horas
+                setRegimen={setRegimen}
                 titulo={titulo}
                 setTitulo={setTitulo}
                 funcion={funcion}
@@ -240,33 +229,29 @@ export default function Home() {
                 setDescuentosExtras={setDescuentosExtras}
                 noRemunerativo={noRemunerativo}
                 setNoRemunerativo={setNoRemunerativo}
+
+                {/* >>> Props nuevas de Vacaciones */}
+                vacacionesOn={vacacionesOn}
+                setVacacionesOn={setVacacionesOn}
+                vacDiasTrabajados={vacDiasTrabajados}
+                setVacDiasTrabajados={setVacDiasTrabajados}
+                vacDiasManual={vacDiasManual}
+                setVacDiasManual={setVacDiasManual}
               />
             </section>
 
-            {/* panel de resultados debajo de parámetros */}
             <section className="panel shadow min-h-0">
               <Resultados r={r} money={money} />
 
-              <div className="mt-5 short-xl:mt-3 flex flex-col gap-2 sm:flex-row">
+              <div className="mt-5 short-xl:mt-3">
                 <button
                   ref={reportBtnRef}
                   type="button"
                   onClick={() => setShowReport(true)}
-                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
+                  className="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
                 >
                   Reportar error / sugerencia
                 </button>
-
-                {/* Botón: Liquidar vacaciones (solo Comercio) */}
-                {sector === "privado" && convenio === "comercio" && r && (
-                  <button
-                    type="button"
-                    onClick={() => setShowVac(true)}
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
-                  >
-                    Liquidar vacaciones (base 25)
-                  </button>
-                )}
               </div>
             </section>
           </div>
@@ -306,16 +291,6 @@ export default function Home() {
             noRemunerativo,
             r,
           }}
-        />
-
-        {/* Modal de vacaciones */}
-        <VacacionesModal
-          open={showVac}
-          onClose={() => setShowVac(false)}
-          aniosAntiguedad={aniosAntiguedad}
-          brutoMensual={brutoMensualSugerido}
-          money={money}
-          onConfirm={({ dias, brutoRef }) => setVac({ dias, brutoRef })}
         />
       </main>
 
