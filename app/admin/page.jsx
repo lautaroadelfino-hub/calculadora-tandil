@@ -22,7 +22,7 @@ export default function AdminPage() {
   const [q, setQ] = React.useState('')
 
   React.useEffect(() => {
-    ;(async () => {
+    async function boot() {
       try {
         const r = await fetch('/api/auth/session', { credentials: 'include' })
         const d = await r.json()
@@ -36,7 +36,8 @@ export default function AdminPage() {
       } catch {
         window.location.href = '/login'
       }
-    })()
+    }
+    boot()
   }, [])
 
   async function load() {
@@ -78,7 +79,11 @@ export default function AdminPage() {
       if (!form.title?.trim()) throw new Error('El título es obligatorio')
       const r = await fetch('/api/news', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-csrf': csrf },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf': csrf,
+          'x-csrf-token': csrf,
+        },
         body: JSON.stringify({ ...form, date: form.date || undefined }),
         credentials: 'include',
       })
@@ -122,7 +127,11 @@ export default function AdminPage() {
       setSavingId(id)
       const r = await fetch(`/api/news/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-csrf': csrf },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf': csrf,
+          'x-csrf-token': csrf,
+        },
         body: JSON.stringify(body),
         credentials: 'include',
       })
@@ -141,7 +150,7 @@ export default function AdminPage() {
     if (!confirm('¿Eliminar la novedad?')) return
     const r = await fetch(`/api/news/${id}`, {
       method: 'DELETE',
-      headers: { 'x-csrf': csrf },
+      headers: { 'x-csrf': csrf, 'x-csrf-token': csrf },
       credentials: 'include',
     })
     if (r.ok) {
