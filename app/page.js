@@ -11,6 +11,7 @@ import ReportModal from "../components/ReportModal";
 import SideRailLeft from "../components/SideRailLeft";
 import MobileExtras from "../components/MobileExtras";
 import FunnyEscalasLoader from "../components/FunnyEscalasLoader";
+import VacacionesModal from "../components/VacacionesModal"; // <<< NUEVO
 
 export default function Home() {
   const [escalas, setEscalas] = useState(null);
@@ -36,6 +37,7 @@ export default function Home() {
   const [showReport, setShowReport] = useState(false);
   const reportBtnRef = useRef(null);
   const [showExtras, setShowExtras] = useState(false);
+  const [showVac, setShowVac] = useState(false); // <<< NUEVO
 
   useEffect(() => {
     loadEscalasFromSheets().then((data) => setEscalas(data));
@@ -162,6 +164,10 @@ export default function Home() {
 
   if (!escalas) return <FunnyEscalasLoader />;
 
+  // Bruto mensual considerado para vacaciones (rem + no rem)
+  const brutoMensual =
+    r ? Number(r.totalRemunerativo || 0) + Number(r.totalNoRemunerativo || 0) : 0; // <<< NUEVO
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white">
       {/* padding y altura seguros en todas las vistas, incluida 1280×720 */}
@@ -178,7 +184,7 @@ export default function Home() {
             <SideRailLeft />
           </div>
 
-          {/* <<< Cambiado: siempre apilado (Parametros arriba, Resultados abajo) >>> */}
+          {/* Siempre apilado (Parámetros arriba, Resultados abajo) */}
           <div
             className="
               grid grid-cols-1 min-h-0
@@ -221,15 +227,27 @@ export default function Home() {
             {/* panel de resultados debajo de parámetros */}
             <section className="panel shadow min-h-0">
               <Resultados r={r} money={money} />
-              <div className="mt-5 short-xl:mt-3">
+
+              <div className="mt-5 short-xl:mt-3 flex flex-col gap-2 sm:flex-row">
                 <button
                   ref={reportBtnRef}
                   type="button"
                   onClick={() => setShowReport(true)}
-                  className="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900"
                 >
                   Reportar error / sugerencia
                 </button>
+
+                {/* Botón: Liquidar vacaciones (solo Comercio) */}
+                {sector === "privado" && convenio === "comercio" && r && (
+                  <button
+                    type="button"
+                    onClick={() => setShowVac(true)}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100"
+                  >
+                    Liquidar vacaciones (base 25)
+                  </button>
+                )}
               </div>
             </section>
           </div>
@@ -269,6 +287,15 @@ export default function Home() {
             noRemunerativo,
             r,
           }}
+        />
+
+        {/* Modal de vacaciones */}
+        <VacacionesModal
+          open={showVac}
+          onClose={() => setShowVac(false)}
+          aniosAntiguedad={aniosAntiguedad}
+          brutoMensual={brutoMensual}
+          money={money}
         />
       </main>
 
