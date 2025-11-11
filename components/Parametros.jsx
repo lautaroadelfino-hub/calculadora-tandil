@@ -60,6 +60,11 @@ export default function Parametros({
   horas100, setHoras100,
   descuentosExtras, setDescuentosExtras,
   noRemunerativo, setNoRemunerativo,
+
+  // >>> Vacaciones (nuevas)
+  vacacionesOn, setVacacionesOn,
+  vacDiasTrabajados, setVacDiasTrabajados,
+  vacDiasManual, setVacDiasManual,
 }) {
   const Btn = ({ active, children, onClick }) => (
     <button
@@ -103,6 +108,10 @@ export default function Parametros({
     setHoras100(0);
     setDescuentosExtras(0);
     setNoRemunerativo(0);
+    // >>> limpiar vacaciones
+    setVacacionesOn(false);
+    setVacDiasTrabajados(0);
+    setVacDiasManual(0);
   };
 
   return (
@@ -171,27 +180,27 @@ export default function Parametros({
           <NumericInput value={aniosAntiguedad} onCommit={setAniosAntiguedad} placeholder="0" min={0} />
         </Field>
 
-{sector === "publico" ? (
-  <Field label="Régimen horario semanal">
-    <div className="flex gap-2">
-      <Btn active={regimen === "35"} onClick={() => setRegimen("35")}>35 hs</Btn>
-      <Btn active={regimen === "40"} onClick={() => setRegimen("40")}>40 hs</Btn>
-      <Btn active={regimen === "48"} onClick={() => setRegimen("48")}>48 hs</Btn>
-    </div>
-  </Field>
-) : (
-  <Field label="Régimen horario semanal">
-    {/* ✅ COMERCIO: desbloqueado, seleccionable */}
-    <Select
-      value={regimen}
-      onChange={(e) => setRegimen(e.target.value)}
-    >
-      {[12, 18, 20, 24, 30, 36, 40, 44, 48].map((h) => (
-        <option key={h} value={String(h)}>{h} hs</option>
-      ))}
-    </Select>
-  </Field>
-)}
+        {sector === "publico" ? (
+          <Field label="Régimen horario semanal">
+            <div className="flex gap-2">
+              <Btn active={regimen === "35"} onClick={() => setRegimen("35")}>35 hs</Btn>
+              <Btn active={regimen === "40"} onClick={() => setRegimen("40")}>40 hs</Btn>
+              <Btn active={regimen === "48"} onClick={() => setRegimen("48")}>48 hs</Btn>
+            </div>
+          </Field>
+        ) : (
+          <Field label="Régimen horario semanal">
+            {/* ✅ COMERCIO: desbloqueado, seleccionable */}
+            <Select
+              value={regimen}
+              onChange={(e) => setRegimen(e.target.value)}
+            >
+              {[12, 18, 20, 24, 30, 36, 40, 44, 48].map((h) => (
+                <option key={h} value={String(h)}>{h} hs</option>
+              ))}
+            </Select>
+          </Field>
+        )}
       </div>
 
       {/* Título y Función */}
@@ -229,6 +238,54 @@ export default function Parametros({
           <NumericInput value={noRemunerativo} onCommit={setNoRemunerativo} placeholder="0" min={0} />
         </Field>
       </div>
+
+      {/* >>> Vacaciones (solo Comercio) */}
+      {sector === "privado" && convenio === "comercio" && (
+        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-emerald-600"
+              checked={!!vacacionesOn}
+              onChange={(e) => setVacacionesOn(e.target.checked)}
+            />
+            <span className="text-sm font-medium text-emerald-900">
+              Liquidar vacaciones (base 25)
+            </span>
+          </label>
+
+          {vacacionesOn && (
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Si antigüedad < 6 meses → días trabajados */}
+              {Number(aniosAntiguedad) < 0.5 && (
+                <Field label="Días trabajados (1 cada 20)">
+                  <NumericInput
+                    value={vacDiasTrabajados}
+                    onCommit={setVacDiasTrabajados}
+                    placeholder="0"
+                    min={0}
+                    step={1}
+                  />
+                </Field>
+              )}
+
+              {/* Override opcional de días */}
+              <Field label="Días de vacaciones (opcional)">
+                <NumericInput
+                  value={vacDiasManual}
+                  onCommit={setVacDiasManual}
+                  placeholder="0"
+                  min={0}
+                  step={1}
+                />
+                <span className="block mt-1 text-[11px] text-emerald-700/90">
+                  Automático: 14 / 21 / 28 / 35 según antigüedad. Si cargás un valor &gt; 0, se usa ese.
+                </span>
+              </Field>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="mt-5 flex gap-2">
         <button
