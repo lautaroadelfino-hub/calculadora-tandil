@@ -178,12 +178,10 @@ export default function Home() {
             <SideRailLeft />
           </div>
 
+          {/* <<< Cambiado: siempre apilado (Parametros arriba, Resultados abajo) >>> */}
           <div
             className="
               grid grid-cols-1 min-h-0
-              lg:grid-cols-2
-              xl:grid-cols-[1.25fr_1.35fr]
-              2xl:grid-cols-[1.3fr_1.7fr]
               gap-8 2xl:gap-12 short-xl:gap-6
             "
           >
@@ -220,7 +218,7 @@ export default function Home() {
               />
             </section>
 
-            {/* panel de resultados preparado para no solaparse */}
+            {/* panel de resultados debajo de parámetros */}
             <section className="panel shadow min-h-0">
               <Resultados r={r} money={money} />
               <div className="mt-5 short-xl:mt-3">
