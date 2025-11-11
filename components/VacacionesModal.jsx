@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 export default function VacacionesModal({
   open,
   onClose,
+  onConfirm = () => {},           // <<< NUEVO
   aniosAntiguedad = 0,
   brutoMensual = 0,
   money = (n) => n.toFixed(2),
@@ -17,7 +18,6 @@ export default function VacacionesModal({
 
   const diasVacaciones = useMemo(() => {
     const a = Number(aniosAntiguedad) || 0;
-
     if (a < 0.5) {
       const d = Math.max(0, Math.floor((Number(diasTrabajados) || 0) / 20));
       return d;
@@ -44,58 +44,9 @@ export default function VacacionesModal({
         </div>
 
         <div className="p-4 space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="rounded-xl border border-slate-200 p-3">
-              <div className="text-xs text-slate-500">Antigüedad</div>
-              <div className="font-medium text-slate-900">{aniosAntiguedad} años</div>
-            </div>
-            <div className="rounded-xl border border-slate-200 p-3">
-              <div className="text-xs text-slate-500">Bruto considerado</div>
-              <div className="font-medium text-slate-900">$ {money(brutoMensual)}</div>
-              <div className="text-[11px] text-slate-500 mt-1">
-                (remunerativos + no remunerativos del período)
-              </div>
-            </div>
-          </div>
-
-          {Number(aniosAntiguedad) < 0.5 && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-              <div className="text-sm font-medium text-amber-800">Antigüedad menor a 6 meses</div>
-              <div className="text-xs text-amber-800/90 mt-1">
-                Corresponde 1 día de descanso cada 20 días trabajados.
-              </div>
-              <label className="block mt-2 text-sm text-amber-900">
-                Días trabajados:
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  step={1}
-                  value={diasTrabajados}
-                  onChange={(e) => setDiasTrabajados(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-amber-300 bg-white px-3 py-2 text-slate-900 outline-none focus:ring-2 focus:ring-amber-300"
-                  placeholder="Ej.: 80"
-                />
-              </label>
-              <div className="mt-2 text-sm text-amber-900">
-                Días de vacaciones calculados: <strong>{diasVacaciones}</strong>
-              </div>
-            </div>
-          )}
-
+          {/* ... contenido actual ... */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div className="rounded-xl border border-slate-200 p-3">
-              <div className="text-xs text-slate-500">Días de vacaciones</div>
-              <div className="font-semibold text-slate-900">{diasVacaciones}</div>
-            </div>
-            <div className="rounded-xl border border-slate-200 p-3">
-              <div className="text-xs text-slate-500">Base 25</div>
-              <div className="font-semibold text-slate-900">$ {money(base25)}</div>
-            </div>
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
-              <div className="text-xs text-emerald-700">Monto de vacaciones</div>
-              <div className="font-bold text-emerald-800">$ {money(montoVacaciones)}</div>
-            </div>
+            {/* ... tarjetas ... */}
           </div>
 
           <div className="text-xs text-slate-500">
@@ -111,6 +62,17 @@ export default function VacacionesModal({
             className="px-4 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 hover:bg-slate-50"
           >
             Cerrar
+          </button>
+          <button
+            type="button"
+            disabled={!diasVacaciones || !brutoMensual}
+            onClick={() => {
+              onConfirm({ dias: diasVacaciones, brutoRef: Number(brutoMensual) || 0 });
+              onClose();
+            }}
+            className="px-4 py-2 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+          >
+            Aplicar al cálculo
           </button>
         </div>
       </div>
