@@ -25,7 +25,7 @@ export default function Home() {
   const [categoria, setCategoria] = useState("");
 
   const [aniosAntiguedad, setAniosAntiguedad] = useState(0);
-  const [regimen, setRegimen] = useState("35"); // << se sigue usando para horas/semana
+  const [regimen, setRegimen] = useState("35"); // sigue usándose como horas/semana
   const [titulo, setTitulo] = useState("ninguno");
   const [funcion, setFuncion] = useState(0);
   const [horas50, setHoras50] = useState(0);
@@ -37,7 +37,10 @@ export default function Home() {
   const [showReport, setShowReport] = useState(false);
   const reportBtnRef = useRef(null);
   const [showExtras, setShowExtras] = useState(false);
-  const [showVac, setShowVac] = useState(false); // <<< NUEVO
+
+  // Vacaciones (Comercio)
+  const [showVac, setShowVac] = useState(false);                 // <<< NUEVO
+  const [vac, setVac] = useState({ dias: 0, brutoRef: 0 });      // <<< NUEVO
 
   useEffect(() => {
     loadEscalasFromSheets().then((data) => setEscalas(data));
@@ -50,12 +53,20 @@ export default function Home() {
       setRegimen("35");
     } else {
       setConvenio("comercio");
-      setRegimen("48"); // << por defecto full-time comercio
+      setRegimen("48"); // por defecto full-time comercio
       setSubRegimen("administracion");
     }
     setMes("");
     setCategoria("");
   }, [sector]);
+
+  // Si salimos de Privado/Comercio, reseteamos vacaciones
+  useEffect(() => {
+    if (!(sector === "privado" && convenio === "comercio")) {
+      setVac({ dias: 0, brutoRef: 0 });
+      setShowVac(false);
+    }
+  }, [sector, convenio]);
 
   const escalasSector = useMemo(() => {
     if (!escalas) return null;
@@ -137,9 +148,15 @@ export default function Home() {
           horas100,
           descuentosExtras,
           noRemunerativo,
-          // ✅ acá usamos el MISMO "regimen" como horas/semana para Comercio
+          // el mismo "regimen" como horas/semana para Comercio
           cargaHoraria: Number(regimen),
+          // <<< NUEVO: vacaciones integradas al cálculo
+          vacacionesDias:
+            sector === "privado" && convenio === "comercio" ? vac.dias : 0,
+          vacacionesBrutoRef:
+            sector === "privado" && convenio === "comercio" ? vac.brutoRef : 0,
         });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     escalasSector,
     mes,
@@ -154,6 +171,7 @@ export default function Home() {
     descuentosExtras,
     noRemunerativo,
     subRegimen,
+    vac, // <<< NUEVO (recalcula cuando se aplican vacaciones)
   ]);
 
   const money = (v) =>
@@ -164,9 +182,10 @@ export default function Home() {
 
   if (!escalas) return <FunnyEscalasLoader />;
 
-  // Bruto mensual considerado para vacaciones (rem + no rem)
-  const brutoMensual =
-    r ? Number(r.totalRemunerativo || 0) + Number(r.totalNoRemunerativo || 0) : 0; // <<< NUEVO
+  // Sugerimos como bruto de referencia el rem+no rem del resultado actual (editable en el modal)
+  const brutoMensualSugerido = r
+    ? Number(r.totalRemunerativo || 0) + Number(r.totalNoRemunerativo || 0)
+    : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-white">
@@ -208,7 +227,7 @@ export default function Home() {
                 aniosAntiguedad={aniosAntiguedad}
                 setAniosAntiguedad={setAniosAntiguedad}
                 regimen={regimen}
-                setRegimen={setRegimen}      // << el mismo control maneja las horas
+                setRegimen={setRegimen} // el mismo control maneja las horas
                 titulo={titulo}
                 setTitulo={setTitulo}
                 funcion={funcion}
@@ -294,8 +313,9 @@ export default function Home() {
           open={showVac}
           onClose={() => setShowVac(false)}
           aniosAntiguedad={aniosAntiguedad}
-          brutoMensual={brutoMensual}
+          brutoMensual={brutoMensualSugerido}
           money={money}
+          onConfirm={({ dias, brutoRef }) => setVac({ dias, brutoRef })}
         />
       </main>
 
