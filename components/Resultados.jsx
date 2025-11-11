@@ -15,38 +15,72 @@ export default function Resultados({ r, money }) {
   const fmt = (v) =>
     money ? money(Number.isFinite(+v) ? +v : 0) : (Number(v || 0)).toFixed(2);
 
+  // ========= Helpers para tomar valor hora ya calculado en `r` =========
+  function getValorHoraBase(r) {
+    // Ajustá el orden/keys según cómo lo guardes en tu cálculo
+    const keys = [
+      "valorHora",
+      "valorHoraBase",
+      "valor_hora",
+      "horaBase",
+      "valorHoraNormal",
+      "vhBase",
+      "horaNormal",
+    ];
+    for (const k of keys) {
+      if (r && typeof r[k] === "number" && isFinite(r[k])) return r[k];
+    }
+    return undefined;
+  }
+
+  function getValorHora50(r) {
+    return typeof r?.valorHora50 === "number" ? r.valorHora50 : undefined;
+  }
+  function getValorHora100(r) {
+    return typeof r?.valorHora100 === "number" ? r.valorHora100 : undefined;
+  }
+
   // ---- Fila del detalle (labels fijos, valores con AutoFit y mínimos) ----
-  const Fila = ({ label, value, strong, negative }) => {
+  const Fila = ({ label, value, strong, negative, hint }) => {
     const vStr = fmt(Math.abs(value || 0));
 
     return (
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(8.5rem,0.9fr)] items-center gap-3 py-2 min-w-0">
-        {/* Label (fijo, con ellipsis si no entra) */}
-        <span
-          className={[
-            "block min-w-0 truncate",
-            strong ? "font-semibold text-slate-800" : "text-slate-600",
-            "text-[13px] md:text-[14px] leading-5",
-          ].join(" ")}
-          title={label}
-        >
-          {label}
-        </span>
-
-        {/* Valor: tabular, una línea, con clamp 14–20px */}
-        <div className="min-w-0 text-right">
-          <AutoFitText
-            min={14}
-            max={20}
+      <div className="py-2 min-w-0">
+        <div className="grid grid-cols-[minmax(0,1fr)_minmax(8.5rem,0.9fr)] items-center gap-3 min-w-0">
+          {/* Label (fijo, con ellipsis si no entra) */}
+          <span
             className={[
-              "inline-block whitespace-nowrap tabular-nums leading-snug tracking-tight",
-              strong ? "font-semibold" : "font-medium",
-              negative ? "text-rose-600" : "text-slate-900",
+              "block min-w-0 truncate",
+              strong ? "font-semibold text-slate-800" : "text-slate-600",
+              "text-[13px] md:text-[14px] leading-5",
             ].join(" ")}
+            title={label}
           >
-            {negative ? "–" : ""}$ {vStr}
-          </AutoFitText>
+            {label}
+          </span>
+
+          {/* Valor: tabular, una línea, con clamp 14–20px */}
+          <div className="min-w-0 text-right">
+            <AutoFitText
+              min={14}
+              max={20}
+              className={[
+                "inline-block whitespace-nowrap tabular-nums leading-snug tracking-tight",
+                strong ? "font-semibold" : "font-medium",
+                negative ? "text-rose-600" : "text-slate-900",
+              ].join(" ")}
+            >
+              {negative ? "–" : ""}$ {vStr}
+            </AutoFitText>
+          </div>
         </div>
+
+        {/* hint en verde, chiquito (opcional) */}
+        {hint ? (
+          <p className="mt-1 text-[11px] leading-snug text-emerald-700">
+            {hint}
+          </p>
+        ) : null}
       </div>
     );
   };
@@ -62,16 +96,22 @@ export default function Resultados({ r, money }) {
   // Totales con jerarquía clara
   const Stat = ({ label, value, tone = "neutral" }) => {
     const ring =
-      tone === "good" ? "ring-1 ring-emerald-200" :
-      tone === "bad"  ? "ring-1 ring-rose-200"    :
-      tone === "warn" ? "ring-1 ring-amber-200"   :
-                        "ring-1 ring-slate-200";
+      tone === "good"
+        ? "ring-1 ring-emerald-200"
+        : tone === "bad"
+        ? "ring-1 ring-rose-200"
+        : tone === "warn"
+        ? "ring-1 ring-amber-200"
+        : "ring-1 ring-slate-200";
 
     const bg =
-      tone === "good" ? "from-emerald-50/90 to-emerald-50/40" :
-      tone === "bad"  ? "from-rose-50/90 to-rose-50/40" :
-      tone === "warn" ? "from-amber-50/90 to-amber-50/40" :
-                        "from-slate-50/90 to-slate-50/40";
+      tone === "good"
+        ? "from-emerald-50/90 to-emerald-50/40"
+        : tone === "bad"
+        ? "from-rose-50/90 to-rose-50/40"
+        : tone === "warn"
+        ? "from-amber-50/90 to-amber-50/40"
+        : "from-slate-50/90 to-slate-50/40";
 
     const vStr = fmt(value);
 
@@ -102,7 +142,7 @@ export default function Resultados({ r, money }) {
     ["Bonificación por función", r.adicionalFuncion],
     ["Horas 50%", r.horasExtras50],
     ["Horas 100%", r.horasExtras100],
-    // ✅ ahora se muestra el PLUS (no el monto completo de vacaciones)
+    // ✅ Plus de vacaciones (no el monto completo de vacaciones)
     ["Plus vacacional (base 25 vs 30)", r.vacacionesPlus],
   ].filter(([, v]) => (v ?? 0) !== 0);
 
@@ -121,9 +161,29 @@ export default function Resultados({ r, money }) {
       {/* Detalle */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
         <Block title="Remunerativos">
-          {remRows.map(([label, val]) => (
-            <Fila key={label} label={label} value={val} />
-          ))}
+          {remRows.map(([label, val]) => {
+            let hint;
+
+            // 1) Usá lo que ya viene calculado en r si existe
+            const vh50 = getValorHora50(r);
+            const vh100 = getValorHora100(r);
+
+            // 2) Si no existe, tomá el valor hora base que ya calculás en r
+            const vhBase = getValorHoraBase(r);
+
+            if (label === "Horas 50%") {
+              const valor = vh50 ?? (vhBase ? vhBase * 1.5 : undefined);
+              hint = typeof valor === "number" ? `Valor hora 50%: $ ${fmt(valor)}` : undefined;
+            }
+
+            if (label === "Horas 100%") {
+              const valor = vh100 ?? (vhBase ? vhBase * 2 : undefined);
+              hint = typeof valor === "number" ? `Valor hora 100%: $ ${fmt(valor)}` : undefined;
+            }
+
+            return <Fila key={label} label={label} value={val} hint={hint} />;
+          })}
+
           <div className="pt-2 border-t border-slate-100 mt-2">
             <Fila label="Total remunerativo" value={r.totalRemunerativo} strong />
             {/* Leyenda de vacaciones (si aplica) */}
@@ -180,6 +240,11 @@ export default function Resultados({ r, money }) {
           </div>
         </div>
       </div>
+
+      {/* Disclaimer */}
+      <p className="mt-3 text-[11px] md:text-xs leading-snug text-slate-500 italic">
+        * Los valores se calculan con datos publicados y reglas vigentes. Verificá siempre con la liquidación oficial.
+      </p>
     </section>
   );
 }

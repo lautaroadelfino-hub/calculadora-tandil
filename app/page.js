@@ -268,10 +268,6 @@ export default function Home() {
           </button>
         </div>
 
-        <p className="text-xs text-slate-500 mt-6">
-          * Los valores se calculan con datos publicados y reglas vigentes. Verificá siempre con la liquidación oficial.
-        </p>
-
         <ReportModal
           open={showReport}
           onClose={() => setShowReport(false)}
@@ -305,7 +301,7 @@ export default function Home() {
 
       <footer className="border-t border-slate-200 mt-10">
         <div className="w-full px-6 py-4 text-xs text-slate-500">
-          © {new Date().getFullYear()} Calculadora de Sueldos.
+          © {new Date().getFullYear()} LiquidAR.
         </div>
       </footer>
     </div>
