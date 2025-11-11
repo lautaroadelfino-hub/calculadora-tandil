@@ -102,6 +102,7 @@ export default function Resultados({ r, money }) {
     ["Bonificación por función", r.adicionalFuncion],
     ["Horas 50%", r.horasExtras50],
     ["Horas 100%", r.horasExtras100],
+    ["Vacaciones (base 25)", r.vacacionesMonto],
   ].filter(([, v]) => (v ?? 0) !== 0);
 
   const noRemRows = [
