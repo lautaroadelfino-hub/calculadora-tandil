@@ -20,8 +20,8 @@ export default function Resultados({ r, money }) {
     const vStr = fmt(Math.abs(value || 0));
 
     return (
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(12rem,0.95fr)] items-baseline gap-3 py-2 min-w-0">
-        {/* Label fijo (mejor coherencia visual) */}
+      <div className="grid grid-cols-[minmax(0,1fr)_minmax(8.5rem,0.9fr)] items-center gap-3 py-2 min-w-0">
+        {/* Label (fijo, con ellipsis si no entra) */}
         <span
           className={[
             "block min-w-0 truncate",
@@ -116,8 +116,8 @@ export default function Resultados({ r, money }) {
 
   return (
     <section className="space-y-4 min-w-0">
-      {/* Detalle */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0 md:pb-[140px]">
+      {/* Detalle (sin padding-extra, ya no hay sticky) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
         <Block title="Remunerativos">
           {remRows.map(([label, val]) => (
             <Fila key={label} label={label} value={val} />
@@ -152,8 +152,8 @@ export default function Resultados({ r, money }) {
         </Block>
       </div>
 
-      {/* Totales: grid fluida con auto-fit + fallback responsive */}
-      <div className="min-w-0 md:sticky md:bottom-0 md:z-10">
+      {/* Totales: ya sin sticky, ocupa su lugar natural */}
+      <div className="min-w-0">
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-3 md:p-4 min-w-0">
           <div
             className="
