@@ -1,5 +1,4 @@
 'use client'
-
 import React from 'react'
 
 const EMPTY = {
@@ -10,6 +9,15 @@ const EMPTY = {
   published: true,
 }
 
+async function readJsonOrText(res) {
+  const ct = res.headers.get('content-type') || ''
+  if (ct.includes('application/json')) {
+    return await res.json()
+  }
+  const t = await res.text()
+  return { ok: false, error: t || `HTTP ${res.status}` }
+}
+
 export default function AdminPage() {
   const [user, setUser] = React.useState(null)
   const [csrf, setCsrf] = React.useState('')
@@ -17,12 +25,12 @@ export default function AdminPage() {
   const [items, setItems] = React.useState([])
   const [loading, setLoading] = React.useState(true)
   const [msg, setMsg] = React.useState('')
-  const [editing, setEditing] = React.useState({}) // id -> partial
+  const [editing, setEditing] = React.useState({})
   const [savingId, setSavingId] = React.useState(null)
   const [q, setQ] = React.useState('')
 
   React.useEffect(() => {
-    async function boot() {
+    (async () => {
       try {
         const r = await fetch('/api/auth/session', { credentials: 'include' })
         const d = await r.json()
@@ -31,13 +39,21 @@ export default function AdminPage() {
           return
         }
         setUser(d.user)
-        setCsrf(d.csrfToken || '')
+        const token = d.csrfToken || ''
+        setCsrf(token)
+
+        // 🔐 CSRF: tu verifyCsrf compara header vs cookie.
+        // Seteamos cookie 'csrf' para que coincida con el header.
+        if (token) {
+          // 2 horas, SameSite=Lax, path root
+          document.cookie = `csrf=${encodeURIComponent(token)}; Path=/; Max-Age=7200; SameSite=Lax`
+        }
+
         await load()
       } catch {
         window.location.href = '/login'
       }
-    }
-    boot()
+    })()
   }, [])
 
   async function load() {
@@ -52,7 +68,8 @@ export default function AdminPage() {
           window.location.href = '/login'
           return
         }
-        throw new Error(await r.text())
+        const j = await readJsonOrText(r)
+        throw new Error(j.error || 'Error al cargar')
       }
       const j = await r.json()
       setItems(j.data || [])
@@ -87,7 +104,10 @@ export default function AdminPage() {
         body: JSON.stringify({ ...form, date: form.date || undefined }),
         credentials: 'include',
       })
-      if (!r.ok) throw new Error(await r.text())
+      if (!r.ok) {
+        const j = await readJsonOrText(r)
+        throw new Error(j.error || 'No se pudo crear')
+      }
       setForm(EMPTY)
       await load()
     } catch (err) {
@@ -125,7 +145,7 @@ export default function AdminPage() {
     }
     try {
       setSavingId(id)
-      const r = await fetch(`/api/news/${id}`, {
+      const r = await fetch(`/api/news/${encodeURIComponent(id)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -135,7 +155,10 @@ export default function AdminPage() {
         body: JSON.stringify(body),
         credentials: 'include',
       })
-      if (!r.ok) throw new Error(await r.text())
+      if (!r.ok) {
+        const j = await readJsonOrText(r)
+        throw new Error(j.error || 'No se pudo guardar')
+      }
       const j = await r.json()
       setItems((prev) => prev.map((x) => (x.id === id ? j.data : x)))
       cancelEdit(id)
@@ -148,7 +171,7 @@ export default function AdminPage() {
 
   async function delItem(id) {
     if (!confirm('¿Eliminar la novedad?')) return
-    const r = await fetch(`/api/news/${id}`, {
+    const r = await fetch(`/api/news/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       headers: { 'x-csrf': csrf, 'x-csrf-token': csrf },
       credentials: 'include',
@@ -156,6 +179,9 @@ export default function AdminPage() {
     if (r.ok) {
       setItems((prev) => prev.filter((x) => x.id !== id))
       cancelEdit(id)
+    } else {
+      const j = await readJsonOrText(r)
+      alert(j.error || 'No se pudo eliminar')
     }
   }
 
@@ -175,10 +201,7 @@ export default function AdminPage() {
       </header>
 
       {/* Crear */}
-      <form
-        onSubmit={save}
-        className="grid grid-cols-1 md:grid-cols-6 gap-3 p-4 border rounded-xl bg-white/80"
-      >
+      <form onSubmit={save} className="grid grid-cols-1 md:grid-cols-6 gap-3 p-4 border rounded-xl bg-white/80">
         <input
           type="date"
           value={form.date}
@@ -215,9 +238,7 @@ export default function AdminPage() {
           />
           Publicada
         </label>
-        <button className="md:col-span-1 bg-slate-800 text-white rounded py-2">
-          Guardar
-        </button>
+        <button className="md:col-span-1 bg-slate-800 text-white rounded py-2">Guardar</button>
         {msg && <div className="md:col-span-6 text-sm text-rose-700">{msg}</div>}
       </form>
 
@@ -352,9 +373,7 @@ export default function AdminPage() {
         )}
       </section>
 
-      <p className="text-xs text-gray-400">
-        Tip: creás arriba; abajo editás inline → Guardar (sin borrar nada).
-      </p>
+      <p className="text-xs text-gray-400">Tip: creás arriba; abajo editás inline → Guardar (sin borrar nada).</p>
     </div>
   )
 }
