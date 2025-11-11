@@ -102,7 +102,8 @@ export default function Resultados({ r, money }) {
     ["Bonificación por función", r.adicionalFuncion],
     ["Horas 50%", r.horasExtras50],
     ["Horas 100%", r.horasExtras100],
-    ["Vacaciones (base 25)", r.vacacionesMonto],
+    // ✅ ahora se muestra el PLUS (no el monto completo de vacaciones)
+    ["Plus vacacional (base 25 vs 30)", r.vacacionesPlus],
   ].filter(([, v]) => (v ?? 0) !== 0);
 
   const noRemRows = [
@@ -126,9 +127,12 @@ export default function Resultados({ r, money }) {
           <div className="pt-2 border-t border-slate-100 mt-2">
             <Fila label="Total remunerativo" value={r.totalRemunerativo} strong />
             {/* Leyenda de vacaciones (si aplica) */}
-            {(r.vacacionesMonto ?? 0) > 0 && Number(r.vacacionesDias) > 0 && (
+            {(r.vacacionesPlus ?? 0) > 0 && Number(r.vacacionesDias) > 0 && (
               <div className="mt-1 text-xs text-emerald-700">
-                Incluye vacaciones: <strong>{r.vacacionesDias}</strong> día(s) (base 25).
+                Vacaciones: <strong>{r.vacacionesDias}</strong> día(s).
+                {" "}Base/25: ${Number(r.valorDiaBase25 ?? 0).toFixed(2)}
+                {" "}· Base/30: ${Number(r.valorDiaBase30 ?? 0).toFixed(2)}
+                {" "}· Plus/día: ${Number(r.plusPorDia ?? 0).toFixed(2)}
               </div>
             )}
           </div>
