@@ -13,35 +13,21 @@ export default function Resultados({ r, money }) {
   }
 
   // Convierte strings en formato AR/US a número sin romper decimales
-  // Soporta: "1.234.567,89" (AR/UE), "1,234,567.89" (US), "1234567.89", "1234567"
   const numify = (v) => {
     if (typeof v === "number" && Number.isFinite(v)) return v;
     if (typeof v === "string") {
       let s = v.trim();
       if (!s) return 0;
-      // Dejar solo dígitos, separadores y signo
       s = s.replace(/[^0-9,.\-]/g, "");
       const hasComma = s.includes(",");
       const hasDot = s.includes(".");
-
       if (hasComma && hasDot) {
-        // El separador decimal suele ser el último que aparece
         const lastComma = s.lastIndexOf(",");
         const lastDot = s.lastIndexOf(".");
-        if (lastComma > lastDot) {
-          // Estilo AR/UE: "." miles, "," decimal
-          s = s.replace(/\./g, "").replace(",", ".");
-        } else {
-          // Estilo US: "," miles, "." decimal
-          s = s.replace(/,/g, "");
-        }
+        s = lastComma > lastDot ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
       } else if (hasComma) {
-        // Solo coma: tomarla como decimal
         s = s.replace(/,/g, ".");
-      } else {
-        // Solo punto o entero: no tocar
       }
-
       const n = Number(s);
       return Number.isFinite(n) ? n : 0;
     }
@@ -69,11 +55,10 @@ export default function Resultados({ r, money }) {
   const vh50 = pick(r, ["valorHora50", "vh50", "hora50"]);
   const vh100 = pick(r, ["valorHora100", "vh100", "hora100"]);
 
-  // Detectores
   const is50 = (label) => /ho?ra/i.test(label) && /(50|50%)/i.test(label);
   const is100 = (label) => /ho?ra/i.test(label) && /(100|100%)/i.test(label);
 
-  // ----------------- Ítems del detalle -----------------
+  // ----------------- Ítems -----------------
   const remRowsRaw = [
     ["Básico", r.basico],
     ["Antigüedad", r.antiguedad],
@@ -100,7 +85,7 @@ export default function Resultados({ r, money }) {
       ? r.detalleDeducciones
       : [{ label: "Deducciones", monto: r.totalDeducciones || 0 }];
 
-  // ------------ Totales seguros (recalculo si hace falta) ------------
+  // ------------ Totales seguros ------------
   const totalRemCalc =
     numify(r.basico) +
     numify(r.antiguedad) +
@@ -124,7 +109,7 @@ export default function Resultados({ r, money }) {
 
   const liquidoSafe = totalRemSafe + totalNoRemSafe - totalDedSafe;
 
-  // ----------------- UI -----------------
+  // ----------------- UI helpers -----------------
   const Fila = ({ label, value, strong, negative, hint }) => {
     const valNum = numify(value);
     const vStr = fmt(Math.abs(valNum));
@@ -205,7 +190,7 @@ export default function Resultados({ r, money }) {
           {remRows.map(([label, val]) => {
             let hint;
 
-            // Mostrar valor hora en verde para 50% y 100%, usando lo que venga en r
+            // Mostrar valor hora en verde para 50% y 100%
             if (is50(label)) {
               const valor = isNum(vh50) ? vh50 : (isNum(vhBase) ? vhBase * 1.5 : undefined);
               hint = isNum(valor) ? `Valor hora 50%: $ ${fmt(valor)}` : undefined;
@@ -247,9 +232,36 @@ export default function Resultados({ r, money }) {
         </Block>
 
         <Block title="Deducciones">
-          {dedRows.map((d, i) => (
-            <Fila key={i} label={d.label} value={-Math.abs(numify(d.monto))} negative />
-          ))}
+          {dedRows.map((d, i) => {
+            const isOS = (d.label || "").toLowerCase().includes("obra social");
+            const osModo = r?.obraSocialBaseUsada; // "48", "48+extras+vac", "real"
+            const showOSBreakdown = isOS && osModo === "48+extras+vac";
+            const baseVal = numify(d.base);
+
+            return (
+              <div key={i} className="py-2 min-w-0">
+                {/* Fila principal (monto) */}
+                <Fila label={d.label} value={-Math.abs(numify(d.monto))} negative />
+
+                {/* Línea base genérica */}
+                {Number.isFinite(baseVal) && (
+                  <p className="mt-1 text-[11px] leading-snug text-slate-500">
+                    Base: $ {fmt(baseVal)}
+                    {isOS && osModo === "48" && " — (Base 48)"}
+                    {isOS && osModo === "real" && " — (Remunerativo real)"}
+                  </p>
+                )}
+
+                {/* Desglose SOLO para OS en modo "48+extras+vac" */}
+                {showOSBreakdown && (
+                  <p className="mt-0.5 text-[11px] leading-snug text-emerald-700">
+                    Base 48 $ {fmt(r?.bases?.OS_48)} + Extras $ {fmt(r?.montoHorasExtras)} + Vacaciones $ {fmt(r?.vacacionesPlus)}
+                    {" → "}Base OS $ {fmt(r?.baseOS)}
+                  </p>
+                )}
+              </div>
+            );
+          })}
           <div className="pt-2 border-t border-slate-100 mt-2">
             <Fila label="Total deducciones" value={totalDedSafe} strong negative />
           </div>
