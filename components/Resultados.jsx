@@ -255,7 +255,7 @@ export default function Resultados({ r, money }) {
                 {/* Desglose SOLO para OS en modo "48+extras+vac" */}
                 {showOSBreakdown && (
                   <p className="mt-0.5 text-[11px] leading-snug text-emerald-700">
-                    Base 48 $ {fmt(r?.bases?.OS_48)} + Extras $ {fmt(r?.montoHorasExtras)} + Vacaciones $ {fmt(r?.vacacionesPlus)}
+                    Base 48 (REM + NR) $ {fmt(r?.bases?.OS_48)} + Extras $ {fmt(r?.montoHorasExtras)} + Vacaciones $ {fmt(r?.vacacionesPlus)}
                     {" → "}Base OS $ {fmt(r?.baseOS)}
                   </p>
                 )}
