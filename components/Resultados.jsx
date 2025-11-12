@@ -42,21 +42,6 @@ export default function Resultados({ r, money }) {
 
   // ======== Helpers =========
   const isNum = (x) => Number.isFinite(numify(x));
-  const pick = (obj, keys) => {
-    for (const k of keys) {
-      const v = obj?.[k];
-      if (Number.isFinite(numify(v))) return numify(v);
-    }
-    return undefined;
-  };
-
-  // Base común de valor hora
-  const vhBase = pick(r, ["valorHora", "valorHoraPublico", "valor_hora", "horaBase", "valorHoraNormal"]);
-  const vh50 = pick(r, ["valorHora50", "vh50", "hora50"]);
-  const vh100 = pick(r, ["valorHora100", "vh100", "hora100"]);
-
-  const is50 = (label) => /ho?ra/i.test(label) && /(50|50%)/i.test(label);
-  const is100 = (label) => /ho?ra/i.test(label) && /(100|100%)/i.test(label);
 
   // ----------------- Ítems -----------------
   const remRowsRaw = [
@@ -110,7 +95,7 @@ export default function Resultados({ r, money }) {
   const liquidoSafe = totalRemSafe + totalNoRemSafe - totalDedSafe;
 
   // ----------------- UI helpers -----------------
-  const Fila = ({ label, value, strong, negative, hint }) => {
+  const Fila = ({ label, value, strong, negative }) => {
     const valNum = numify(value);
     const vStr = fmt(Math.abs(valNum));
     return (
@@ -140,9 +125,6 @@ export default function Resultados({ r, money }) {
             </AutoFitText>
           </div>
         </div>
-        {hint ? (
-          <p className="mt-1 text-[11px] leading-snug text-emerald-700">{hint}</p>
-        ) : null}
       </div>
     );
   };
@@ -187,21 +169,9 @@ export default function Resultados({ r, money }) {
       {/* Detalle */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 min-w-0">
         <Block title="Remunerativos">
-          {remRows.map(([label, val]) => {
-            let hint;
-
-            // Mostrar valor hora en verde para 50% y 100%
-            if (is50(label)) {
-              const valor = isNum(vh50) ? vh50 : (isNum(vhBase) ? vhBase * 1.5 : undefined);
-              hint = isNum(valor) ? `Valor hora 50%: $ ${fmt(valor)}` : undefined;
-            }
-            if (is100(label)) {
-              const valor = isNum(vh100) ? vh100 : (isNum(vhBase) ? vhBase * 2 : undefined);
-              hint = isNum(valor) ? `Valor hora 100%: $ ${fmt(valor)}` : undefined;
-            }
-
-            return <Fila key={label} label={label} value={val} hint={hint} />;
-          })}
+          {remRows.map(([label, val]) => (
+            <Fila key={label} label={label} value={val} />
+          ))}
 
           <div className="pt-2 border-t border-slate-100 mt-2">
             <Fila label="Total remunerativo" value={totalRemSafe} strong />
