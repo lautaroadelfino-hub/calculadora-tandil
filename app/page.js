@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { loadEscalasFromSheets } from "../lib/loadEscalasFromSheets";
 import { calcularPublico } from "../lib/calculoPublico";
 import { calcularComercio } from "../lib/calculoComercio";
+import { calculoFEHGRA } from "../lib/calculoFEHGRA";
 
 import Parametros from "../components/Parametros";
 import Resultados from "../components/Resultados";
@@ -60,8 +61,8 @@ export default function Home() {
     setMes("");
     setCategoria("");
 
-    // si salimos de Privado/Comercio, apagamos vacaciones
-    if (!(sector === "privado" && convenio === "comercio")) {
+    // si salimos de Privado, apagamos vacaciones
+    if (sector !== "privado") {
       setVacacionesOn(false);
       setVacDiasTrabajados(0);
       setVacDiasManual(0);
@@ -71,12 +72,19 @@ export default function Home() {
 
   const escalasSector = useMemo(() => {
     if (!escalas) return null;
+
     if (sector === "publico" && convenio === "municipalidad") {
       return escalas.publico[subRegimen];
     }
+
     if (sector === "privado" && convenio === "comercio") {
-      return escalas.privado.comercio;
+      return escalas.privado?.comercio;
     }
+
+    if (sector === "privado" && convenio === "fehgra") {
+      return escalas.privado?.fehgra;
+    }
+
     return null;
   }, [escalas, sector, convenio, subRegimen]);
 
@@ -124,38 +132,61 @@ export default function Home() {
     const entry = escalasSector[mes]?.categoria?.[categoria];
     if (!entry) return null;
 
-    return sector === "publico"
-      ? calcularPublico({
-          entry,
-          regimen,
-          aniosAntiguedad,
-          titulo,
-          funcion,
-          horas50,
-          horas100,
-          descuentosExtras,
-          noRemunerativo,
-          subRegimen,
-        })
-      : calcularComercio({
-          entry,
-          aniosAntiguedad,
-          titulo,
-          funcion,
-          horas50,
-          horas100,
-          descuentosExtras,
-          noRemunerativo,
-          cargaHoraria: Number(regimen),
+    // Público municipal
+    if (sector === "publico") {
+      return calcularPublico({
+        entry,
+        regimen,
+        aniosAntiguedad,
+        titulo,
+        funcion,
+        horas50,
+        horas100,
+        descuentosExtras,
+        noRemunerativo,
+        subRegimen,
+      });
+    }
 
-          // Vacaciones integradas
-          vacacionesOn:
-            sector === "privado" && convenio === "comercio" ? vacacionesOn : false,
-          vacDiasTrabajados:
-            sector === "privado" && convenio === "comercio" ? vacDiasTrabajados : 0,
-          vacDiasManual:
-            sector === "privado" && convenio === "comercio" ? vacDiasManual : 0,
-        });
+    // Privado – Comercio
+    if (sector === "privado" && convenio === "comercio") {
+      return calcularComercio({
+        entry,
+        aniosAntiguedad,
+        titulo,
+        funcion,
+        horas50,
+        horas100,
+        descuentosExtras,
+        noRemunerativo,
+        cargaHoraria: Number(regimen),
+
+        // Vacaciones integradas (Comercio)
+        vacacionesOn,
+        vacDiasTrabajados,
+        vacDiasManual,
+      });
+    }
+
+    // Privado – FEHGRA (Hoteles / Gastronomía)
+    if (sector === "privado" && convenio === "fehgra") {
+      return calculoFEHGRA({
+        entry,
+        aniosAntiguedad,
+        horas50,
+        horas100,
+        descuentosExtras,
+        noRemunerativo,
+        cargaHoraria: Number(regimen),
+
+        // Vacaciones también habilitadas para FEHGRA
+        vacacionesOn,
+        vacDiasTrabajados,
+        vacDiasManual,
+      });
+    }
+
+    return null;
   }, [
     escalasSector,
     mes,

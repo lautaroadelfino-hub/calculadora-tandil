@@ -48,6 +48,7 @@ export default function Resultados({ r, money }) {
     ["Básico", r.basico],
     ["Antigüedad", r.antiguedad],
     ["Presentismo", r.presentismo],
+    ["Complemento de servicio", r.adicionalComplementoServicio], // ⬅️ FEHGRA
     ["Adicional horario", r.adicionalHorario],
     ["Adicional por título", r.adicionalTitulo],
     ["Bonificación por función", r.adicionalFuncion],
@@ -80,7 +81,8 @@ export default function Resultados({ r, money }) {
     numify(r.adicionalFuncion) +
     numify(r.horasExtras50) +
     numify(r.horasExtras100) +
-    numify(r.vacacionesPlus);
+    numify(r.vacacionesPlus) +
+    numify(r.adicionalComplementoServicio);
 
   const totalRemSafe = isNum(r.totalRemunerativo) ? numify(r.totalRemunerativo) : totalRemCalc;
 

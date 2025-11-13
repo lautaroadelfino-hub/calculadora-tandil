@@ -137,7 +137,10 @@ export default function Parametros({
             {sector === "publico" ? (
               <option value="municipalidad">Municipalidad de Tandil</option>
             ) : (
-              <option value="comercio">Empleados de Comercio (CCT 130/75)</option>
+              <>
+                <option value="comercio">Empleados de Comercio (CCT 130/75)</option>
+                <option value="fehgra">Hoteles y Gastronomía (UTGHRA–FEHGRA)</option>
+              </>
             )}
           </Select>
         </Field>
@@ -190,7 +193,7 @@ export default function Parametros({
           </Field>
         ) : (
           <Field label="Régimen horario semanal">
-            {/* ✅ COMERCIO: desbloqueado, seleccionable */}
+            {/* ✅ Privado: seleccionable (Comercio / FEHGRA) */}
             <Select
               value={regimen}
               onChange={(e) => setRegimen(e.target.value)}
@@ -239,8 +242,8 @@ export default function Parametros({
         </Field>
       </div>
 
-      {/* >>> Vacaciones (solo Comercio) */}
-      {sector === "privado" && convenio === "comercio" && (
+      {/* >>> Vacaciones (Comercio + FEHGRA) */}
+      {sector === "privado" && (convenio === "comercio" || convenio === "fehgra") && (
         <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/60 p-3">
           <label className="flex items-center gap-2">
             <input
