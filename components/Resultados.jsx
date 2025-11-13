@@ -24,7 +24,10 @@ export default function Resultados({ r, money }) {
       if (hasComma && hasDot) {
         const lastComma = s.lastIndexOf(",");
         const lastDot = s.lastIndexOf(".");
-        s = lastComma > lastDot ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+        s =
+          lastComma > lastDot
+            ? s.replace(/\./g, "").replace(",", ".")
+            : s.replace(/,/g, "");
       } else if (hasComma) {
         s = s.replace(/,/g, ".");
       }
@@ -84,15 +87,26 @@ export default function Resultados({ r, money }) {
     numify(r.vacacionesPlus) +
     numify(r.adicionalComplementoServicio);
 
-  const totalRemSafe = isNum(r.totalRemunerativo) ? numify(r.totalRemunerativo) : totalRemCalc;
+  const totalRemSafe = isNum(r.totalRemunerativo)
+    ? numify(r.totalRemunerativo)
+    : totalRemCalc;
 
   const totalNoRemCalc =
-    numify(r.noRemuFijo) + numify(r.noRemunerativoOtros) + numify(r.antiguedadNoRemu) + numify(r.presentismoNoRemu);
+    numify(r.noRemuFijo) +
+    numify(r.noRemunerativoOtros) +
+    numify(r.antiguedadNoRemu) +
+    numify(r.presentismoNoRemu);
 
-  const totalNoRemSafe = isNum(r.totalNoRemunerativo) ? numify(r.totalNoRemunerativo) : totalNoRemCalc;
+  const totalNoRemSafe = isNum(r.totalNoRemunerativo)
+    ? numify(r.totalNoRemunerativo)
+    : totalNoRemCalc;
 
-  const totalDedCalc = Array.isArray(dedRows) ? dedRows.reduce((acc, d) => acc + numify(d.monto), 0) : 0;
-  const totalDedSafe = isNum(r.totalDeducciones) ? numify(r.totalDeducciones) : totalDedCalc;
+  const totalDedCalc = Array.isArray(dedRows)
+    ? dedRows.reduce((acc, d) => acc + numify(d.monto), 0)
+    : 0;
+  const totalDedSafe = isNum(r.totalDeducciones)
+    ? numify(r.totalDeducciones)
+    : totalDedCalc;
 
   const liquidoSafe = totalRemSafe + totalNoRemSafe - totalDedSafe;
 
@@ -115,7 +129,7 @@ export default function Resultados({ r, money }) {
           </span>
           <div className="min-w-0 text-right">
             <AutoFitText
-              min={14}
+              min={12}
               max={20}
               className={[
                 "inline-block whitespace-nowrap tabular-nums leading-snug tracking-tight",
@@ -140,24 +154,38 @@ export default function Resultados({ r, money }) {
 
   const Stat = ({ label, value, tone = "neutral" }) => {
     const ring =
-      tone === "good" ? "ring-1 ring-emerald-200" :
-      tone === "bad"  ? "ring-1 ring-rose-200"    :
-      tone === "warn" ? "ring-1 ring-amber-200"   :
-                        "ring-1 ring-slate-200";
+      tone === "good"
+        ? "ring-1 ring-emerald-200"
+        : tone === "bad"
+        ? "ring-1 ring-rose-200"
+        : tone === "warn"
+        ? "ring-1 ring-amber-200"
+        : "ring-1 ring-slate-200";
 
     const bg =
-      tone === "good" ? "from-emerald-50/90 to-emerald-50/40" :
-      tone === "bad"  ? "from-rose-50/90 to-rose-50/40"       :
-      tone === "warn" ? "from-amber-50/90 to-amber-50/40"     :
-                        "from-slate-50/90 to-slate-50/40";
+      tone === "good"
+        ? "from-emerald-50/90 to-emerald-50/40"
+        : tone === "bad"
+        ? "from-rose-50/90 to-rose-50/40"
+        : tone === "warn"
+        ? "from-amber-50/90 to-amber-50/40"
+        : "from-slate-50/90 to-slate-50/40";
 
     const vStr = fmt(value);
 
     return (
-      <div className={`w-full rounded-xl bg-gradient-to-br ${bg} backdrop-blur p-3 ${ring} min-w-0`}>
-        <div className="text-[11px] md:text-xs uppercase tracking-wide text-slate-500">{label}</div>
+      <div
+        className={`w-full rounded-xl bg-gradient-to-br ${bg} backdrop-blur p-3 ${ring} min-w-0`}
+      >
+        <div className="text-[11px] md:text-xs uppercase tracking-wide text-slate-500">
+          {label}
+        </div>
         <div className="mt-0.5 text-right min-w-0 overflow-hidden">
-          <AutoFitText min={18} max={30} className="tabular-nums font-semibold leading-tight inline-block whitespace-nowrap text-slate-900">
+          <AutoFitText
+            min={14}
+            max={26}
+            className="tabular-nums font-semibold leading-tight inline-block whitespace-nowrap text-slate-900"
+          >
             $ {vStr}
           </AutoFitText>
         </div>
@@ -177,14 +205,15 @@ export default function Resultados({ r, money }) {
 
           <div className="pt-2 border-t border-slate-100 mt-2">
             <Fila label="Total remunerativo" value={totalRemSafe} strong />
-            {(numify(r.vacacionesPlus) > 0) && Number(r.vacacionesDias) > 0 && (
-              <div className="mt-1 text-xs text-emerald-700">
-                Vacaciones: <strong>{r.vacacionesDias}</strong> día(s).{" "}
-                Base/25: ${Number(numify(r.valorDiaBase25)).toFixed(2)} ·{" "}
-                Base/30: ${Number(numify(r.valorDiaBase30)).toFixed(2)} ·{" "}
-                Plus/día: ${Number(numify(r.plusPorDia)).toFixed(2)}
-              </div>
-            )}
+            {numify(r.vacacionesPlus) > 0 &&
+              Number(r.vacacionesDias) > 0 && (
+                <div className="mt-1 text-xs text-emerald-700">
+                  Vacaciones: <strong>{r.vacacionesDias}</strong> día(s). Base/25: $
+                  {Number(numify(r.valorDiaBase25)).toFixed(2)} · Base/30: $
+                  {Number(numify(r.valorDiaBase30)).toFixed(2)} · Plus/día: $
+                  {Number(numify(r.plusPorDia)).toFixed(2)}
+                </div>
+              )}
           </div>
         </Block>
 
@@ -195,11 +224,17 @@ export default function Resultados({ r, money }) {
                 <Fila key={label} label={label} value={val} />
               ))}
               <div className="pt-2 border-t border-slate-100 mt-2">
-                <Fila label="Total no remunerativo" value={totalNoRemSafe} strong />
+                <Fila
+                  label="Total no remunerativo"
+                  value={totalNoRemSafe}
+                  strong
+                />
               </div>
             </>
           ) : (
-            <div className="text-sm text-slate-500">No hay conceptos no remunerativos.</div>
+            <div className="text-sm text-slate-500">
+              No hay conceptos no remunerativos.
+            </div>
           )}
         </Block>
 
@@ -213,7 +248,11 @@ export default function Resultados({ r, money }) {
             return (
               <div key={i} className="py-2 min-w-0">
                 {/* Fila principal (monto) */}
-                <Fila label={d.label} value={-Math.abs(numify(d.monto))} negative />
+                <Fila
+                  label={d.label}
+                  value={-Math.abs(numify(d.monto))}
+                  negative
+                />
 
                 {/* Línea base genérica */}
                 {Number.isFinite(baseVal) && (
@@ -227,7 +266,9 @@ export default function Resultados({ r, money }) {
                 {/* Desglose SOLO para OS en modo "48+extras+vac" */}
                 {showOSBreakdown && (
                   <p className="mt-0.5 text-[11px] leading-snug text-emerald-700">
-                    Base 48 (REM + NR) $ {fmt(r?.bases?.OS_48)} + Extras $ {fmt(r?.montoHorasExtras)} + Vacaciones $ {fmt(r?.vacacionesPlus)}
+                    Base 48 (REM + NR) $ {fmt(r?.bases?.OS_48)} + Extras ${" "}
+                    {fmt(r?.montoHorasExtras)} + Vacaciones ${" "}
+                    {fmt(r?.vacacionesPlus)}
                     {" → "}Base OS $ {fmt(r?.baseOS)}
                   </p>
                 )}
@@ -235,7 +276,12 @@ export default function Resultados({ r, money }) {
             );
           })}
           <div className="pt-2 border-t border-slate-100 mt-2">
-            <Fila label="Total deducciones" value={totalDedSafe} strong negative />
+            <Fila
+              label="Total deducciones"
+              value={totalDedSafe}
+              strong
+              negative
+            />
           </div>
         </Block>
       </div>
@@ -243,9 +289,13 @@ export default function Resultados({ r, money }) {
       {/* Totales */}
       <div className="min-w-0">
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-blue-50/80 to-emerald-50/80 p-3 md:p-4 min-w-0">
-          <div className="grid gap-2 md:gap-3 min-w-0 [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
+          <div className="grid gap-2 md:gap-3 min-w-0 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
             <Stat label="Remunerativo" value={totalRemSafe} />
-            <Stat label="No remunerativo" value={totalNoRemSafe} tone="warn" />
+            <Stat
+              label="No remunerativo"
+              value={totalNoRemSafe}
+              tone="warn"
+            />
             <Stat label="Deducciones" value={totalDedSafe} tone="bad" />
             <Stat label="Líquido" value={liquidoSafe} tone="good" />
           </div>
@@ -254,7 +304,8 @@ export default function Resultados({ r, money }) {
 
       {/* Disclaimer */}
       <p className="mt-3 text-[11px] md:text-xs leading-snug text-slate-500 italic">
-        * Los valores se calculan con datos publicados y reglas vigentes. Verificá siempre con la liquidación oficial.
+        * Los valores se calculan con datos publicados y reglas vigentes.
+        Verificá siempre con la liquidación oficial.
       </p>
     </section>
   );
