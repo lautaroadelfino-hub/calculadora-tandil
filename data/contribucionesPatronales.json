@@ -1,0 +1,24 @@
+{
+  "servicios_comercio_grande": {
+    "id": "servicios_comercio_grande",
+    "label": "Servicios / Comercio – empresas grandes",
+    "detalle": [
+      { "id": "sipa", "label": "SIPA (jubilación)", "pct": 12.35 },
+      { "id": "inssjp", "label": "INSSJP (PAMI)", "pct": 1.58 },
+      { "id": "asig", "label": "Asignaciones familiares", "pct": 5.4 },
+      { "id": "fne", "label": "Fondo Nacional de Empleo", "pct": 1.07 },
+      { "id": "os", "label": "Obra social (contribución empleador)", "pct": 6.0 }
+    ]
+  },
+  "resto_mipyme": {
+    "id": "resto_mipyme",
+    "label": "Resto de actividades / MiPyME",
+    "detalle": [
+      { "id": "sipa", "label": "SIPA (jubilación)", "pct": 10.77 },
+      { "id": "inssjp", "label": "INSSJP (PAMI)", "pct": 1.58 },
+      { "id": "asig", "label": "Asignaciones familiares", "pct": 4.7 },
+      { "id": "fne", "label": "Fondo Nacional de Empleo", "pct": 0.95 },
+      { "id": "os", "label": "Obra social (contribución empleador)", "pct": 6.0 }
+    ]
+  }
+}

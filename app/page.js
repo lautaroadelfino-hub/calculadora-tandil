@@ -1,6 +1,7 @@
 // app/page.js
 "use client";
 import { useState, useEffect, useMemo, useRef } from "react";
+import Link from "next/link";
 
 import { loadEscalasFromSheets } from "../lib/loadEscalasFromSheets";
 import { calcularPublico } from "../lib/calculoPublico";
@@ -216,7 +217,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <button
                 type="button"
                 onClick={empezarMunicipalidad}
@@ -273,6 +274,26 @@ export default function Home() {
                   Comenzar →
                 </span>
               </button>
+
+              {/* Nueva card: Panel Empleador */}
+              <Link
+                href="/empleador"
+                className="group flex flex-col items-start justify-between rounded-2xl border border-emerald-200 bg-white/80 px-4 py-3 text-left shadow-sm hover:shadow-md hover:border-emerald-500 transition-all"
+              >
+                <div className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">
+                  Empleadores
+                </div>
+                <div className="text-sm font-semibold text-slate-900">
+                  Panel Empleador
+                </div>
+                <p className="mt-1 text-[11px] text-slate-600">
+                  Calculá el costo laboral total de un puesto, con detalle de
+                  contribuciones, ART y otros aportes.
+                </p>
+                <span className="mt-2 text-[11px] font-medium text-emerald-700 group-hover:underline">
+                  Abrir panel →
+                </span>
+              </Link>
             </div>
           </div>
         </section>
@@ -435,7 +456,7 @@ export default function Home() {
         money={money}
         onReport={() => setShowReport(true)}
       />
-            <footer className="border-t border-slate-200 mt-10">
+      <footer className="border-t border-slate-200 mt-10">
         <div className="w-full px-6 py-4 text-xs text-slate-500 flex flex-wrap items-center gap-2">
           <span>© {new Date().getFullYear()} LiquidAR.ar.</span>
           <span className="text-slate-400">Versión {APP_VERSION}</span>
@@ -444,4 +465,3 @@ export default function Home() {
     </div>
   );
 }
-
