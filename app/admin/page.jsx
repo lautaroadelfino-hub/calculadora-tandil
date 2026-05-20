@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { doc, setDoc } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth"; // <-- Sumamos signOut
+import { db, auth } from "@/lib/firebase"; // <-- Sumamos auth
 
 // Definimos todas las categorías del CCT 130/75 en un array
 const categoriasComercio = [
@@ -14,6 +16,13 @@ const categoriasComercio = [
 ];
 
 export default function AdminPage() {
+  const router = useRouter(); // <-- Iniciamos el router para poder redirigir
+
+  // --- NUEVOS ESTADOS DE SEGURIDAD ---
+  const [verificando, setVerificando] = useState(true);
+  const [accesoPermitido, setAccesoPermitido] = useState(false);
+
+  // --- ESTADOS DE TU FORMULARIO ---
   const [periodoID, setPeriodoID] = useState("2026-04");
   const [mesVigencia, setMesVigencia] = useState("Abril 2026");
 
@@ -24,6 +33,32 @@ export default function AdminPage() {
   }, {});
 
   const [sueldos, setSueldos] = useState(estadoInicialSueldos);
+
+  // --- EFECTO DE SEGURIDAD (EL "PATOVICA") ---
+  useEffect(() => {
+    if (!auth) return; // Si auth no cargó, esperamos
+
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setAccesoPermitido(true); // Está logueado, lo dejamos pasar
+      } else {
+        router.push("/login"); // No está logueado, lo mandamos al login
+      }
+      setVerificando(false);
+    });
+
+    return () => unsubscribe();
+  }, [router]);
+
+  // --- FUNCIÓN PARA CERRAR SESIÓN ---
+  const cerrarSesion = async () => {
+    try {
+      await signOut(auth);
+      router.push("/"); // Lo manda a la home después de salir
+    } catch (error) {
+      console.error("Error al cerrar sesión", error);
+    }
+  };
 
   const handleSueldoChange = (categoria, campo, valor) => {
     setSueldos(prev => ({
@@ -66,9 +101,33 @@ export default function AdminPage() {
     }
   };
 
+  // --- PANTALLAS DE CARGA Y BLOQUEO ---
+  if (verificando) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-gray-500 font-medium animate-pulse text-lg">Verificando credenciales de administrador...</div>
+      </div>
+    );
+  }
+
+  if (!accesoPermitido) return null; // Si no tiene permiso, la pantalla queda en blanco mientras lo patea
+
+  // --- RENDER DEL PANEL (SI PASÓ LA SEGURIDAD) ---
   return (
     <div className="max-w-5xl mx-auto p-8 mt-10 bg-white rounded-xl shadow-lg border border-gray-200 mb-20">
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">Carga de Paritarias Completa</h1>
+      
+      {/* HEADER CON TÍTULO Y BOTÓN DE CERRAR SESIÓN */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-2 gap-4">
+        <h1 className="text-3xl font-bold text-gray-800">Carga de Paritarias Completa</h1>
+        <button 
+          onClick={cerrarSesion}
+          type="button"
+          className="bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-2 px-4 border border-red-200 rounded-lg shadow-sm transition-colors text-sm"
+        >
+          Cerrar Sesión
+        </button>
+      </div>
+
       <p className="text-gray-500 mb-8 border-b pb-4">CCT 130/75 - Empleados de Comercio</p>
 
       <form onSubmit={guardarEscalaParitaria} className="space-y-8">
