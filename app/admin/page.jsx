@@ -1,182 +1,279 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { doc, setDoc } from "firebase/firestore";
-import { onAuthStateChanged, signOut } from "firebase/auth"; // <-- Sumamos signOut
-import { db, auth } from "@/lib/firebase"; // <-- Sumamos auth
-
-// Definimos todas las categorías del CCT 130/75 en un array
-const categoriasComercio = [
-  "Maestranza A", "Maestranza B", "Maestranza C",
-  "Administrativo A", "Administrativo B", "Administrativo C", "Administrativo D", "Administrativo E", "Administrativo F",
-  "Cajero A", "Cajero B", "Cajero C",
-  "Personal Auxiliar A", "Personal Auxiliar B", "Personal Auxiliar C",
-  "Auxiliar Especializado A", "Auxiliar Especializado B",
-  "Vendedor A", "Vendedor B", "Vendedor C", "Vendedor D"
-];
+import { collection, getDocs, doc, getDoc, setDoc, query, where } from "firebase/firestore";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { db, auth } from "@/lib/firebase";
 
 export default function AdminPage() {
-  const router = useRouter(); // <-- Iniciamos el router para poder redirigir
+  const router = useRouter();
 
-  // --- NUEVOS ESTADOS DE SEGURIDAD ---
   const [verificando, setVerificando] = useState(true);
   const [accesoPermitido, setAccesoPermitido] = useState(false);
+  const [convenios, setConvenios] = useState([]);
+  const [convenioSeleccionado, setConvenioSeleccionado] = useState("");
+  const [convenioCompleto, setConvenioCompleto] = useState(null); 
+  const [categoriasActuales, setCategoriasActuales] = useState([]);
+  
+  const [periodoID, setPeriodoID] = useState("");
+  const [mesVigencia, setMesVigencia] = useState("");
+  const [sueldos, setSueldos] = useState({});
 
-  // --- ESTADOS DE TU FORMULARIO ---
-  const [periodoID, setPeriodoID] = useState("2026-04");
-  const [mesVigencia, setMesVigencia] = useState("Abril 2026");
-
-  // Creamos el estado inicial dinámicamente leyendo el array
-  const estadoInicialSueldos = categoriasComercio.reduce((acc, cat) => {
-    acc[cat] = { basico: "", no_remunerativo: "" };
-    return acc;
-  }, {});
-
-  const [sueldos, setSueldos] = useState(estadoInicialSueldos);
-
-  // --- EFECTO DE SEGURIDAD (EL "PATOVICA") ---
   useEffect(() => {
-    if (!auth) return; // Si auth no cargó, esperamos
-
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
-        setAccesoPermitido(true); // Está logueado, lo dejamos pasar
+        setAccesoPermitido(true);
+        cargarConveniosActivos();
       } else {
-        router.push("/login"); // No está logueado, lo mandamos al login
+        router.push("/login");
       }
       setVerificando(false);
     });
-
     return () => unsubscribe();
   }, [router]);
 
-  // --- FUNCIÓN PARA CERRAR SESIÓN ---
-  const cerrarSesion = async () => {
+  const cargarConveniosActivos = async () => {
     try {
-      await signOut(auth);
-      router.push("/"); // Lo manda a la home después de salir
-    } catch (error) {
-      console.error("Error al cerrar sesión", error);
+      const q = query(collection(db, "convenios"), where("activo", "==", true));
+      const querySnapshot = await getDocs(q);
+      const lista = [];
+      querySnapshot.forEach((doc) => lista.push({ id: doc.id, ...doc.data() }));
+      setConvenios(lista);
+      if (lista.length > 0) {
+        setConvenioSeleccionado(lista[0].id);
+        setConvenioCompleto(lista[0]);
+        extraerCategorias(lista[0]);
+      }
+    } catch (error) { console.error(error); }
+  };
+
+  const handleConvenioChange = (e) => {
+    const id = e.target.value;
+    setConvenioSeleccionado(id);
+    const conv = convenios.find(c => c.id === id);
+    if (conv) {
+      setConvenioCompleto(conv);
+      extraerCategorias(conv);
     }
   };
 
-  const handleSueldoChange = (categoria, campo, valor) => {
-    setSueldos(prev => ({
-      ...prev,
-      [categoria]: {
-        ...prev[categoria],
-        [campo]: valor === "" ? "" : Number(valor)
+  const extraerCategorias = (conv) => {
+    const inputCat = conv.inputs_requeridos?.find(i => i.id === "categoria");
+    const cats = inputCat ? [...inputCat.opciones].sort((a, b) => a.localeCompare(b)) : [];
+    setCategoriasActuales(cats);
+    const estadoInicial = cats.reduce((acc, cat) => {
+      acc[cat] = { basico: "", no_remunerativo: "" };
+      return acc;
+    }, {});
+    setSueldos(estadoInicial);
+    setPeriodoID("");
+    setMesVigencia("");
+  };
+
+  // --- RECUPERAMOS LA FUNCIÓN DE BÚSQUEDA ---
+  const buscarPeriodo = async () => {
+    if (!periodoID) return alert("Ingresá un ID de período para buscar (ej: 2026-04)");
+    if (!convenioSeleccionado) return;
+
+    try {
+      const escalaRef = doc(db, "convenios", convenioSeleccionado, "escalas", periodoID);
+      const escalaSnap = await getDoc(escalaRef);
+
+      if (escalaSnap.exists()) {
+        const data = escalaSnap.data();
+        setMesVigencia(data.mes_vigencia);
+
+        const catsEscala = Object.keys(data.categorias || {});
+        const listaCombinada = Array.from(new Set([...categoriasActuales, ...catsEscala])).sort((a, b) => a.localeCompare(b));
+        setCategoriasActuales(listaCombinada);
+
+        const sueldosCargados = {};
+        listaCombinada.forEach(cat => {
+          sueldosCargados[cat] = {
+            basico: data.categorias?.[cat]?.basico || "",
+            no_remunerativo: data.categorias?.[cat]?.no_remunerativo || ""
+          };
+        });
+        setSueldos(sueldosCargados);
+        alert(`¡Período encontrado! Cargada la escala de: ${data.mes_vigencia}. Ya podés descargar el CSV para editarlo.`);
+      } else {
+        alert("No se encontró este mes. Podés crear uno nuevo usando la plantilla CSV.");
       }
-    }));
+    } catch (error) {
+      console.error("Error al buscar período:", error);
+    }
+  };
+
+  // --- FUNCIONES CSV ---
+  const descargarPlantilla = () => {
+    const cabecera = "categoria,basico,no_remunerativo\n";
+    const filas = categoriasActuales.map(cat => 
+      `${cat},${sueldos[cat]?.basico || 0},${sueldos[cat]?.no_remunerativo || 0}`
+    ).join("\n");
+    const blob = new Blob([cabecera + filas], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `escala_${periodoID || 'nuevo'}.csv`;
+    a.click();
+  };
+
+  const cargarDesdeCSV = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const contenido = event.target.result;
+      // Reemplazamos retornos de carro de Windows (\r\n) a simples (\n) por seguridad
+      const lineas = contenido.replace(/\r/g, '').split('\n').slice(1);
+      
+      const nuevosSueldos = {};
+      const nuevasCategorias = [];
+      
+      lineas.forEach(linea => {
+        const [cat, bas, nr] = linea.split(',');
+        if (cat && cat.trim() !== "") {
+          nuevasCategorias.push(cat.trim());
+          nuevosSueldos[cat.trim()] = { 
+            basico: Number(bas) || 0, 
+            no_remunerativo: Number(nr) || 0 
+          };
+        }
+      });
+      
+      setCategoriasActuales(nuevasCategorias.sort((a, b) => a.localeCompare(b)));
+      setSueldos(nuevosSueldos);
+      alert("¡Datos cargados del archivo exitosamente! Revisalos en la grilla y dale a Guardar.");
+      // Limpiamos el input file para poder subir el mismo archivo dos veces si hubo un error
+      e.target.value = null; 
+    };
+    reader.readAsText(file);
   };
 
   const guardarEscalaParitaria = async (e) => {
     e.preventDefault();
-    if (!periodoID || !mesVigencia) {
-      alert("Completá el ID del período y el nombre.");
-      return;
-    }
+    if (!periodoID || !mesVigencia) return alert("Completá el ID del período y el nombre descriptivo.");
+    
+    const seguro = window.confirm(`¿Confirmás guardar la paritaria de "${mesVigencia}"?`);
+    if (!seguro) return;
 
     try {
-      const escalaRef = doc(db, "convenios", "comercio-cct-130-75", "escalas", periodoID);
-      
-      // Limpiamos los datos para mandar a Firebase (convertimos vacíos en 0)
+      const escalaRef = doc(db, "convenios", convenioSeleccionado, "escalas", periodoID);
       const categoriasLimpias = {};
-      categoriasComercio.forEach(cat => {
+      categoriasActuales.forEach(cat => {
         categoriasLimpias[cat] = {
-          basico: sueldos[cat].basico || 0,
-          no_remunerativo: sueldos[cat].no_remunerativo || 0
+          basico: sueldos[cat]?.basico || 0,
+          no_remunerativo: sueldos[cat]?.no_remunerativo || 0
         };
       });
 
-      await setDoc(escalaRef, {
-        mes_vigencia: mesVigencia,
-        categorias: categoriasLimpias
+      await setDoc(escalaRef, { mes_vigencia: mesVigencia, categorias: categoriasLimpias });
+
+      const convenioRef = doc(db, "convenios", convenioSeleccionado);
+      const inputsModificados = convenioCompleto.inputs_requeridos.map(input => {
+        if (input.id === "categoria") return { ...input, opciones: categoriasActuales };
+        return input;
       });
 
-      alert(`¡La escala de ${mesVigencia} con todas las categorías se guardó con éxito!`);
-    } catch (error) {
-      console.error("Error al guardar:", error);
-      alert("Hubo un error de conexión.");
-    }
+      await setDoc(convenioRef, { ...convenioCompleto, inputs_requeridos: inputsModificados }, { merge: true });
+      alert(`¡Éxito! Sueldos publicados y base de datos sincronizada.`);
+    } catch (error) { console.error(error); alert("Error al guardar."); }
   };
 
-  // --- PANTALLAS DE CARGA Y BLOQUEO ---
-  if (verificando) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-gray-500 font-medium animate-pulse text-lg">Verificando credenciales de administrador...</div>
-      </div>
-    );
-  }
+  const cerrarSesion = async () => {
+    try { await signOut(auth); router.push("/"); } 
+    catch (error) { console.error(error); }
+  };
 
-  if (!accesoPermitido) return null; // Si no tiene permiso, la pantalla queda en blanco mientras lo patea
+  if (verificando) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><div className="text-gray-500 font-medium animate-pulse text-lg">Verificando credenciales...</div></div>;
+  if (!accesoPermitido) return null;
 
-  // --- RENDER DEL PANEL (SI PASÓ LA SEGURIDAD) ---
   return (
     <div className="max-w-5xl mx-auto p-8 mt-10 bg-white rounded-xl shadow-lg border border-gray-200 mb-20">
       
-      {/* HEADER CON TÍTULO Y BOTÓN DE CERRAR SESIÓN */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-2 gap-4">
-        <h1 className="text-3xl font-bold text-gray-800">Carga de Paritarias Completa</h1>
-        <button 
-          onClick={cerrarSesion}
-          type="button"
-          className="bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-2 px-4 border border-red-200 rounded-lg shadow-sm transition-colors text-sm"
-        >
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800">Panel de Administración</h1>
+          <p className="text-gray-500 text-sm mt-1">Gestión por importación de CSV</p>
+        </div>
+        <button onClick={cerrarSesion} type="button" className="bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-2 px-4 border border-red-200 rounded-lg text-sm">
           Cerrar Sesión
         </button>
       </div>
 
-      <p className="text-gray-500 mb-8 border-b pb-4">CCT 130/75 - Empleados de Comercio</p>
+      <div className="mb-6 p-5 bg-slate-50 border border-slate-200 rounded-xl">
+        <label className="block text-sm font-bold text-slate-700 mb-2">Convenio Colectivo</label>
+        <select value={convenioSeleccionado} onChange={handleConvenioChange} className="w-full md:w-1/2 border border-slate-300 p-2.5 rounded-lg outline-none bg-white">
+          {convenios.map(conv => <option key={conv.id} value={conv.id}>{conv.nombre} (CCT {conv.cct})</option>)}
+        </select>
+      </div>
 
-      <form onSubmit={guardarEscalaParitaria} className="space-y-8">
-        <div className="flex gap-4 bg-gray-50 p-4 rounded-lg border border-gray-100">
-          <div className="flex-1">
-            <label className="block text-sm font-bold text-gray-700 mb-1">ID del Período (URL)</label>
-            <input type="text" value={periodoID} onChange={(e) => setPeriodoID(e.target.value)} className="w-full border p-2 rounded outline-none" />
+      <form onSubmit={guardarEscalaParitaria} className="space-y-6">
+        
+        {/* RECUPERAMOS LA BARRA DE BÚSQUEDA */}
+        <div className="flex flex-col md:flex-row gap-4 bg-blue-50/50 p-5 rounded-xl border border-blue-100 items-end">
+          <div className="flex-1 w-full">
+            <label className="block text-sm font-bold text-blue-900 mb-1">ID del Período (Ruta URL)</label>
+            <div className="flex gap-2">
+              <input type="text" value={periodoID} onChange={(e) => setPeriodoID(e.target.value)} placeholder="ej: 2026-04" className="w-full border border-blue-200 p-2.5 rounded-lg outline-none bg-white font-mono text-sm" />
+              <button type="button" onClick={buscarPeriodo} className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-lg shadow-sm text-sm">
+                Buscar
+              </button>
+            </div>
           </div>
-          <div className="flex-1">
-            <label className="block text-sm font-bold text-gray-700 mb-1">Nombre a Mostrar</label>
-            <input type="text" value={mesVigencia} onChange={(e) => setMesVigencia(e.target.value)} className="w-full border p-2 rounded outline-none" />
+          <div className="flex-1 w-full">
+            <label className="block text-sm font-bold text-blue-900 mb-1">Nombre Descriptivo</label>
+            <input type="text" value={mesVigencia} onChange={(e) => setMesVigencia(e.target.value)} placeholder="ej: Abril 2026" className="w-full border border-blue-200 p-2.5 rounded-lg outline-none bg-white text-sm font-medium" />
           </div>
         </div>
 
-        <div>
-          <h2 className="text-xl font-bold text-gray-800 mb-4 bg-gray-800 text-white p-2 rounded">Grilla Salarial</h2>
+        {/* BOTONERA CSV */}
+        <div className="flex flex-col sm:flex-row gap-4 bg-slate-100 p-4 rounded-xl border border-slate-200 items-center justify-center">
+          <button type="button" onClick={descargarPlantilla} className="bg-white hover:bg-gray-50 text-slate-800 font-bold px-6 py-3 rounded-lg border border-slate-300 shadow-sm text-sm w-full sm:w-auto">
+            📥 Descargar CSV de este mes
+          </button>
           
-          {/* Se dibuja automáticamente toda la lista de categorías */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-            {categoriasComercio.map((categoria) => (
-              <div key={categoria} className="flex flex-col bg-gray-50 p-3 rounded border border-gray-200 hover:bg-blue-50 transition-colors">
-                <div className="font-bold text-blue-800 text-sm mb-2 border-b pb-1">{categoria}</div>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Básico ($)</label>
-                    <input 
-                      type="number" 
-                      value={sueldos[categoria].basico} 
-                      onChange={(e) => handleSueldoChange(categoria, 'basico', e.target.value)}
-                      className="w-full border p-1 text-sm rounded outline-none" placeholder="0"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">No Remun. ($)</label>
-                    <input 
-                      type="number" 
-                      value={sueldos[categoria].no_remunerativo} 
-                      onChange={(e) => handleSueldoChange(categoria, 'no_remunerativo', e.target.value)}
-                      className="w-full border p-1 text-sm rounded outline-none" placeholder="0"
-                    />
+          <label className="bg-slate-800 hover:bg-black text-white font-bold px-6 py-3 rounded-lg text-sm cursor-pointer shadow-sm w-full sm:w-auto text-center">
+            📂 Subir archivo CSV editado
+            <input type="file" accept=".csv" onChange={cargarDesdeCSV} className="hidden" />
+          </label>
+        </div>
+
+        {/* PREVIEW DINÁMICO */}
+        <div>
+          <h2 className="text-lg font-bold text-gray-800 mb-3 bg-slate-800 text-white p-2.5 rounded-lg shadow-sm">
+            Vista Previa de Datos a Publicar
+          </h2>
+          
+          {categoriasActuales.length === 0 ? (
+            <div className="text-gray-400 py-8 text-center border border-dashed rounded-xl bg-white text-sm">
+              Ingresá un ID de período y dale a "Buscar", o subí un CSV directamente.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2 bg-gray-50 border rounded-lg">
+              {categoriasActuales.map(categoria => (
+                <div key={categoria} className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm">
+                  <p className="font-bold text-slate-700 text-xs mb-2 border-b pb-1">{categoria}</p>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Básico</p>
+                      <p className="text-sm font-mono">${sueldos[categoria]?.basico || 0}</p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">No Rem.</p>
+                      <p className="text-sm font-mono">${sueldos[categoria]?.no_remunerativo || 0}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
-
-        <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-lg shadow-md transition-all text-lg">
-          Guardar y Publicar Escala Completa
+        
+        <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-4 rounded-xl shadow-md transition-all text-lg mt-6">
+          Guardar y Publicar en Base de Datos
         </button>
       </form>
     </div>

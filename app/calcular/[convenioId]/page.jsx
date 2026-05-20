@@ -139,7 +139,7 @@ export default function CalculadoraDinamica() {
               
               {input.tipo === "select" && (
                 <select name={input.id} value={valoresUsuario[input.id] ?? ""} onChange={handleChange} className="border border-gray-300 p-2 rounded outline-none focus:ring-2 focus:ring-gray-200 text-gray-700">
-                  {input.opciones.map(op => <option key={op} value={op}>{op}</option>)}
+                  {[...input.opciones].sort((a, b) => a.localeCompare(b)).map(op => <option key={op} value={op}>{op}</option>)}
                 </select>
               )}
               {input.tipo === "number" && (
