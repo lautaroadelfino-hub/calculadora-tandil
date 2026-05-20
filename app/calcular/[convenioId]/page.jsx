@@ -6,6 +6,8 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { procesarRecibo } from "@/lib/motorLiquidacion";
 
+export const runtime = 'edge';
+
 export default function CalculadoraDinamica() {
   const { convenioId } = useParams();
   
