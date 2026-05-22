@@ -118,7 +118,6 @@ export default function CalculadoraDinamica() {
 
         <form onSubmit={simularLiquidacion} className="space-y-5">
           
-          {/* Nuevo Selector Dinámico de Período */}
           <div className="flex flex-col bg-blue-50 p-3 rounded-lg border border-blue-100">
             <label className="font-bold text-blue-800 mb-1 text-sm">Período a Liquidar</label>
             <select 
@@ -132,7 +131,6 @@ export default function CalculadoraDinamica() {
             </select>
           </div>
 
-          {/* Inputs Dinámicos que vienen de Firestore (Categoría, Antigüedad, etc.) */}
           {convenio.inputs_requeridos.map((input) => (
             <div key={input.id} className="flex flex-col">
               <label className="font-semibold text-gray-700 mb-1 text-sm">{input.label}</label>
@@ -182,11 +180,23 @@ export default function CalculadoraDinamica() {
             </div>
           </div>
 
+          {/* NUEVO BLOQUE DE TOTALES MÁS TRANSPARENTE */}
           <div className="mt-8 pt-4 border-t-2 border-gray-800 bg-white p-4 rounded-lg shadow-sm">
-            <div className="flex justify-between items-center text-sm text-gray-500 mb-2">
-              <span>Remunerativo: ${resultadoLiquidacion.totales.bruto.toLocaleString("es-AR", {maximumFractionDigits: 2})}</span>
-              <span>Retenciones: ${resultadoLiquidacion.totales.retenciones.toLocaleString("es-AR", {maximumFractionDigits: 2})}</span>
+            <div className="space-y-1 border-b border-gray-100 pb-3 mb-3">
+              <div className="flex justify-between items-center text-sm text-gray-600">
+                <span>Total Remunerativo:</span>
+                <span className="font-mono">${resultadoLiquidacion.totales.bruto.toLocaleString("es-AR", {maximumFractionDigits: 2, minimumFractionDigits: 2})}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm text-blue-600 font-medium">
+                <span>Total No Remunerativo:</span>
+                <span className="font-mono">+ ${resultadoLiquidacion.totales.noRemunerativo.toLocaleString("es-AR", {maximumFractionDigits: 2, minimumFractionDigits: 2})}</span>
+              </div>
+              <div className="flex justify-between items-center text-sm text-red-500 font-medium">
+                <span>Total Retenciones:</span>
+                <span className="font-mono">- ${resultadoLiquidacion.totales.retenciones.toLocaleString("es-AR", {maximumFractionDigits: 2, minimumFractionDigits: 2})}</span>
+              </div>
             </div>
+            
             <div className="flex justify-between items-center">
               <span className="text-lg font-bold text-gray-800">Neto a Cobrar</span>
               <span className="text-3xl font-black text-green-600">

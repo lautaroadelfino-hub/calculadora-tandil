@@ -71,6 +71,54 @@ export default function AdminPage() {
     setMesVigencia("");
   };
 
+  // --- NUEVAS FUNCIONES: GESTIÓN DE CONVENIOS MADRE (JSON) ---
+  const descargarConvenioJSON = () => {
+    if (!convenioCompleto) return alert("Seleccioná un convenio primero.");
+    
+    const jsonString = JSON.stringify(convenioCompleto, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = window.URL.createObjectURL(blob);
+    
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `convenio_${convenioCompleto.id}.json`;
+    a.click();
+  };
+
+  const cargarConvenioJSON = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const contenido = event.target.result;
+        const nuevoConvenio = JSON.parse(contenido);
+
+        if (!nuevoConvenio.id || !nuevoConvenio.nombre) {
+          throw new Error("El archivo no tiene el formato correcto (falta ID o nombre).");
+        }
+
+        const seguro = window.confirm(`¿Estás seguro de subir y actualizar la configuración del convenio "${nuevoConvenio.nombre}"?`);
+        if (!seguro) {
+          e.target.value = null;
+          return;
+        }
+
+        const convenioRef = doc(db, "convenios", nuevoConvenio.id);
+        await setDoc(convenioRef, nuevoConvenio);
+        
+        alert(`¡Convenio "${nuevoConvenio.nombre}" guardado con éxito en la base de datos!`);
+        cargarConveniosActivos(); 
+      } catch (error) {
+        console.error("Error procesando JSON:", error);
+        alert("Error al procesar el archivo: " + error.message);
+      }
+      e.target.value = null; 
+    };
+    reader.readAsText(file);
+  };
+
   // --- RECUPERAMOS LA FUNCIÓN DE BÚSQUEDA ---
   const buscarPeriodo = async () => {
     if (!periodoID) return alert("Ingresá un ID de período para buscar (ej: 2026-04)");
@@ -126,7 +174,6 @@ export default function AdminPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const contenido = event.target.result;
-      // Reemplazamos retornos de carro de Windows (\r\n) a simples (\n) por seguridad
       const lineas = contenido.replace(/\r/g, '').split('\n').slice(1);
       
       const nuevosSueldos = {};
@@ -146,7 +193,6 @@ export default function AdminPage() {
       setCategoriasActuales(nuevasCategorias.sort((a, b) => a.localeCompare(b)));
       setSueldos(nuevosSueldos);
       alert("¡Datos cargados del archivo exitosamente! Revisalos en la grilla y dale a Guardar.");
-      // Limpiamos el input file para poder subir el mismo archivo dos veces si hubo un error
       e.target.value = null; 
     };
     reader.readAsText(file);
@@ -196,21 +242,35 @@ export default function AdminPage() {
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Panel de Administración</h1>
-          <p className="text-gray-500 text-sm mt-1">Gestión por importación de CSV</p>
+          <p className="text-gray-500 text-sm mt-1">Gestión avanzada de escalas y reglas</p>
         </div>
         <button onClick={cerrarSesion} type="button" className="bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-2 px-4 border border-red-200 rounded-lg text-sm">
           Cerrar Sesión
         </button>
       </div>
 
+      {/* BLOQUE DE GESTIÓN DE CONVENIO MADRE (NUEVO) */}
       <div className="mb-6 p-5 bg-slate-50 border border-slate-200 rounded-xl">
-        <label className="block text-sm font-bold text-slate-700 mb-2">Convenio Colectivo</label>
-        <select value={convenioSeleccionado} onChange={handleConvenioChange} className="w-full md:w-1/2 border border-slate-300 p-2.5 rounded-lg outline-none bg-white">
-          {convenios.map(conv => <option key={conv.id} value={conv.id}>{conv.nombre} (CCT {conv.cct})</option>)}
-        </select>
+        <label className="block text-sm font-bold text-slate-700 mb-2">Gestión de Convenios Colectivos (Reglas Madre)</label>
+        <div className="flex flex-col md:flex-row gap-4 items-center">
+          <select value={convenioSeleccionado} onChange={handleConvenioChange} className="w-full md:flex-1 border border-slate-300 p-2.5 rounded-lg outline-none bg-white font-medium text-gray-700">
+            {convenios.map(conv => <option key={conv.id} value={conv.id}>{conv.nombre} (CCT {conv.cct})</option>)}
+          </select>
+          
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <button type="button" onClick={descargarConvenioJSON} className="bg-white hover:bg-gray-100 text-slate-700 font-bold px-4 py-2.5 rounded-lg border border-slate-300 shadow-sm text-xs w-full sm:w-auto text-center transition-colors">
+              ⚙️ Descargar Reglas (JSON)
+            </button>
+            <label className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2.5 rounded-lg text-xs cursor-pointer shadow-sm w-full sm:w-auto text-center transition-colors">
+              🚀 Subir Convenio (JSON)
+              <input type="file" accept=".json" onChange={cargarConvenioJSON} className="hidden" />
+            </label>
+          </div>
+        </div>
+        <p className="text-xs text-gray-500 mt-3">Para crear un gremio nuevo, descargá un JSON existente, cambiale el "id", editá las reglas, y subilo.</p>
       </div>
 
-      <form onSubmit={guardarEscalaParitaria} className="space-y-6">
+      <form onSubmit={guardarEscalaParitaria} className="space-y-6 border-t border-gray-100 pt-6">
         
         {/* RECUPERAMOS LA BARRA DE BÚSQUEDA */}
         <div className="flex flex-col md:flex-row gap-4 bg-blue-50/50 p-5 rounded-xl border border-blue-100 items-end">
@@ -254,16 +314,16 @@ export default function AdminPage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2 bg-gray-50 border rounded-lg">
               {categoriasActuales.map(categoria => (
-                <div key={categoria} className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm">
+                <div key={categoria} className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm hover:border-blue-300 transition-colors">
                   <p className="font-bold text-slate-700 text-xs mb-2 border-b pb-1">{categoria}</p>
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Básico</p>
-                      <p className="text-sm font-mono">${sueldos[categoria]?.basico || 0}</p>
+                      <p className="text-sm font-mono text-gray-800">${sueldos[categoria]?.basico || 0}</p>
                     </div>
                     <div className="flex-1">
                       <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">No Rem.</p>
-                      <p className="text-sm font-mono">${sueldos[categoria]?.no_remunerativo || 0}</p>
+                      <p className="text-sm font-mono text-gray-800">${sueldos[categoria]?.no_remunerativo || 0}</p>
                     </div>
                   </div>
                 </div>
