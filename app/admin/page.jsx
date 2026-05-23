@@ -71,7 +71,7 @@ export default function AdminPage() {
     setMesVigencia("");
   };
 
-  // --- NUEVAS FUNCIONES: GESTIÓN DE CONVENIOS MADRE (JSON) ---
+  // --- GESTIÓN DE CONVENIOS MADRE (JSON) ---
   const descargarConvenioJSON = () => {
     if (!convenioCompleto) return alert("Seleccioná un convenio primero.");
     
@@ -116,7 +116,7 @@ export default function AdminPage() {
       }
       e.target.value = null; 
     };
-    reader.readAsText(file);
+    reader.readAsText(file, "windows-1252");
   };
 
   // --- RECUPERAMOS LA FUNCIÓN DE BÚSQUEDA ---
@@ -154,11 +154,41 @@ export default function AdminPage() {
   };
 
   // --- FUNCIONES CSV ---
+  const limpiarNumeroLatam = (valor) => {
+    if (valor === undefined || valor === null) return 0;
+    let s = String(valor).trim().replace(/[^0-9,.\-]/g, ""); 
+    if (!s) return 0;
+    const tieneComa = s.includes(",");
+    const tienePunto = s.includes(".");
+    if (tieneComa && tienePunto) {
+      const posComa = s.lastIndexOf(",");
+      const posPunto = s.lastIndexOf(".");
+      s = posComa > posPunto ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
+    } else if (tieneComa) {
+      s = s.replace(",", ".");
+    } else if (tienePunto && (s.split('.').length > 2 || s.split('.')[1]?.length === 3)) {
+      s = s.replace(/\./g, "");
+    }
+    const res = Number(s);
+    return isFinite(res) ? res : 0;
+  };
+
   const descargarPlantilla = () => {
-    const cabecera = "categoria,basico,no_remunerativo\n";
-    const filas = categoriasActuales.map(cat => 
-      `${cat},${sueldos[cat]?.basico || 0},${sueldos[cat]?.no_remunerativo || 0}`
-    ).join("\n");
+    let cabecera = "categoria,basico,no_remunerativo\n";
+    if (categoriasActuales[0]?.includes('|')) {
+        cabecera = "zona,categoria,basico,no_remunerativo\n";
+    }
+    
+    const filas = categoriasActuales.map(cat => {
+        const filaBasico = sueldos[cat]?.basico || 0;
+        const filaNr = sueldos[cat]?.no_remunerativo || 0;
+        if (cat.includes('|')) {
+            const [zona, categoria] = cat.split('|');
+            return `${zona},${categoria},${filaBasico},${filaNr}`;
+        }
+        return `${cat},${filaBasico},${filaNr}`;
+    }).join("\n");
+
     const blob = new Blob([cabecera + filas], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -174,18 +204,39 @@ export default function AdminPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const contenido = event.target.result;
-      const lineas = contenido.replace(/\r/g, '').split('\n').slice(1);
+      const lineasTotales = contenido.replace(/\r/g, '').split('\n');
+      if (lineasTotales.length < 2) return alert("El archivo está vacío.");
+
+      const header = lineasTotales[0].toLowerCase();
+      const separador = header.includes(';') ? ';' : ',';
+      const tieneZona = header.includes('zona') || header.includes('escala');
+
+      const lineas = lineasTotales.slice(1);
       
       const nuevosSueldos = {};
       const nuevasCategorias = [];
       
       lineas.forEach(linea => {
-        const [cat, bas, nr] = linea.split(',');
-        if (cat && cat.trim() !== "") {
-          nuevasCategorias.push(cat.trim());
-          nuevosSueldos[cat.trim()] = { 
-            basico: Number(bas) || 0, 
-            no_remunerativo: Number(nr) || 0 
+        if (!linea.trim()) return;
+        const columnas = linea.split(separador);
+        
+        let claveCat, bas, nr;
+
+        if (tieneZona && columnas.length >= 4) {
+          claveCat = `${columnas[0].trim()}|${columnas[1].trim()}`;
+          bas = columnas[2];
+          nr = columnas[3];
+        } else {
+          claveCat = columnas[0]?.trim();
+          bas = columnas[1];
+          nr = columnas[2];
+        }
+        
+        if (claveCat && claveCat !== "" && claveCat !== "|") {
+          nuevasCategorias.push(claveCat);
+          nuevosSueldos[claveCat] = { 
+            basico: limpiarNumeroLatam(bas), 
+            no_remunerativo: limpiarNumeroLatam(nr) 
           };
         }
       });
@@ -195,7 +246,7 @@ export default function AdminPage() {
       alert("¡Datos cargados del archivo exitosamente! Revisalos en la grilla y dale a Guardar.");
       e.target.value = null; 
     };
-    reader.readAsText(file);
+    reader.readAsText(file, "windows-1252");
   };
 
   const guardarEscalaParitaria = async (e) => {
@@ -217,13 +268,41 @@ export default function AdminPage() {
 
       await setDoc(escalaRef, { mes_vigencia: mesVigencia, categorias: categoriasLimpias });
 
+      // Magia para crear las zonas y actualizar categorías automáticamente en el convenio
       const convenioRef = doc(db, "convenios", convenioSeleccionado);
-      const inputsModificados = convenioCompleto.inputs_requeridos.map(input => {
-        if (input.id === "categoria") return { ...input, opciones: categoriasActuales };
-        return input;
-      });
+      let inputsModificados = [...convenioCompleto.inputs_requeridos];
+      
+      // Actualizamos opciones de categoría pura
+      const indexCategoria = inputsModificados.findIndex(i => i.id === "categoria");
+      if (indexCategoria !== -1) {
+         const catPuras = Array.from(new Set(categoriasActuales.map(c => c.includes('|') ? c.split('|')[1] : c)));
+         inputsModificados[indexCategoria] = { ...inputsModificados[indexCategoria], opciones: catPuras };
+      }
+
+      // Procesamos las zonas
+      if (categoriasActuales[0]?.includes('|')) {
+         const zonasPuras = Array.from(new Set(categoriasActuales.map(c => c.split('|')[0])));
+         const indexZona = inputsModificados.findIndex(i => i.id === "zona");
+         
+         if (indexZona !== -1) {
+            inputsModificados[indexZona] = { ...inputsModificados[indexZona], opciones: zonasPuras };
+         } else {
+            // Si no existía el input 'zona', lo inyectamos al principio de la calculadora
+            inputsModificados.unshift({
+               id: "zona",
+               tipo: "select",
+               label: "Zona / Escala",
+               default: zonasPuras[0],
+               opciones: zonasPuras
+            });
+         }
+      }
 
       await setDoc(convenioRef, { ...convenioCompleto, inputs_requeridos: inputsModificados }, { merge: true });
+      
+      // Forzamos actualización visual inmediata
+      setConvenioCompleto({ ...convenioCompleto, inputs_requeridos: inputsModificados });
+
       alert(`¡Éxito! Sueldos publicados y base de datos sincronizada.`);
     } catch (error) { console.error(error); alert("Error al guardar."); }
   };
@@ -249,7 +328,6 @@ export default function AdminPage() {
         </button>
       </div>
 
-      {/* BLOQUE DE GESTIÓN DE CONVENIO MADRE (NUEVO) */}
       <div className="mb-6 p-5 bg-slate-50 border border-slate-200 rounded-xl">
         <label className="block text-sm font-bold text-slate-700 mb-2">Gestión de Convenios Colectivos (Reglas Madre)</label>
         <div className="flex flex-col md:flex-row gap-4 items-center">
@@ -272,7 +350,6 @@ export default function AdminPage() {
 
       <form onSubmit={guardarEscalaParitaria} className="space-y-6 border-t border-gray-100 pt-6">
         
-        {/* RECUPERAMOS LA BARRA DE BÚSQUEDA */}
         <div className="flex flex-col md:flex-row gap-4 bg-blue-50/50 p-5 rounded-xl border border-blue-100 items-end">
           <div className="flex-1 w-full">
             <label className="block text-sm font-bold text-blue-900 mb-1">ID del Período (Ruta URL)</label>
@@ -289,7 +366,6 @@ export default function AdminPage() {
           </div>
         </div>
 
-        {/* BOTONERA CSV */}
         <div className="flex flex-col sm:flex-row gap-4 bg-slate-100 p-4 rounded-xl border border-slate-200 items-center justify-center">
           <button type="button" onClick={descargarPlantilla} className="bg-white hover:bg-gray-50 text-slate-800 font-bold px-6 py-3 rounded-lg border border-slate-300 shadow-sm text-sm w-full sm:w-auto">
             📥 Descargar CSV de este mes
@@ -301,7 +377,6 @@ export default function AdminPage() {
           </label>
         </div>
 
-        {/* PREVIEW DINÁMICO */}
         <div>
           <h2 className="text-lg font-bold text-gray-800 mb-3 bg-slate-800 text-white p-2.5 rounded-lg shadow-sm">
             Vista Previa de Datos a Publicar
@@ -315,7 +390,9 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2 bg-gray-50 border rounded-lg">
               {categoriasActuales.map(categoria => (
                 <div key={categoria} className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm hover:border-blue-300 transition-colors">
-                  <p className="font-bold text-slate-700 text-xs mb-2 border-b pb-1">{categoria}</p>
+                  <p className="font-bold text-slate-700 text-xs mb-2 border-b pb-1 text-blue-800">
+                    {categoria.includes('|') ? categoria.replace('|', ' - ') : categoria}
+                  </p>
                   <div className="flex gap-2">
                     <div className="flex-1">
                       <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Básico</p>
