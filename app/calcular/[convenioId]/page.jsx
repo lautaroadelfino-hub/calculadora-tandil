@@ -95,9 +95,31 @@ export default function CalculadoraDinamica() {
         alert("No se encontraron los montos para este mes.");
         return;
       }
-      
+
+      // Buscamos los parámetros de Ganancias del período (o el más reciente
+      // anterior). Si no hay ninguno cargado, el motor simplemente no calcula
+      // el impuesto. Los administra el usuario desde /admin.
+      let paramsGanancias = null;
+      try {
+        const gRef = doc(db, "parametros_ganancias", periodoSeleccionado);
+        const gSnap = await getDoc(gRef);
+        if (gSnap.exists()) {
+          paramsGanancias = gSnap.data();
+        } else {
+          const allSnap = await getDocs(collection(db, "parametros_ganancias"));
+          const candidatos = [];
+          allSnap.forEach((d) => candidatos.push({ id: d.id, data: d.data() }));
+          const previos = candidatos
+            .filter((c) => c.id <= periodoSeleccionado)
+            .sort((a, b) => b.id.localeCompare(a.id));
+          if (previos.length > 0) paramsGanancias = previos[0].data;
+        }
+      } catch (err) {
+        console.warn("No se pudieron cargar parámetros de Ganancias:", err);
+      }
+
       // Enviamos las reglas, los montos y lo que cargó el usuario a nuestro Motor ciego
-      const reciboArmado = procesarRecibo(convenio, escalaSnap.data(), valoresUsuario);
+      const reciboArmado = procesarRecibo(convenio, escalaSnap.data(), valoresUsuario, paramsGanancias);
       setResultadoLiquidacion(reciboArmado);
       
     } catch (error) {
@@ -152,6 +174,76 @@ export default function CalculadoraDinamica() {
             </div>
           ))}
 
+          {/* OPCIONES DE SIMULACIÓN (SAC, vacaciones, Ganancias) */}
+          <div className="border-t pt-4 mt-4 space-y-3">
+            <p className="font-bold text-gray-700 text-sm">Opciones de simulación</p>
+
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                name="incluir_sac"
+                checked={valoresUsuario.incluir_sac ?? false}
+                onChange={handleChange}
+                className="h-4 w-4 rounded"
+              />
+              Incluir SAC (medio aguinaldo)
+            </label>
+
+            <div className="flex flex-col">
+              <label className="text-sm font-semibold text-gray-700 mb-1">
+                Días de vacaciones (plus vacacional)
+              </label>
+              <input
+                type="number"
+                name="dias_vacaciones"
+                min="0"
+                value={valoresUsuario.dias_vacaciones ?? 0}
+                onChange={handleChange}
+                className="border border-gray-300 p-2 rounded w-32 outline-none focus:ring-2 focus:ring-gray-200"
+              />
+            </div>
+
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                name="calcula_ganancias"
+                checked={valoresUsuario.calcula_ganancias ?? false}
+                onChange={handleChange}
+                className="h-4 w-4 rounded"
+              />
+              Estimar Impuesto a las Ganancias
+            </label>
+
+            {valoresUsuario.calcula_ganancias && (
+              <div className="pl-6 space-y-2 border-l-2 border-gray-100">
+                <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="conyuge"
+                    checked={valoresUsuario.conyuge ?? false}
+                    onChange={handleChange}
+                    className="h-4 w-4 rounded"
+                  />
+                  Cónyuge / conviviente a cargo
+                </label>
+                <div className="flex flex-col">
+                  <label className="text-sm font-semibold text-gray-700 mb-1">Hijos a cargo</label>
+                  <input
+                    type="number"
+                    name="hijos"
+                    min="0"
+                    value={valoresUsuario.hijos ?? 0}
+                    onChange={handleChange}
+                    className="border border-gray-300 p-2 rounded w-24 outline-none focus:ring-2 focus:ring-gray-200"
+                  />
+                </div>
+                <p className="text-[11px] text-amber-700">
+                  Requiere que un administrador haya cargado las tablas de Ganancias del período.
+                </p>
+              </div>
+            )}
+          </div>
+
           <button type="submit" className="w-full mt-6 bg-gray-900 hover:bg-black text-white font-bold py-3 px-4 rounded-lg shadow-md transition-all text-lg">
             Procesar Recibo
           </button>
@@ -203,6 +295,13 @@ export default function CalculadoraDinamica() {
                 ${resultadoLiquidacion.totales.neto.toLocaleString("es-AR", {maximumFractionDigits: 2, minimumFractionDigits: 2})}
               </span>
             </div>
+
+            {resultadoLiquidacion.ganancias?.aplica && (
+              <p className="text-[11px] text-amber-700 mt-3 border-t pt-2">
+                El Impuesto a las Ganancias es una <b>estimación mensual</b>, no reemplaza
+                la liquidación anual acumulada de ARCA.
+              </p>
+            )}
           </div>
         </div>
       )}

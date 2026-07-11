@@ -7,6 +7,7 @@ import { describe, it, expect } from "vitest";
 import { procesarRecibo } from "../lib/motorLiquidacion.js";
 import convenioComercio from "./fixtures/comercio-cct-130-75.convenio.json";
 import escalasComercio from "./fixtures/comercio-cct-130-75.escalas.json";
+import paramsGanancias from "../data/ganancias.seed.json";
 
 // Redondea a 2 decimales para comparar pesos sin ruido de coma flotante.
 const money = (n) => Math.round(n * 100) / 100;
@@ -109,6 +110,101 @@ describe("Comercio — prorrateo por jornada reducida", () => {
     expect(money(linea(media, "Sueldo Básico").monto)).toBe(
       money(linea(completa, "Sueldo Básico").monto / 2)
     );
+  });
+});
+
+describe("Comercio — SAC (medio aguinaldo)", () => {
+  const sinSac = procesarRecibo(
+    convenioComercio,
+    escalasComercio["2026-07"],
+    inputs({ categoria: "Vendedor B", antiguedad_años: 5 })
+  );
+  const conSac = procesarRecibo(
+    convenioComercio,
+    escalasComercio["2026-07"],
+    inputs({ categoria: "Vendedor B", antiguedad_años: 5, incluir_sac: true })
+  );
+
+  it("agrega la línea de SAC solo cuando se activa", () => {
+    expect(linea(sinSac, "SAC")).toBeFalsy();
+    expect(linea(conSac, "SAC")).toBeTruthy();
+  });
+
+  it("el SAC es el 50% de la remuneración habitual (básico+antig+presentismo)", () => {
+    const habitual =
+      linea(conSac, "Sueldo Básico").monto +
+      linea(conSac, "Antigüedad").monto +
+      linea(conSac, "Presentismo").monto;
+    expect(money(linea(conSac, "SAC").monto)).toBe(money(habitual * 0.5));
+  });
+
+  it("con SAC el bruto y el neto son mayores", () => {
+    expect(conSac.totales.bruto).toBeGreaterThan(sinSac.totales.bruto);
+    expect(conSac.totales.neto).toBeGreaterThan(sinSac.totales.neto);
+  });
+});
+
+describe("Comercio — plus vacacional", () => {
+  it("agrega el plus solo si se informan días de vacaciones", () => {
+    const sin = procesarRecibo(
+      convenioComercio,
+      escalasComercio["2026-07"],
+      inputs({ categoria: "Vendedor B" })
+    );
+    const con = procesarRecibo(
+      convenioComercio,
+      escalasComercio["2026-07"],
+      inputs({ categoria: "Vendedor B", dias_vacaciones: 14 })
+    );
+    expect(linea(sin, "Plus vacacional")).toBeFalsy();
+    expect(linea(con, "Plus vacacional")).toBeTruthy();
+  });
+
+  it("el plus por día equivale a base/150", () => {
+    const con = procesarRecibo(
+      convenioComercio,
+      escalasComercio["2026-07"],
+      inputs({ categoria: "Vendedor B", antiguedad_años: 5, dias_vacaciones: 15 })
+    );
+    const habitual =
+      linea(con, "Sueldo Básico").monto +
+      linea(con, "Antigüedad").monto +
+      linea(con, "Presentismo").monto;
+    expect(money(linea(con, "Plus vacacional").monto)).toBe(money((habitual / 150) * 15));
+  });
+});
+
+describe("Comercio — Impuesto a las Ganancias (integración)", () => {
+  it("NO se calcula si no se pasan los parámetros, aunque el usuario lo pida", () => {
+    const r = procesarRecibo(
+      convenioComercio,
+      escalasComercio["2026-07"],
+      inputs({ categoria: "Vendedor B", calcula_ganancias: true })
+      // sin 4º argumento (paramsGanancias)
+    );
+    expect(linea(r, "Ganancias")).toBeFalsy();
+  });
+
+  it("con parámetros pero sueldo bajo, no retiene Ganancias", () => {
+    const r = procesarRecibo(
+      convenioComercio,
+      escalasComercio["2026-07"],
+      inputs({ categoria: "Vendedor B", calcula_ganancias: true }),
+      paramsGanancias
+    );
+    // Un sueldo de comercio típico queda debajo del mínimo -> sin impuesto.
+    expect(linea(r, "Ganancias")).toBeFalsy();
+    expect(r.ganancias).toBeTruthy();
+  });
+
+  it("no se calcula si el usuario no lo pide (checkbox apagado)", () => {
+    const r = procesarRecibo(
+      convenioComercio,
+      escalasComercio["2026-07"],
+      inputs({ categoria: "Vendedor B", calcula_ganancias: false }),
+      paramsGanancias
+    );
+    expect(r.ganancias).toBeNull();
   });
 });
 
