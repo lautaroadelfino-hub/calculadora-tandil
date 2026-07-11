@@ -13,7 +13,7 @@ export default function EmpleadorPage() {
     horasMensuales: 200,
     artPct: 3,
     otrosPct: 0,
-    periodo: "2025-10", // devengado
+    periodo: "2026-07", // devengado
   });
 
   const [resultado, setResultado] = useState(null);
@@ -260,7 +260,7 @@ export default function EmpleadorPage() {
                   name="periodo"
                   value={form.periodo}
                   onChange={handleChange}
-                  placeholder="Ej: 2025-10"
+                  placeholder="Ej: 2026-07"
                   className="w-full rounded-md border border-gray-300 bg-white px-3 py-2.5 text-base text-gray-900 placeholder:text-gray-400 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 />
                 <p className="text-sm text-gray-500">
