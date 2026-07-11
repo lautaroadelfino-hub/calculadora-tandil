@@ -1,0 +1,99 @@
+{
+  "activo": true,
+  "nombre": "Empleados de Comercio",
+  "id": "comercio-cct-130-75",
+  "inputs_requeridos": [
+    {
+      "id": "categoria",
+      "tipo": "select",
+      "default": "Administrativo A",
+      "label": "Categoría",
+      "opciones": [
+        "Administrativo A",
+        "Administrativo B",
+        "Administrativo C",
+        "Administrativo D",
+        "Administrativo E",
+        "Administrativo F",
+        "Auxiliar Especializado A",
+        "Auxiliar Especializado B",
+        "Cajero A",
+        "Cajero B",
+        "Cajero C",
+        "Maestranza A",
+        "Maestranza B",
+        "Maestranza C",
+        "Personal Auxiliar A",
+        "Personal Auxiliar B",
+        "Personal Auxiliar C",
+        "Vendedor A",
+        "Vendedor B",
+        "Vendedor C",
+        "Vendedor D"
+      ]
+    },
+    {
+      "label": "Horas Semanales (Jornada)",
+      "tipo": "number",
+      "id": "carga_horaria",
+      "default": 48
+    },
+    {
+      "default": 0,
+      "id": "antiguedad_años",
+      "label": "Años de Antigüedad",
+      "tipo": "number"
+    },
+    {
+      "id": "horas_extras_50",
+      "label": "Horas Extras al 50%",
+      "tipo": "number",
+      "default": 0
+    },
+    {
+      "id": "horas_extras_100",
+      "label": "Horas Extras al 100%",
+      "tipo": "number",
+      "default": 0
+    },
+    {
+      "tipo": "boolean",
+      "label": "Afiliado al Sindicato (SEC)",
+      "id": "afiliado_sindicato",
+      "default": false
+    }
+  ],
+  "cct": "130/75",
+  "reglas_calculo": {
+    "antiguedad": {
+      "aplica_sobre": "basico",
+      "porcentaje_por_año": 0.01
+    },
+    "retenciones_sindicales": {
+      "osecac_fijo": {
+        "valor_fijo": 100,
+        "label": "Aporte Fijo OSECAC"
+      },
+      "faecys": {
+        "base": "remunerativo_mas_no_remunerativo",
+        "porcentaje": 0.005,
+        "label": "Aporte FAECyS (0,5%)"
+      },
+      "sec_afiliado": {
+        "porcentaje": 0.02,
+        "condicion": "solo_afiliado",
+        "label": "Cuota Afiliado Sindical (2%)",
+        "base": "remunerativo_mas_no_remunerativo"
+      },
+      "sec_solidario": {
+        "base": "remunerativo_mas_no_remunerativo",
+        "label": "Aporte Solidario Gremial (2%)",
+        "porcentaje": 0.02
+      }
+    },
+    "presentismo": {
+      "aplica_sobre": "basico_mas_antiguedad",
+      "porcentaje": 0.08333
+    }
+  }
+}

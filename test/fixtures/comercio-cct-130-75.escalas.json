@@ -1,0 +1,358 @@
+{
+  "2026-04": {
+    "mes_vigencia": "Abril 2026",
+    "categorias": {
+      "Maestranza B": {
+        "no_remunerativo": 120000,
+        "basico": 1082029
+      },
+      "Cajero B": {
+        "basico": 1099977,
+        "no_remunerativo": 120000
+      },
+      "Personal Auxiliar C": {
+        "basico": 1128065,
+        "no_remunerativo": 120000
+      },
+      "Vendedor A": {
+        "basico": 1094513,
+        "no_remunerativo": 120000
+      },
+      "Personal Auxiliar B": {
+        "basico": 1102315,
+        "no_remunerativo": 120000
+      },
+      "Administrativo B": {
+        "no_remunerativo": 120000,
+        "basico": 1095298
+      },
+      "Administrativo D": {
+        "basico": 1114022,
+        "no_remunerativo": 120000
+      },
+      "Vendedor D": {
+        "no_remunerativo": 120000,
+        "basico": 1142890
+      },
+      "Administrativo E": {
+        "no_remunerativo": 120000,
+        "basico": 1125724
+      },
+      "Maestranza A": {
+        "basico": 1078911,
+        "no_remunerativo": 120000
+      },
+      "Cajero A": {
+        "basico": 1094513,
+        "no_remunerativo": 120000
+      },
+      "Auxiliar Especializado A": {
+        "basico": 1103879,
+        "no_remunerativo": 120000
+      },
+      "Maestranza C": {
+        "basico": 1092951,
+        "no_remunerativo": 120000
+      },
+      "Administrativo A": {
+        "no_remunerativo": 120000,
+        "basico": 1090613
+      },
+      "Vendedor B": {
+        "no_remunerativo": 120000,
+        "basico": 1117925
+      },
+      "Administrativo F": {
+        "no_remunerativo": 120000,
+        "basico": 1142890
+      },
+      "Personal Auxiliar A": {
+        "basico": 1094513,
+        "no_remunerativo": 120000
+      },
+      "Administrativo C": {
+        "no_remunerativo": 120000,
+        "basico": 1099977
+      },
+      "Auxiliar Especializado B": {
+        "no_remunerativo": 120000,
+        "basico": 1117922
+      },
+      "Vendedor C": {
+        "basico": 1125724,
+        "no_remunerativo": 120000
+      },
+      "Cajero C": {
+        "basico": 1106999,
+        "no_remunerativo": 120000
+      }
+    }
+  },
+  "2026-05": {
+    "mes_vigencia": "Mayo 2026",
+    "categorias": {
+      "Maestranza B": {
+        "no_remunerativo": 120000,
+        "basico": 1099412
+      },
+      "Cajero B": {
+        "basico": 1117623,
+        "no_remunerativo": 120000
+      },
+      "Personal Auxiliar C": {
+        "basico": 1146125,
+        "no_remunerativo": 120000
+      },
+      "Administrativo B": {
+        "no_remunerativo": 120000,
+        "basico": 1112876
+      },
+      "Vendedor A": {
+        "basico": 1112079,
+        "no_remunerativo": 120000
+      },
+      "Personal Auxiliar B": {
+        "no_remunerativo": 120000,
+        "basico": 1119996
+      },
+      "Administrativo D": {
+        "basico": 1131875,
+        "no_remunerativo": 120000
+      },
+      "Maestranza A": {
+        "no_remunerativo": 120000,
+        "basico": 1096248
+      },
+      "Administrativo E": {
+        "no_remunerativo": 120000,
+        "basico": 1143749
+      },
+      "Vendedor D": {
+        "basico": 1161167,
+        "no_remunerativo": 120000
+      },
+      "Cajero A": {
+        "basico": 1112079,
+        "no_remunerativo": 120000
+      },
+      "Auxiliar Especializado A": {
+        "basico": 1121583,
+        "no_remunerativo": 120000
+      },
+      "Administrativo A": {
+        "no_remunerativo": 120000,
+        "basico": 1108122
+      },
+      "Maestranza C": {
+        "no_remunerativo": 120000,
+        "basico": 1110495
+      },
+      "Vendedor B": {
+        "basico": 1135835,
+        "no_remunerativo": 120000
+      },
+      "Personal Auxiliar A": {
+        "no_remunerativo": 120000,
+        "basico": 1112079
+      },
+      "Administrativo C": {
+        "no_remunerativo": 120000,
+        "basico": 1117623
+      },
+      "Administrativo F": {
+        "no_remunerativo": 120000,
+        "basico": 1161167
+      },
+      "Auxiliar Especializado B": {
+        "basico": 1135832,
+        "no_remunerativo": 120000
+      },
+      "Cajero C": {
+        "basico": 1124749,
+        "no_remunerativo": 120000
+      },
+      "Vendedor C": {
+        "basico": 1143749,
+        "no_remunerativo": 120000
+      }
+    }
+  },
+  "2026-06": {
+    "mes_vigencia": "Junio 2026",
+    "categorias": {
+      "Cajero C": {
+        "basico": 1142499,
+        "no_remunerativo": 120000
+      },
+      "Vendedor C": {
+        "no_remunerativo": 120000,
+        "basico": 1161775
+      },
+      "Auxiliar Especializado B": {
+        "basico": 1137677,
+        "no_remunerativo": 120000
+      },
+      "Personal Auxiliar A": {
+        "no_remunerativo": 120000,
+        "basico": 1129646
+      },
+      "Administrativo C": {
+        "basico": 1135270,
+        "no_remunerativo": 120000
+      },
+      "Administrativo F": {
+        "basico": 1179445,
+        "no_remunerativo": 120000
+      },
+      "Vendedor B": {
+        "no_remunerativo": 120000,
+        "basico": 1153746
+      },
+      "Administrativo A": {
+        "basico": 1125631,
+        "no_remunerativo": 120000
+      },
+      "Maestranza C": {
+        "basico": 1128038,
+        "no_remunerativo": 120000
+      },
+      "Auxiliar Especializado A": {
+        "basico": 1139287,
+        "no_remunerativo": 120000
+      },
+      "Cajero A": {
+        "basico": 1129646,
+        "no_remunerativo": 120000
+      },
+      "Maestranza A": {
+        "basico": 1113585,
+        "no_remunerativo": 120000
+      },
+      "Vendedor D": {
+        "basico": 1179445,
+        "no_remunerativo": 120000
+      },
+      "Administrativo E": {
+        "no_remunerativo": 120000,
+        "basico": 1161775
+      },
+      "Administrativo D": {
+        "basico": 1149729,
+        "no_remunerativo": 120000
+      },
+      "Administrativo B": {
+        "no_remunerativo": 120000,
+        "basico": 1130454
+      },
+      "Personal Auxiliar B": {
+        "basico": 1102315,
+        "no_remunerativo": 120000
+      },
+      "Vendedor A": {
+        "no_remunerativo": 120000,
+        "basico": 1129646
+      },
+      "Personal Auxiliar C": {
+        "basico": 1164184,
+        "no_remunerativo": 120000
+      },
+      "Cajero B": {
+        "no_remunerativo": 120000,
+        "basico": 1135270
+      },
+      "Maestranza B": {
+        "no_remunerativo": 120000,
+        "basico": 1116794
+      }
+    }
+  },
+  "2026-07": {
+    "mes_vigencia": "Julio 2026",
+    "categorias": {
+      "Auxiliar Especializado A": {
+        "no_remunerativo": 0,
+        "basico": 1259287
+      },
+      "Cajero A": {
+        "basico": 1249646,
+        "no_remunerativo": 0
+      },
+      "Maestranza C": {
+        "basico": 1248038,
+        "no_remunerativo": 0
+      },
+      "Administrativo A": {
+        "no_remunerativo": 0,
+        "basico": 1245631
+      },
+      "Administrativo F": {
+        "no_remunerativo": 0,
+        "basico": 1299445
+      },
+      "Personal Auxiliar A": {
+        "no_remunerativo": 0,
+        "basico": 1249646
+      },
+      "Administrativo C": {
+        "no_remunerativo": 0,
+        "basico": 1255270
+      },
+      "Vendedor B": {
+        "no_remunerativo": 0,
+        "basico": 1273746
+      },
+      "Cajero C": {
+        "basico": 1262499,
+        "no_remunerativo": 0
+      },
+      "Vendedor C": {
+        "basico": 1281775,
+        "no_remunerativo": 0
+      },
+      "Auxiliar Especializado B": {
+        "basico": 1257677,
+        "no_remunerativo": 0
+      },
+      "Cajero B": {
+        "basico": 1255270,
+        "no_remunerativo": 0
+      },
+      "Maestranza B": {
+        "no_remunerativo": 0,
+        "basico": 1236794
+      },
+      "Personal Auxiliar C": {
+        "no_remunerativo": 0,
+        "basico": 1284184
+      },
+      "Administrativo B": {
+        "basico": 1250454,
+        "no_remunerativo": 0
+      },
+      "Vendedor A": {
+        "basico": 1249646,
+        "no_remunerativo": 0
+      },
+      "Personal Auxiliar B": {
+        "basico": 1222315,
+        "no_remunerativo": 0
+      },
+      "Administrativo D": {
+        "basico": 1269729,
+        "no_remunerativo": 0
+      },
+      "Administrativo E": {
+        "basico": 1281775,
+        "no_remunerativo": 0
+      },
+      "Vendedor D": {
+        "basico": 1299445,
+        "no_remunerativo": 0
+      },
+      "Maestranza A": {
+        "basico": 1233585,
+        "no_remunerativo": 0
+      }
+    }
+  }
+}
