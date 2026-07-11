@@ -1,7 +1,7 @@
 {
-  "_nota": "PLANTILLA DE REFERENCIA — Impuesto a las Ganancias 4ta categoría (relación de dependencia). Valores 2026 aproximados. VERIFICÁ Y ACTUALIZÁ con las tablas oficiales de ARCA (art. 94 y deducciones art. 30) antes de usar en producción. Se administra desde /admin y se guarda en Firestore en la colección 'parametros_ganancias', con el ID del período (ej: 2026-01). Todos los montos son ANUALES; la calculadora los prorratea a mes.",
-  "_fuente": "Referencia: tablas ARCA período enero-junio 2026 (a validar).",
-  "vigencia": "Enero–Junio 2026 (referencia)",
+  "_nota": "Impuesto a las Ganancias 4ta categoría (relación de dependencia). VALORES OFICIALES de ARCA para ene-jun 2026: escala del PDF 'Tabla-Art-94-LIG-per-ene-a-jun-2026' y deducciones del PDF 'Deducciones-personales-art-30-ene-a-jun-2026' (ambos RG 4003, act. IPC Ley 27.743). La deducción especial usada es la del Art. 30 inc c) Apartado 2 (relación de dependencia = empleados); ARCA también publica Apartado 1 (18.031.308,76, autónomos) y Apartado 1 nuevos profesionales (20.607.210,01), que NO aplican acá. Se administra desde /admin y se guarda en Firestore en 'parametros_ganancias' con el ID del período (ej: 2026-01). Montos ANUALES; la calculadora los prorratea a mes (coincide exacto con las tablas mensuales acumuladas de enero de los PDF oficiales).",
+  "_fuente": "PDF oficiales ARCA ene-jun 2026: escala art. 94 y deducciones art. 30 (RG 4003, actualización IPC Ley 27.743, IPC jul-dic 2025 = 14,29%).",
+  "vigencia": "Enero–Junio 2026 (oficial ARCA)",
   "deducciones_anuales": {
     "ganancia_no_imponible": 5151802.50,
     "deduccion_especial_rel_dependencia": 24728652.02,
@@ -10,14 +10,14 @@
     "hijo_incapacitado": 4893726.96
   },
   "escala_anual": [
-    { "desde": 0,        "hasta": 2000028,  "fijo": 0,        "alicuota": 0.05 },
-    { "desde": 2000028,  "hasta": 4000056,  "fijo": 99996,    "alicuota": 0.09 },
-    { "desde": 4000056,  "hasta": 6000096,  "fijo": 280008,   "alicuota": 0.12 },
-    { "desde": 6000096,  "hasta": 9000132,  "fijo": 520008,   "alicuota": 0.15 },
-    { "desde": 9000132,  "hasta": 18000276, "fijo": 970020,   "alicuota": 0.19 },
-    { "desde": 18000276, "hasta": 27000408, "fijo": 2680044,  "alicuota": 0.23 },
-    { "desde": 27000408, "hasta": 40500612, "fijo": 4750068,  "alicuota": 0.27 },
-    { "desde": 40500612, "hasta": 60750912, "fijo": 8395128,  "alicuota": 0.31 },
-    { "desde": 60750912, "hasta": null,     "fijo": 14672724, "alicuota": 0.35 }
+    { "desde": 0,           "hasta": 2000030.09,  "fijo": 0,           "alicuota": 0.05 },
+    { "desde": 2000030.09,  "hasta": 4000060.17,  "fijo": 100001.50,   "alicuota": 0.09 },
+    { "desde": 4000060.17,  "hasta": 6000090.26,  "fijo": 280004.21,   "alicuota": 0.12 },
+    { "desde": 6000090.26,  "hasta": 9000135.40,  "fijo": 520007.82,   "alicuota": 0.15 },
+    { "desde": 9000135.40,  "hasta": 18000270.80, "fijo": 970014.59,   "alicuota": 0.19 },
+    { "desde": 18000270.80, "hasta": 27000406.20, "fijo": 2680040.32,  "alicuota": 0.23 },
+    { "desde": 27000406.20, "hasta": 40500609.30, "fijo": 4750071.46,  "alicuota": 0.27 },
+    { "desde": 40500609.30, "hasta": 60750913.96, "fijo": 8395126.30,  "alicuota": 0.31 },
+    { "desde": 60750913.96, "hasta": null,        "fijo": 14672720.74, "alicuota": 0.35 }
   ]
 }
