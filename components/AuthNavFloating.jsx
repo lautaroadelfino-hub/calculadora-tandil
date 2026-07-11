@@ -2,6 +2,8 @@
 "use client";
 import React from "react";
 import { useSearchParams } from "next/navigation";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 
 export default function AuthNavFloating() {
   const [user, setUser] = React.useState(null);
@@ -10,14 +12,14 @@ export default function AuthNavFloating() {
   const [open, setOpen] = React.useState(false);
   const params = useSearchParams();
 
-  // Cargar sesión (igual que antes)
+  // Sesión de Firebase (la misma que usa /admin y /login)
   React.useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_BASE || "";
-    fetch(`${base}/api/auth/session`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : { user: null }))
-      .then((d) => setUser(d.user || null))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+    if (!auth) { setLoading(false); return; }
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u || null);
+      setLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
   // Abrir con query secreta (?admin=1 o ?panel=auth)
@@ -40,12 +42,7 @@ export default function AuthNavFloating() {
     if (signingOut) return;
     setSigningOut(true);
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE || "";
-      await fetch(`${base}/api/auth/logout`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-      });
+      await signOut(auth);
     } catch (_) {
       // ignore
     } finally {

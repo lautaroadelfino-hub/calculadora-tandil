@@ -1,6 +1,7 @@
 // components/SideRailLeft.jsx
 "use client";
 import React from "react";
+import { getNovedades } from "@/lib/novedades";
 
 function formatDate(ymd) {
   // ymd = "YYYY-MM-DD"
@@ -18,25 +19,14 @@ export default function SideRailLeft() {
 
   React.useEffect(() => {
     let ignore = false;
-    (async () => {
-      try {
-        const base = process.env.NEXT_PUBLIC_API_BASE || "";
-        const r = await fetch(`${base}/api/news?limit=24`, { cache: "no-store" });
-        const data = await r.json().catch(() => FALLBACK);
-        if (!ignore) setNews(Array.isArray(data) ? data : FALLBACK);
-      } catch {
-        if (!ignore) setNews(FALLBACK);
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    })();
+    getNovedades({ limit: 24 })
+      .then((data) => { if (!ignore) setNews(data); })
+      .catch(() => { if (!ignore) setNews(FALLBACK); })
+      .finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
   }, []);
 
-  // Publicadas y ordenadas (por si el backend no las trae ordenadas)
-  const published = (news || []).filter(n => n && n.published !== 0);
-  const byDateDesc = [...published].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
-
+  const byDateDesc = news || [];
   const latest = byDateDesc.slice(0, 6);
   const acuerdos = byDateDesc.filter(n => n.tag === "acuerdo").slice(0, 6);
 
@@ -110,11 +100,11 @@ export default function SideRailLeft() {
 <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4">
   <h3 className="text-sm font-semibold text-slate-700">Próximas actualizaciones</h3>
   <ul className="mt-3 space-y-2">
-    <li className="text-sm leading-5">Liquidación del Impuesto a las Ganancias (empleados)</li>
-    <li className="text-sm leading-5">Convenio colectivo Municipalidad de General Pueyrredón</li>
-    <li className="text-sm leading-5">Empleados de Comercio – Rama Turismo</li>
-    <li className="text-sm leading-5">Convenio UOCRA</li>
-    <li className="text-sm leading-5">Función para empleadores: costo laboral total del empleado</li>
+    <li className="text-sm leading-5">Convenio UOM (metalúrgicos)</li>
+    <li className="text-sm leading-5">Encargados de edificios (SUTERH)</li>
+    <li className="text-sm leading-5">Empleadas de casas particulares</li>
+    <li className="text-sm leading-5">Descarga del recibo en PDF</li>
+    <li className="text-sm leading-5">Calculadoras de aguinaldo e indemnización</li>
   </ul>
 </div>
 
