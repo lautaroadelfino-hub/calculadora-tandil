@@ -73,12 +73,12 @@ describe("Ganancias — deducciones personales mensuales", () => {
   });
 });
 
-describe("Ganancias — caso con impuesto (verificación manual)", () => {
+describe("Ganancias — caso con impuesto (verificación manual, escala oficial ARCA ene-jun 2026)", () => {
   // Bruto 3.000.000, sin aportes deducibles, soltero.
   // Deducción mensual = (5.151.802,50 + 24.728.652,02)/12 = 2.490.037,88
   // Base = 3.000.000 - 2.490.037,88 = 509.962,12
-  // Escala mensual tramo 4 (500.008 a 750.011): fijo 520.008/12=43.334 + 15% del excedente
-  // Impuesto = 43.334 + 0,15*(509.962,12 - 500.008) = 43.334 + 1.493,12 = 44.827,12
+  // Tramo 4 mensual oficial (6.000.090,26/12 = 500.007,52 a 750.011,28):
+  // fijo 520.007,82/12 = 43.333,99 + 15% del excedente (9.954,60) = 44.827,18
   const r = calcularGananciasMensual({
     gananciaBrutaMensual: 3000000,
     aportesDeduciblesMensual: 0,
@@ -91,7 +91,7 @@ describe("Ganancias — caso con impuesto (verificación manual)", () => {
   });
 
   it("impuesto mensual estimado esperado", () => {
-    expect(money(r.impuesto)).toBe(44827.12);
+    expect(money(r.impuesto)).toBe(44827.18);
   });
 });
 
