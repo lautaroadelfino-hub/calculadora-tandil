@@ -230,45 +230,36 @@ export default function CalculadoraDinamica() {
                   />
                 </div>
 
+              </div>
+
+              {/* SITUACIÓN FAMILIAR (afecta el Impuesto a las Ganancias) */}
+              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-slate-400">Cargas de familia</h2>
+                <p className="text-[11px] text-slate-500 -mt-1">
+                  Solo influyen si el sueldo llega al Impuesto a las Ganancias. Si corresponde, se calcula solo.
+                </p>
+
                 <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer">
                   <input
                     type="checkbox"
-                    name="calcula_ganancias"
-                    checked={valoresUsuario.calcula_ganancias ?? false}
+                    name="conyuge"
+                    checked={valoresUsuario.conyuge ?? false}
                     onChange={handleChange}
                     className="h-4 w-4 accent-emerald-600"
                   />
-                  Estimar Impuesto a las Ganancias
+                  Cónyuge / conviviente a cargo
                 </label>
-
-                {valoresUsuario.calcula_ganancias && (
-                  <div className="ml-6 pl-4 border-l-2 border-emerald-200 space-y-3">
-                    <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="conyuge"
-                        checked={valoresUsuario.conyuge ?? false}
-                        onChange={handleChange}
-                        className="h-4 w-4 accent-emerald-600"
-                      />
-                      Cónyuge / conviviente a cargo
-                    </label>
-                    <div className="flex items-center justify-between gap-3">
-                      <label className="text-sm text-slate-700">Hijos a cargo</label>
-                      <input
-                        type="number"
-                        name="hijos"
-                        min="0"
-                        value={valoresUsuario.hijos ?? 0}
-                        onChange={handleChange}
-                        className={`${inputBase} w-24 text-center`}
-                      />
-                    </div>
-                    <p className="text-[11px] text-amber-700">
-                      Requiere que un administrador haya cargado las tablas de Ganancias del período.
-                    </p>
-                  </div>
-                )}
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm text-slate-700">Hijos a cargo</label>
+                  <input
+                    type="number"
+                    name="hijos"
+                    min="0"
+                    value={valoresUsuario.hijos ?? 0}
+                    onChange={handleChange}
+                    className={`${inputBase} w-24 text-center`}
+                  />
+                </div>
               </div>
 
               <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all text-base">

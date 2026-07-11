@@ -95,6 +95,41 @@ describe("Ganancias — caso con impuesto (verificación manual, escala oficial 
   });
 });
 
+describe("Ganancias — umbrales oficiales ARCA ene-jun 2026", () => {
+  // Validación contra los pisos publicados por ARCA (ignacioonline / tablas oficiales).
+  // Acá pasamos el NETO directo (aportesDeducibles=0) para aislar las deducciones.
+  it("soltero: neto en el piso ($2.490.037,88) da impuesto 0", () => {
+    const r = calcularGananciasMensual({
+      gananciaBrutaMensual: 2490037.88,
+      aportesDeduciblesMensual: 0,
+      params,
+      cargas: {},
+    });
+    expect(money(r.impuesto)).toBe(0);
+  });
+
+  it("soltero: apenas por encima del piso empieza a pagar (5% del excedente)", () => {
+    const r = calcularGananciasMensual({
+      gananciaBrutaMensual: 2500000,
+      aportesDeduciblesMensual: 0,
+      params,
+      cargas: {},
+    });
+    // base = 2.500.000 - 2.490.037,88 = 9.962,12 -> 5% = 498,11
+    expect(money(r.impuesto)).toBe(498.11);
+  });
+
+  it("con cónyuge y 2 hijos, el piso sube a $3.302.178,85 neto", () => {
+    const enPiso = calcularGananciasMensual({
+      gananciaBrutaMensual: 3302178.85,
+      aportesDeduciblesMensual: 0,
+      params,
+      cargas: { conyuge: true, hijos: 2 },
+    });
+    expect(money(enPiso.impuesto)).toBe(0);
+  });
+});
+
 describe("Ganancias — sin parámetros cargados", () => {
   it("si no hay params, no rompe y devuelve impuesto 0", () => {
     const r = calcularGananciasMensual({
