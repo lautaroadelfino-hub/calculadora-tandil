@@ -1,7 +1,7 @@
 {
-  "_nota": "Impuesto a las Ganancias 4ta categoría (relación de dependencia). ESCALA ART. 94: valores OFICIALES del PDF de ARCA 'Tabla-Art-94-LIG-per-ene-a-jun-2026'. DEDUCCIONES: aún de fuente secundaria — verificá con la tabla de deducciones personales de ARCA (RG 4003) antes de confiar en el resultado. Se administra desde /admin y se guarda en Firestore en 'parametros_ganancias' con el ID del período (ej: 2026-01). Todos los montos son ANUALES; la calculadora los prorratea a mes (coincide con la tabla mensual acumulada de enero del PDF oficial).",
-  "_fuente": "Escala: PDF oficial ARCA ene-jun 2026 (RG 4003, act. IPC Ley 27.743). Deducciones: referencia a validar.",
-  "vigencia": "Enero–Junio 2026 (escala oficial ARCA)",
+  "_nota": "Impuesto a las Ganancias 4ta categoría (relación de dependencia). VALORES OFICIALES de ARCA para ene-jun 2026: escala del PDF 'Tabla-Art-94-LIG-per-ene-a-jun-2026' y deducciones del PDF 'Deducciones-personales-art-30-ene-a-jun-2026' (ambos RG 4003, act. IPC Ley 27.743). La deducción especial usada es la del Art. 30 inc c) Apartado 2 (relación de dependencia = empleados); ARCA también publica Apartado 1 (18.031.308,76, autónomos) y Apartado 1 nuevos profesionales (20.607.210,01), que NO aplican acá. Se administra desde /admin y se guarda en Firestore en 'parametros_ganancias' con el ID del período (ej: 2026-01). Montos ANUALES; la calculadora los prorratea a mes (coincide exacto con las tablas mensuales acumuladas de enero de los PDF oficiales).",
+  "_fuente": "PDF oficiales ARCA ene-jun 2026: escala art. 94 y deducciones art. 30 (RG 4003, actualización IPC Ley 27.743, IPC jul-dic 2025 = 14,29%).",
+  "vigencia": "Enero–Junio 2026 (oficial ARCA)",
   "deducciones_anuales": {
     "ganancia_no_imponible": 5151802.50,
     "deduccion_especial_rel_dependencia": 24728652.02,
