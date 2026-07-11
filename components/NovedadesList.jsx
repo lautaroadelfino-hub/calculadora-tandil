@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { getNovedades } from "@/lib/novedades";
 
 // formateo fecha es-AR
 const DATE_FMT = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium" });
@@ -16,35 +17,27 @@ const TAG_STYLE = {
 };
 
 export default function NovedadesList({
-  limit = 20,              // ajustá cuántas querés traer
-  endpoint = "/api/news",  // tu API pública de Cloudflare Pages Functions
+  limit = 20, // ajustá cuántas querés traer
 }) {
   const [items, setItems] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const ctrl = new AbortController();
-    const url = `${endpoint}?limit=${encodeURIComponent(limit)}`;
-
-    fetch(url, { signal: ctrl.signal, credentials: "omit" })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+    let ignore = false;
+    getNovedades({ limit })
       .then((arr) => {
-        // la API ya devuelve array [{id,date,title,url,tag}, ...] y sólo published=1
-        // por las dudas, ordenamos por fecha desc (aunque ya viene así)
-        const sorted = [...arr].sort(
-          (a, b) => new Date(b?.date || 0) - new Date(a?.date || 0)
-        );
-        setItems(sorted);
+        if (!ignore) setItems(arr);
       })
       .catch((e) => {
-        if (e.name !== "AbortError") {
+        if (!ignore) {
           setError(e);
           setItems([]);
         }
       });
-
-    return () => ctrl.abort();
-  }, [endpoint, limit]);
+    return () => {
+      ignore = true;
+    };
+  }, [limit]);
 
   // Skeleton
   if (!items && !error) {
