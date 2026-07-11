@@ -175,36 +175,27 @@ describe("Comercio — plus vacacional", () => {
 });
 
 describe("Comercio — Impuesto a las Ganancias (integración)", () => {
-  it("NO se calcula si no se pasan los parámetros, aunque el usuario lo pida", () => {
+  it("sin parámetros de Ganancias, no se calcula", () => {
     const r = procesarRecibo(
       convenioComercio,
       escalasComercio["2026-07"],
-      inputs({ categoria: "Vendedor B", calcula_ganancias: true })
+      inputs({ categoria: "Vendedor B" })
       // sin 4º argumento (paramsGanancias)
     );
-    expect(linea(r, "Ganancias")).toBeFalsy();
-  });
-
-  it("con parámetros pero sueldo bajo, no retiene Ganancias", () => {
-    const r = procesarRecibo(
-      convenioComercio,
-      escalasComercio["2026-07"],
-      inputs({ categoria: "Vendedor B", calcula_ganancias: true }),
-      paramsGanancias
-    );
-    // Un sueldo de comercio típico queda debajo del mínimo -> sin impuesto.
-    expect(linea(r, "Ganancias")).toBeFalsy();
-    expect(r.ganancias).toBeTruthy();
-  });
-
-  it("no se calcula si el usuario no lo pide (checkbox apagado)", () => {
-    const r = procesarRecibo(
-      convenioComercio,
-      escalasComercio["2026-07"],
-      inputs({ categoria: "Vendedor B", calcula_ganancias: false }),
-      paramsGanancias
-    );
     expect(r.ganancias).toBeNull();
+    expect(linea(r, "Ganancias")).toBeFalsy();
+  });
+
+  it("con parámetros se calcula AUTOMÁTICAMENTE (sin tilde); sueldo de comercio queda debajo del mínimo -> sin retención", () => {
+    const r = procesarRecibo(
+      convenioComercio,
+      escalasComercio["2026-07"],
+      inputs({ categoria: "Vendedor B" }),
+      paramsGanancias
+    );
+    // Se evaluó (ganancias no es null) pero el sueldo no alcanza el mínimo.
+    expect(r.ganancias).toBeTruthy();
+    expect(linea(r, "Ganancias")).toBeFalsy();
   });
 });
 
