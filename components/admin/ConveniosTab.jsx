@@ -3,9 +3,9 @@
 // convenio (antigüedad, presentismo, retenciones sindicales). Sin editar JSON.
 // La conversión doc<->formulario vive en lib/convenioForm.js (con tests).
 import { useState, useEffect } from "react";
-import { collection, getDocs, doc, setDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { convenioToForm, formToConvenio, BASES, CONDICIONES } from "@/lib/convenioForm";
+import { convenioToForm, formToConvenio, validarFormConvenio, BASES, CONDICIONES } from "@/lib/convenioForm";
 
 const VACIO = {
   id: "", nombre: "", cct: "", activo: true,
@@ -60,7 +60,36 @@ export default function ConveniosTab({ onConveniosChanged }) {
     }
     if (!form.nombre.trim()) return alert("Poné el nombre del convenio.");
 
-    const docFinal = formToConvenio(form, original);
+    // Los números se revisan ANTES de armar el documento. Antes, un valor
+    // ilegible se guardaba como 0 y podía borrar una regla entera en silencio:
+    // escribir "8,333%" con el signo dejaba al convenio sin presentismo.
+    const errores = validarFormConvenio(form);
+    if (errores.length) {
+      return alert(
+        "Revisá estos campos antes de guardar:" + String.fromCharCode(10, 10) +
+        errores.map((e) => "• " + e.mensaje).join(String.fromCharCode(10))
+      );
+    }
+
+    // Crear un convenio con un identificador que ya existe lo sobreescribe
+    // entero y le borra las categorías cargadas. Antes no avisaba nada.
+    if (esNuevo) {
+      const yaExiste = await getDoc(doc(db, "convenios", form.id));
+      if (yaExiste.exists()) {
+        return alert(
+          `Ya existe un convenio con el identificador "${form.id}" (${yaExiste.data()?.nombre || "sin nombre"}).` + String.fromCharCode(10, 10) +
+          "Si querés editarlo, abrilo desde la lista. Si es otro convenio, poné un identificador distinto."
+        );
+      }
+    }
+
+    let docFinal;
+    try {
+      docFinal = formToConvenio(form, original);
+    } catch (e) {
+      return alert("No se pudo preparar el convenio: " + (e.message || e));
+    }
+
     const aviso = esNuevo
       ? `¿Crear el convenio nuevo "${form.nombre}"?`
       : `¿Guardar los cambios en "${form.nombre}"?`;
@@ -82,7 +111,12 @@ export default function ConveniosTab({ onConveniosChanged }) {
   };
 
   const descargarRespaldo = () => {
-    const docFinal = formToConvenio(form, original);
+    let docFinal;
+    try {
+      docFinal = formToConvenio(form, original);
+    } catch (e) {
+      return alert("No se puede descargar la copia porque hay campos con errores:" + String.fromCharCode(10, 10) + (e.message || e));
+    }
     const blob = new Blob([JSON.stringify(docFinal, null, 2)], { type: "application/json" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");

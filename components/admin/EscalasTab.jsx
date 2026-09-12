@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { aNumero, parsearNumero, formatearNumero } from "@/lib/numeros";
 
 export default function EscalasTab({ convenios }) {
   const [convenioSeleccionado, setConvenioSeleccionado] = useState("");
@@ -77,24 +78,10 @@ export default function EscalasTab({ convenios }) {
     }
   };
 
-  const limpiarNumeroLatam = (valor) => {
-    if (valor === undefined || valor === null) return 0;
-    let s = String(valor).trim().replace(/[^0-9,.\-]/g, "");
-    if (!s) return 0;
-    const tieneComa = s.includes(",");
-    const tienePunto = s.includes(".");
-    if (tieneComa && tienePunto) {
-      const posComa = s.lastIndexOf(",");
-      const posPunto = s.lastIndexOf(".");
-      s = posComa > posPunto ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
-    } else if (tieneComa) {
-      s = s.replace(",", ".");
-    } else if (tienePunto && (s.split(".").length > 2 || s.split(".")[1]?.length === 3)) {
-      s = s.replace(/\./g, "");
-    }
-    const res = Number(s);
-    return isFinite(res) ? res : 0;
-  };
+  // El lector de números vive en lib/numeros.js. Esta función nació acá y era
+  // la única de las tres del proyecto que estaba bien; se movió para que las
+  // otras dos pestañas la usen y para poder testearla.
+  const limpiarNumeroLatam = (valor) => aNumero(valor, 0);
 
   const descargarPlantilla = () => {
     let cabecera = "categoria,basico,no_remunerativo\n";
