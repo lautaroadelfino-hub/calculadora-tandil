@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { procesarRecibo } from "@/lib/motorLiquidacion";
+import { valoresIniciales } from "@/lib/inputsIniciales";
 
 export const runtime = 'edge';
 
@@ -36,12 +37,11 @@ export default function CalculadoraDinamica() {
           const data = docSnap.data();
           setConvenio(data);
 
-          // Preparamos los inputs por defecto
-          const initialValues = {};
-          data.inputs_requeridos.forEach(input => {
-            initialValues[input.id] = input.default;
-          });
-          setValoresUsuario(initialValues);
+          // Preparamos los inputs por defecto. valoresIniciales() se encarga de
+          // que un select cuyo "default" no esté entre sus "opciones" arranque
+          // en la primera opción (la que el navegador muestra elegida), en vez
+          // de guardar un valor que el motor después no va a poder resolver.
+          setValoresUsuario(valoresIniciales(data.inputs_requeridos));
 
           // 2. Traemos todos los períodos (escalas) cargados para este convenio
           const escalasRef = collection(db, "convenios", convenioId, "escalas");
