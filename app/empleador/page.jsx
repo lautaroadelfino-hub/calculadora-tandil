@@ -3,6 +3,12 @@
 import { useState } from "react";
 import { calcularCostoEmpleador } from "@/lib/calculoEmpleador";
 
+// Mes corriente en formato AAAA-MM.
+function periodoCorriente() {
+  const hoy = new Date();
+  return `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function EmpleadorPage() {
   const [form, setForm] = useState({
     convenio: "comercio",
@@ -13,7 +19,10 @@ export default function EmpleadorPage() {
     horasMensuales: 200,
     artPct: 3,
     otrosPct: 0,
-    periodo: "2026-07", // devengado
+    // Arranca en el mes corriente. Antes estaba clavado en "2026-07", que era
+    // justo el último mes con bases cargadas: el panel disimulaba que los datos
+    // estaban vencidos en vez de mostrarlo.
+    periodo: periodoCorriente(),
   });
 
   const [resultado, setResultado] = useState(null);
@@ -317,6 +326,18 @@ export default function EmpleadorPage() {
                     {formatMoney(resultado.baseMinima)} · Máx:{" "}
                     {formatMoney(resultado.baseMaxima)}
                   </p>
+                  {/* Antes, si el período no estaba cargado, las bases caían a
+                      {"{"}mínima: 0, máxima: 999999999{"}"} y la pantalla mostraba
+                      "Máx $999.999.999,00" como si fuera un dato oficial. */}
+                  {resultado.basesVencidas && (
+                    <p className="mt-2 text-sm text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-3 py-2">
+                      <strong>Ojo con la fecha:</strong> todavía no están cargadas las bases del
+                      artículo 9 para {resultado.periodo}. Se están mostrando las de{" "}
+                      {resultado.basesDelPeriodo || "un período anterior"}, así que la base de
+                      aportes puede no ser la vigente. Las contribuciones patronales, que no
+                      dependen de ese tope, sí son correctas.
+                    </p>
+                  )}
                 </div>
 
                 {/* Chips resumen */}
@@ -345,11 +366,7 @@ export default function EmpleadorPage() {
                       {formatMoney(resultado.totalContribuciones)}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
-                      {formatNumber(
-                        (resultado.totalContribuciones / resultado.bruto) *
-                          100 || 0,
-                        1
-                      )}
+                      {formatNumber(resultado.porcentajeSobreBruto || 0, 1)}
                       % sobre el bruto
                     </p>
                   </div>
@@ -450,12 +467,7 @@ export default function EmpleadorPage() {
                               Total contribuciones
                             </td>
                             <td className="py-1.5 px-2 text-right font-semibold text-gray-900">
-                              {formatNumber(
-                                (resultado.totalContribuciones /
-                                  resultado.bruto) *
-                                  100 || 0,
-                                2
-                              )}
+                              {formatNumber(resultado.porcentajeSobreBruto || 0, 2)}
                               %
                             </td>
                             <td className="py-1.5 pl-2 text-right font-semibold text-gray-900">
