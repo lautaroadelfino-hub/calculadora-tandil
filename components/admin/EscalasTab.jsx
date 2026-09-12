@@ -4,7 +4,11 @@
 import { useState, useEffect } from "react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { aNumero, parsearNumero, formatearNumero } from "@/lib/numeros";
+import { aNumero, formatearNumero } from "@/lib/numeros";
+import {
+  parsearCsvEscala, generarCsvEscala, plantillaEjemplo, tieneZonas, leerClave,
+  validarPeriodo, revisarEscalaAntesDePublicar,
+} from "@/lib/escalaCsv";
 
 export default function EscalasTab({ convenios }) {
   const [convenioSeleccionado, setConvenioSeleccionado] = useState("");
@@ -13,6 +17,9 @@ export default function EscalasTab({ convenios }) {
   const [periodoID, setPeriodoID] = useState("");
   const [mesVigencia, setMesVigencia] = useState("");
   const [sueldos, setSueldos] = useState({});
+  // Lo que ya estaba guardado en este periodo. Se usa para avisar que
+  // publicar reemplaza el periodo entero y borra lo que no venga en el CSV.
+  const [clavesPrevias, setClavesPrevias] = useState([]);
 
   useEffect(() => {
     if (convenios.length > 0 && !convenioSeleccionado) {
@@ -43,10 +50,12 @@ export default function EscalasTab({ convenios }) {
     setSueldos(estadoInicial);
     setPeriodoID("");
     setMesVigencia("");
+    setClavesPrevias([]);
   };
 
   const buscarPeriodo = async () => {
-    if (!periodoID) return alert("Ingresá un ID de período para buscar (ej: 2026-04)");
+    const problemaPeriodo = validarPeriodo(periodoID);
+    if (problemaPeriodo) return alert(problemaPeriodo);
     if (!convenioSeleccionado) return;
 
     try {
@@ -69,9 +78,14 @@ export default function EscalasTab({ convenios }) {
           };
         });
         setSueldos(sueldosCargados);
+        setClavesPrevias(catsEscala);
         alert(`¡Período encontrado! Cargada la escala de: ${data.mes_vigencia}. Ya podés descargar el CSV para editarlo.`);
       } else {
-        alert("No se encontró este mes. Podés crear uno nuevo usando la plantilla CSV.");
+        setClavesPrevias([]);
+        alert(
+          "No hay una escala cargada para " + periodoID + "." + String.fromCharCode(10, 10) +
+          "Descargá la plantilla CSV, completala con los sueldos del acuerdo y volvé a subirla."
+        );
       }
     } catch (error) {
       console.error("Error al buscar período:", error);
@@ -84,29 +98,28 @@ export default function EscalasTab({ convenios }) {
   const limpiarNumeroLatam = (valor) => aNumero(valor, 0);
 
   const descargarPlantilla = () => {
-    let cabecera = "categoria,basico,no_remunerativo\n";
-    if (categoriasActuales[0]?.includes("|")) {
-      cabecera = "zona,categoria,basico,no_remunerativo\n";
-    }
+    // Para un convenio nuevo no hay categorías todavía: antes esto bajaba
+    // sólo el encabezado y el formato de las columnas existía únicamente en
+    // el código, así que había que adivinarlo.
+    const hayCategorias = categoriasActuales.length > 0;
+    const contenido = hayCategorias
+      ? generarCsvEscala(categoriasActuales, sueldos)
+      : plantillaEjemplo(!!convenioCompleto?.inputs_requeridos?.some((i) => i.id === "zona"));
 
-    const filas = categoriasActuales
-      .map((cat) => {
-        const filaBasico = sueldos[cat]?.basico || 0;
-        const filaNr = sueldos[cat]?.no_remunerativo || 0;
-        if (cat.includes("|")) {
-          const [zona, categoria] = cat.split("|");
-          return `${zona},${categoria},${filaBasico},${filaNr}`;
-        }
-        return `${cat},${filaBasico},${filaNr}`;
-      })
-      .join("\n");
-
-    const blob = new Blob([cabecera + filas], { type: "text/csv" });
+    const blob = new Blob(["\uFEFF" + contenido], { type: "text/csv;charset=utf-8" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `escala_${periodoID || "nuevo"}.csv`;
+    a.download = `escala_${convenioSeleccionado || "convenio"}_${periodoID || "nuevo"}.csv`;
     a.click();
+    window.URL.revokeObjectURL(url);
+
+    if (!hayCategorias) {
+      alert(
+        "Como este convenio todavía no tiene categorías, te bajé una plantilla con filas de EJEMPLO." + String.fromCharCode(10, 10) +
+        "Reemplazá esas filas por las categorías reales del convenio y volvé a subir el archivo."
+      );
+    }
   };
 
   const cargarDesdeCSV = (e) => {
@@ -115,58 +128,60 @@ export default function EscalasTab({ convenios }) {
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const contenido = event.target.result;
-      const lineasTotales = contenido.replace(/\r/g, "").split("\n");
-      if (lineasTotales.length < 2) return alert("El archivo está vacío.");
+      let contenido = String(event.target.result || "");
+      // Excel guarda a veces en UTF-8 y otras en la codificación de Windows.
+      // Si aparece el carácter de reemplazo, se reintenta con la otra.
+      if (contenido.includes("\uFFFD")) {
+        const otro = new TextDecoder("windows-1252").decode(new Uint8Array(event.target.resultBuffer || []));
+        if (otro && !otro.includes("\uFFFD")) contenido = otro;
+      }
 
-      const header = lineasTotales[0].toLowerCase();
-      const separador = header.includes(";") ? ";" : ",";
-      const tieneZona = header.includes("zona") || header.includes("escala");
+      const { sueldos: leidos, claves, errores, advertencias } = parsearCsvEscala(contenido);
 
-      const lineas = lineasTotales.slice(1);
+      if (errores.length) {
+        alert(
+          "El archivo tiene problemas y no se cargó nada:" + String.fromCharCode(10, 10) +
+          errores.slice(0, 10).map((x) => "• " + x).join(String.fromCharCode(10)) +
+          (errores.length > 10 ? String.fromCharCode(10) + "…y " + (errores.length - 10) + " más." : "")
+        );
+        e.target.value = null;
+        return;
+      }
 
-      const nuevosSueldos = {};
-      const nuevasCategorias = [];
+      setCategoriasActuales(claves);
+      setSueldos(leidos);
 
-      lineas.forEach((linea) => {
-        if (!linea.trim()) return;
-        const columnas = linea.split(separador);
-
-        let claveCat, bas, nr;
-
-        if (tieneZona && columnas.length >= 4) {
-          claveCat = `${columnas[0].trim()}|${columnas[1].trim()}`;
-          bas = columnas[2];
-          nr = columnas[3];
-        } else {
-          claveCat = columnas[0]?.trim();
-          bas = columnas[1];
-          nr = columnas[2];
-        }
-
-        if (claveCat && claveCat !== "" && claveCat !== "|") {
-          nuevasCategorias.push(claveCat);
-          nuevosSueldos[claveCat] = {
-            basico: limpiarNumeroLatam(bas),
-            no_remunerativo: limpiarNumeroLatam(nr),
-          };
-        }
-      });
-
-      setCategoriasActuales(nuevasCategorias.sort((a, b) => a.localeCompare(b)));
-      setSueldos(nuevosSueldos);
-      alert("¡Datos cargados del archivo exitosamente! Revisalos en la grilla y dale a Guardar.");
+      const resumen = "Se leyeron " + claves.length + " categorías.";
+      alert(
+        advertencias.length
+          ? resumen + String.fromCharCode(10, 10) + "Tené en cuenta:" + String.fromCharCode(10) + advertencias.map((x) => "• " + x).join(String.fromCharCode(10))
+          : resumen + " Revisalos en la grilla y dale a Guardar."
+      );
       e.target.value = null;
     };
-    reader.readAsText(file, "windows-1252");
+    reader.readAsText(file, "utf-8");
   };
 
   const guardarEscalaParitaria = async (e) => {
     e.preventDefault();
-    if (!periodoID || !mesVigencia) return alert("Completá el ID del período y el nombre descriptivo.");
+    const problemaPeriodo = validarPeriodo(periodoID);
+    if (problemaPeriodo) return alert(problemaPeriodo);
+    if (!mesVigencia.trim()) return alert("Poné el nombre descriptivo del período. Por ejemplo: Septiembre 2026.");
 
-    const seguro = window.confirm(`¿Confirmás guardar la paritaria de "${mesVigencia}"?`);
-    if (!seguro) return;
+    const { errores, advertencias } = revisarEscalaAntesDePublicar({
+      claves: categoriasActuales,
+      sueldos,
+      clavesPrevias,
+    });
+
+    if (errores.length) {
+      return alert("No se puede publicar:" + String.fromCharCode(10, 10) + errores.map((x) => "• " + x).join(String.fromCharCode(10)));
+    }
+
+    const aviso = advertencias.length
+      ? "ATENCIÓN:" + String.fromCharCode(10) + advertencias.map((x) => "• " + x).join(String.fromCharCode(10)) + String.fromCharCode(10, 10) + "¿Publicar igual la paritaria de \"" + mesVigencia + "\"?"
+      : "¿Confirmás publicar la paritaria de \"" + mesVigencia + "\"? Son " + categoriasActuales.length + " categorías.";
+    if (!window.confirm(aviso)) return;
 
     try {
       const escalaRef = doc(db, "convenios", convenioSeleccionado, "escalas", periodoID);
@@ -186,16 +201,30 @@ export default function EscalasTab({ convenios }) {
 
       const indexCategoria = inputsModificados.findIndex((i) => i.id === "categoria");
       if (indexCategoria !== -1) {
-        const catPuras = Array.from(new Set(categoriasActuales.map((c) => (c.includes("|") ? c.split("|")[1] : c))));
-        inputsModificados[indexCategoria] = { ...inputsModificados[indexCategoria], opciones: catPuras };
+        const catPuras = Array.from(new Set(categoriasActuales.map((c) => leerClave(c).categoria)));
+        const defaultActual = inputsModificados[indexCategoria].default;
+        // Antes sólo se pisaban las opciones y nunca el default, así que todo
+        // convenio nuevo quedaba con default "" y la calculadora tiraba
+        // "La categoría no existe" a quien no tocara el desplegable.
+        const defaultValido = catPuras.includes(defaultActual) ? defaultActual : catPuras[0] || "";
+        inputsModificados[indexCategoria] = {
+          ...inputsModificados[indexCategoria],
+          opciones: catPuras,
+          default: defaultValido,
+        };
       }
 
-      if (categoriasActuales[0]?.includes("|")) {
-        const zonasPuras = Array.from(new Set(categoriasActuales.map((c) => c.split("|")[0])));
+      // Antes se miraba sólo categoriasActuales[0]: si el orden alfabético
+      // ponía primero una fila sin zona, la columna se ignoraba entera.
+      if (tieneZonas(categoriasActuales)) {
+        const zonasPuras = Array.from(new Set(categoriasActuales.map((c) => leerClave(c).zona).filter(Boolean)));
         const indexZona = inputsModificados.findIndex((i) => i.id === "zona");
 
         if (indexZona !== -1) {
-          inputsModificados[indexZona] = { ...inputsModificados[indexZona], opciones: zonasPuras };
+          const defZona = zonasPuras.includes(inputsModificados[indexZona].default)
+            ? inputsModificados[indexZona].default
+            : zonasPuras[0] || "";
+          inputsModificados[indexZona] = { ...inputsModificados[indexZona], opciones: zonasPuras, default: defZona };
         } else {
           inputsModificados.unshift({
             id: "zona",
@@ -210,7 +239,8 @@ export default function EscalasTab({ convenios }) {
       await setDoc(convenioRef, { ...convenioCompleto, inputs_requeridos: inputsModificados }, { merge: true });
       setConvenioCompleto({ ...convenioCompleto, inputs_requeridos: inputsModificados });
 
-      alert(`¡Éxito! Sueldos publicados y base de datos sincronizada.`);
+      setClavesPrevias([...categoriasActuales]);
+      alert("Listo: se publicaron " + categoriasActuales.length + " categorías para " + mesVigencia + ".");
     } catch (error) {
       console.error(error);
       alert("Error al guardar.");
@@ -228,7 +258,7 @@ export default function EscalasTab({ convenios }) {
         >
           {convenios.map((conv) => (
             <option key={conv.id} value={conv.id}>
-              {conv.nombre} (CCT {conv.cct})
+              {conv.nombre} (CCT {conv.cct}){conv.activo === false ? " — inactivo, no se ve en la web" : ""}
             </option>
           ))}
         </select>
@@ -284,23 +314,41 @@ export default function EscalasTab({ convenios }) {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2 bg-gray-50 border rounded-lg">
-            {categoriasActuales.map((categoria) => (
-              <div key={categoria} className="bg-white p-3 border border-gray-200 rounded-lg shadow-sm hover:border-blue-300 transition-colors">
-                <p className="font-bold text-slate-700 text-xs mb-2 border-b pb-1 text-blue-800">
-                  {categoria.includes("|") ? categoria.replace("|", " - ") : categoria}
-                </p>
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Básico</p>
-                    <p className="text-sm font-mono text-gray-800">${sueldos[categoria]?.basico || 0}</p>
+            {categoriasActuales.map((categoria) => {
+              // Los números se muestran formateados en es-AR y el básico en cero
+              // se marca en rojo. Es el control de calidad más barato que hay:
+              // es lo que vuelve visible de un vistazo un 1,50 donde iba 1.500.
+              const basico = Number(sueldos[categoria]?.basico) || 0;
+              const noRem = Number(sueldos[categoria]?.no_remunerativo) || 0;
+              const sinBasico = basico <= 0;
+              return (
+                <div
+                  key={categoria}
+                  className={`bg-white p-3 border rounded-lg shadow-sm transition-colors ${
+                    sinBasico ? "border-rose-300 bg-rose-50/50" : "border-gray-200 hover:border-blue-300"
+                  }`}
+                >
+                  <p className="font-bold text-slate-700 text-xs mb-2 border-b pb-1 text-blue-800">
+                    {categoria.includes("|") ? categoria.replace("|", " - ") : categoria}
+                  </p>
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Básico</p>
+                      <p className={`text-sm font-mono ${sinBasico ? "text-rose-600 font-bold" : "text-gray-800"}`}>
+                        ${formatearNumero(basico)}
+                      </p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">No Rem.</p>
+                      <p className="text-sm font-mono text-gray-800">${formatearNumero(noRem)}</p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">No Rem.</p>
-                    <p className="text-sm font-mono text-gray-800">${sueldos[categoria]?.no_remunerativo || 0}</p>
-                  </div>
+                  {sinBasico && (
+                    <p className="text-[10px] text-rose-600 mt-1.5 font-medium">Sin sueldo básico cargado</p>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -4,7 +4,7 @@
 // Cada sección vive en components/admin/*.jsx.
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 
@@ -42,12 +42,23 @@ export default function AdminPage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Trae TODOS los convenios, incluidos los inactivos.
+  //
+  // Antes filtraba por activo == true, y esa lista es la única que recibe la
+  // pestaña de Escalas. El efecto era una trampa: si creabas un convenio
+  // inactivo para cargarle las escalas antes de mostrarlo -que es lo
+  // prudente- no aparecía en el desplegable y no podías cargarle nada.
+  // Estabas obligado a publicarlo activo primero, y mientras cargabas, la
+  // home mostraba una tarjeta que llevaba a una calculadora vacía.
   const cargarConveniosActivos = async () => {
     try {
-      const q = query(collection(db, "convenios"), where("activo", "==", true));
-      const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(collection(db, "convenios"));
       const lista = [];
       querySnapshot.forEach((doc) => lista.push({ id: doc.id, ...doc.data() }));
+      lista.sort((a, b) => {
+        if ((a.activo !== false) !== (b.activo !== false)) return a.activo !== false ? -1 : 1;
+        return String(a.nombre || a.id).localeCompare(String(b.nombre || b.id));
+      });
       setConvenios(lista);
     } catch (error) {
       console.error(error);
