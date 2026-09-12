@@ -9,7 +9,9 @@ import { convenioToForm, formToConvenio, validarFormConvenio, BASES, CONDICIONES
 
 const VACIO = {
   id: "", nombre: "", cct: "", activo: true,
-  antiguedadPct: "", presentismoPct: "", retenciones: [],
+  antiguedadModo: "lineal", antiguedadPct: "", antiguedadTramos: [],
+  presentismoPct: "", presentismoBase: "basico_mas_antiguedad",
+  adicionales: [], retenciones: [],
 };
 
 export default function ConveniosTab({ onConveniosChanged }) {
@@ -51,6 +53,20 @@ export default function ConveniosTab({ onConveniosChanged }) {
     setForm((f) => ({ ...f, retenciones: f.retenciones.map((r, idx) => (idx === i ? { ...r, [campo]: valor } : r)) }));
   const agregarRet = () =>
     setForm((f) => ({ ...f, retenciones: [...f.retenciones, { label: "", tipoValor: "porcentaje", valor: "", base: "remunerativo", condicion: "siempre" }] }));
+  const setTramo = (i, campo, valor) =>
+    setForm((f) => ({ ...f, antiguedadTramos: f.antiguedadTramos.map((t, idx) => (idx === i ? { ...t, [campo]: valor } : t)) }));
+  const agregarTramo = () =>
+    setForm((f) => ({ ...f, antiguedadTramos: [...f.antiguedadTramos, { desdeAños: "", porcentajePct: "" }] }));
+  const quitarTramo = (i) =>
+    setForm((f) => ({ ...f, antiguedadTramos: f.antiguedadTramos.filter((_, idx) => idx !== i) }));
+
+  const setAdic = (i, campo, valor) =>
+    setForm((f) => ({ ...f, adicionales: f.adicionales.map((a, idx) => (idx === i ? { ...a, [campo]: valor } : a)) }));
+  const agregarAdic = () =>
+    setForm((f) => ({ ...f, adicionales: [...f.adicionales, { label: "", valorPct: "", base: "basico" }] }));
+  const quitarAdic = (i) =>
+    setForm((f) => ({ ...f, adicionales: f.adicionales.filter((_, idx) => idx !== i) }));
+
   const quitarRet = (i) =>
     setForm((f) => ({ ...f, retenciones: f.retenciones.filter((_, idx) => idx !== i) }));
 
@@ -210,14 +226,62 @@ export default function ConveniosTab({ onConveniosChanged }) {
       {/* Reglas base */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-bold text-slate-700">Reglas de cálculo</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Antigüedad (% por año)</label>
-            <div className="relative">
-              <input value={form.antiguedadPct} onChange={(e) => set("antiguedadPct", e.target.value)} inputMode="decimal" placeholder="0 = sin antigüedad" className={`${inp} pr-7`} />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
-            </div>
+        {/* Antigüedad */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-xs font-medium text-slate-600">Antigüedad</span>
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="antiguedadModo" checked={form.antiguedadModo !== "tramos"} onChange={() => set("antiguedadModo", "lineal")} className="accent-purple-600" />
+              Un porcentaje por año
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="antiguedadModo" checked={form.antiguedadModo === "tramos"} onChange={() => set("antiguedadModo", "tramos")} className="accent-purple-600" />
+              Por tramos de años
+            </label>
           </div>
+
+          {form.antiguedadModo !== "tramos" ? (
+            <div className="sm:max-w-xs">
+              <div className="relative">
+                <input value={form.antiguedadPct} onChange={(e) => set("antiguedadPct", e.target.value)} inputMode="decimal" placeholder="0 = sin antigüedad" className={`${inp} pr-7`} />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Se multiplica por los años. Comercio usa 1% por año.</p>
+            </div>
+          ) : (
+            <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/60">
+              <p className="text-[11px] text-slate-500 mb-2">
+                El porcentaje de cada tramo es el <strong>total</strong>, no se multiplica por los años.
+                Ejemplo de gastronómicos: desde los 5 años, 4% del básico.
+              </p>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[11px] uppercase tracking-wide text-slate-400 text-left">
+                    <th className="pb-1 font-medium">Desde (años)</th>
+                    <th className="pb-1 font-medium">Porcentaje</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {form.antiguedadTramos.map((t, i) => (
+                    <tr key={i}>
+                      <td className="pr-2 py-1"><input value={t.desdeAños} onChange={(e) => setTramo(i, "desdeAños", e.target.value)} inputMode="numeric" className={`${inp} text-right font-mono w-24`} /></td>
+                      <td className="pr-2 py-1"><input value={t.porcentajePct} onChange={(e) => setTramo(i, "porcentajePct", e.target.value)} inputMode="decimal" className={`${inp} text-right font-mono w-24`} /></td>
+                      <td className="py-1"><button type="button" onClick={() => quitarTramo(i)} title="Quitar tramo" className="text-rose-500 hover:text-rose-700 font-bold px-2">×</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {form.antiguedadTramos.length === 0 && (
+                <p className="text-sm text-slate-400 py-2">Todavía no cargaste ningún tramo.</p>
+              )}
+              <button type="button" onClick={agregarTramo} className="text-xs font-bold text-purple-700 hover:text-purple-900 mt-2">+ Agregar tramo</button>
+            </div>
+          )}
+        </div>
+
+        {/* Presentismo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Presentismo (%)</label>
             <div className="relative">
@@ -225,7 +289,50 @@ export default function ConveniosTab({ onConveniosChanged }) {
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
             </div>
           </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Se calcula sobre</label>
+            <select value={form.presentismoBase || "basico_mas_antiguedad"} onChange={(e) => set("presentismoBase", e.target.value)} className={inp}>
+              <option value="basico_mas_antiguedad">Básico + antigüedad</option>
+              <option value="basico">Sólo el básico</option>
+            </select>
+          </div>
         </div>
+      </div>
+
+      {/* Adicionales remunerativos */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-bold text-slate-700">Adicionales remunerativos</h3>
+          <button type="button" onClick={agregarAdic} className="text-xs font-bold text-purple-700 hover:text-purple-900">+ Agregar adicional</button>
+        </div>
+        <p className="text-[11px] text-slate-400 mb-3">
+          Conceptos propios del convenio que suman al sueldo. Por ejemplo, en gastronómicos:
+          complemento de servicio 12% y asistencia perfecta 10%.
+        </p>
+        {form.adicionales.length === 0 ? (
+          <p className="text-sm text-slate-400 py-3">Sin adicionales. Agregá uno si el convenio los tiene.</p>
+        ) : (
+          <div className="space-y-3">
+            {form.adicionales.map((a, i) => (
+              <div key={i} className="border border-slate-200 rounded-lg p-3 bg-slate-50/60 space-y-3">
+                <div className="flex gap-2">
+                  <input value={a.label} onChange={(e) => setAdic(i, "label", e.target.value)} placeholder="Nombre (ej: Complemento de Servicio)" className={`${inp} flex-1`} />
+                  <button type="button" onClick={() => quitarAdic(i)} title="Quitar" className="text-rose-500 hover:text-rose-700 font-bold px-2 shrink-0">×</button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="relative">
+                    <input value={a.valorPct} onChange={(e) => setAdic(i, "valorPct", e.target.value)} inputMode="decimal" placeholder="Porcentaje" className={`${inp} pr-7`} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                  </div>
+                  <select value={a.base || "basico"} onChange={(e) => setAdic(i, "base", e.target.value)} className={inp}>
+                    <option value="basico">Sobre el básico</option>
+                    <option value="basico_mas_antiguedad">Sobre básico + antigüedad</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Retenciones sindicales */}
@@ -244,6 +351,10 @@ export default function ConveniosTab({ onConveniosChanged }) {
                   <input value={r.label} onChange={(e) => setRet(i, "label", e.target.value)} placeholder="Nombre (ej: Aporte Solidario 2%)" className={`${inp} flex-1`} />
                   <button type="button" onClick={() => quitarRet(i)} title="Quitar" className="text-rose-500 hover:text-rose-700 font-bold px-2 shrink-0">×</button>
                 </div>
+                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                  <input type="checkbox" checked={!!r.reemplazaObraSocial} onChange={(e) => setRet(i, "reemplazaObraSocial", e.target.checked)} className="h-4 w-4 accent-purple-600" />
+                  Esta retención reemplaza la obra social del 3% (no se cobran las dos)
+                </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <select value={r.tipoValor} onChange={(e) => setRet(i, "tipoValor", e.target.value)} className={inp}>
                     <option value="porcentaje">Porcentaje %</option>

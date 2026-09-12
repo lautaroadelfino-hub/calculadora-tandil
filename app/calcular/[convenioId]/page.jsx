@@ -260,6 +260,22 @@ export default function CalculadoraDinamica() {
                     className={`${inputBase} w-24 text-center`}
                   />
                 </div>
+                {/* El motor ya deducía los hijos con discapacidad (valen el doble en
+                    Ganancias), pero la pantalla nunca los pedía: siempre valían 0. */}
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm text-slate-700">
+                    Hijos con discapacidad
+                    <span className="block text-[11px] text-slate-400">Deducen el doble</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="hijos_incapacitados"
+                    min="0"
+                    value={valoresUsuario.hijos_incapacitados ?? 0}
+                    onChange={handleChange}
+                    className={`${inputBase} w-24 text-center`}
+                  />
+                </div>
               </div>
 
               <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all text-base">
