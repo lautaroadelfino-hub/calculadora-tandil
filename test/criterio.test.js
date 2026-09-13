@@ -40,8 +40,8 @@ describe("Regla 2: ningún número suelto adentro del motor", () => {
   // Sin comentarios: la historia de un número ("estuvo clavado en 48") puede
   // nombrarlo; el código, no.
   const motor = fuente("lib/motorLiquidacion.js")
-    .replace(//*[sS]*?*//g, "")
-    .replace(///.*$/gm, "");
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/\/\/.*$/gm, "");
 
   it.each([
     ["* 0.11", "la jubilación"],
