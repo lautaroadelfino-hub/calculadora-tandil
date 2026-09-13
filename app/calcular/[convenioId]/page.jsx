@@ -6,20 +6,29 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { procesarRecibo } from "@/lib/motorLiquidacion";
 import { valoresIniciales } from "@/lib/inputsIniciales";
+import { elegirPeriodo, nombreDePeriodo } from "@/lib/periodos";
 
 export const runtime = 'edge';
 
-const MESES = [
-  "enero", "febrero", "marzo", "abril", "mayo", "junio",
-  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-];
+/**
+ * Trae, de una colección de tablas por período (parametros_ganancias, y
+ * pronto parametros_contribuciones), la que corresponde al mes pedido: la
+ * exacta si está, y si no la más reciente anterior. Devuelve también de qué
+ * período salió, porque cuando no es el pedido hay que decirlo en pantalla.
+ */
+async function traerTablaDelPeriodo(coleccion, periodo) {
+  const exacta = await getDoc(doc(db, coleccion, periodo));
+  if (exacta.exists()) return { periodo, datos: exacta.data(), exacto: true };
 
-/** "2026-07" -> "julio de 2026" */
-function nombreDePeriodo(periodo) {
-  if (!periodo) return "otro período";
-  const [anio, mes] = String(periodo).split("-");
-  const nombre = MESES[Number(mes) - 1];
-  return nombre ? `${nombre} de ${anio}` : periodo;
+  const todas = await getDocs(collection(db, coleccion));
+  const porId = {};
+  todas.forEach((d) => { porId[d.id] = d.data(); });
+  const eleccion = elegirPeriodo(Object.keys(porId), periodo);
+  return {
+    periodo: eleccion.periodo,
+    datos: eleccion.periodo ? porId[eleccion.periodo] : null,
+    exacto: false,
+  };
 }
 
 const money = (n) =>
@@ -117,36 +126,22 @@ export default function CalculadoraDinamica() {
         return;
       }
 
-      // Buscamos los parámetros de Ganancias del período (o el más reciente
-      // anterior). Si no hay ninguno cargado, el motor simplemente no calcula
-      // el impuesto. Los administra el usuario desde /admin.
+      // Los parámetros de Ganancias del período, o los del más reciente
+      // anterior. Si no hay ninguno cargado, el motor no calcula el impuesto.
+      // Los administra el dueño desde /admin.
       let paramsGanancias = null;
       try {
-        const gRef = doc(db, "parametros_ganancias", periodoSeleccionado);
-        const gSnap = await getDoc(gRef);
-        if (gSnap.exists()) {
-          paramsGanancias = gSnap.data();
-          setPeriodoGanancias(periodoSeleccionado);
-        } else {
-          const allSnap = await getDocs(collection(db, "parametros_ganancias"));
-          const candidatos = [];
-          allSnap.forEach((d) => candidatos.push({ id: d.id, data: d.data() }));
-          const previos = candidatos
-            .filter((c) => c.id <= periodoSeleccionado)
-            .sort((a, b) => b.id.localeCompare(a.id));
-          if (previos.length > 0) {
-            paramsGanancias = previos[0].data;
-            setPeriodoGanancias(previos[0].id);
-          } else {
-            setPeriodoGanancias(null);
-          }
-        }
+        const tabla = await traerTablaDelPeriodo("parametros_ganancias", periodoSeleccionado);
+        paramsGanancias = tabla.datos;
+        setPeriodoGanancias(tabla.periodo);
       } catch (err) {
         console.warn("No se pudieron cargar parámetros de Ganancias:", err);
       }
 
       // Enviamos las reglas, los montos y lo que cargó el usuario a nuestro Motor ciego
-      const reciboArmado = procesarRecibo(convenio, escalaSnap.data(), valoresUsuario, paramsGanancias);
+      const reciboArmado = procesarRecibo(convenio, escalaSnap.data(), valoresUsuario, paramsGanancias, {
+        periodo: periodoSeleccionado,
+      });
       setResultadoLiquidacion(reciboArmado);
 
     } catch (error) {
