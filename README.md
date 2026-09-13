@@ -1,7 +1,8 @@
 # LiquidAR
 
-Calculadora de sueldos por convenio colectivo argentino, más un panel de costo
-laboral para empleadores. En producción: **https://liquidar.ar**
+Calculadora de sueldos por convenio colectivo argentino. Cada recibo muestra
+también el costo laboral total para el empleador, como exige el art. 140
+inc. j) de la LCT desde junio de 2026. En producción: **https://liquidar.ar**
 
 Este README es el manual del dueño, no documentación para programadores. Si
 algo de acá no se entiende, está mal escrito: avisá.

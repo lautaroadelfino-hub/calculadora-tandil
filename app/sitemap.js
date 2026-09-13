@@ -10,7 +10,7 @@ export default function sitemap() {
   const ahora = new Date();
   return [
     { url: base, lastModified: ahora, changeFrequency: "weekly", priority: 1 },
-    { url: `${base}/empleador`, lastModified: ahora, changeFrequency: "monthly", priority: 0.8 },
+    // /empleador ya no se lista: se retiró el 13/9/2026 y sólo redirige.
     { url: `${base}/novedades`, lastModified: ahora, changeFrequency: "weekly", priority: 0.5 },
   ];
 }

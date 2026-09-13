@@ -37,8 +37,13 @@ describe("registro de herramientas", () => {
     expect(herramientasEnCamino().some((h) => idsDisponibles.includes(h.id))).toBe(false);
   });
 
-  it("el panel del empleador sigue estando disponible", () => {
-    expect(herramientasDisponibles().find((h) => h.href === "/empleador")).toBeDefined();
+  it("el panel del empleador ya no existe como herramienta aparte", () => {
+    // Hasta el 13/9/2026 este test exigía lo contrario. Ese día se decidió que
+    // el costo laboral total va adentro del recibo (art. 140 inc. j) LCT,
+    // Decreto 407/2026), así que el panel aparte dejó de tener sentido y
+    // /empleador pasó a redirigir a la portada. Si alguien lo vuelve a agregar
+    // sin hablarlo, esto lo frena: fue decisión, no olvido.
+    expect(HERRAMIENTAS.find((h) => h.href === "/empleador")).toBeUndefined();
   });
 
   it("el roadmap incluye lo que la portada venía prometiendo", () => {
