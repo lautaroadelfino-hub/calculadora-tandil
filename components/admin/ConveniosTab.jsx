@@ -10,6 +10,7 @@ import { SECTORES } from "@/lib/herramientas";
 
 const VACIO = {
   id: "", nombre: "", cct: "", activo: true, sector: "privado",
+  jornadaHoras: "", jornadaDivisor: "",
   antiguedadModo: "lineal", antiguedadPct: "", antiguedadTramos: [],
   presentismoPct: "", presentismoBase: "basico_mas_antiguedad",
   adicionales: [], retenciones: [],
@@ -236,6 +237,41 @@ export default function ConveniosTab({ onConveniosChanged }) {
       {/* Reglas base */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-bold text-slate-700">Reglas de cálculo</h3>
+        {/* Jornada */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2 border-b border-slate-100">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Jornada completa (horas por semana)
+            </label>
+            <input
+              value={form.jornadaHoras}
+              onChange={(e) => set("jornadaHoras", e.target.value)}
+              inputMode="decimal"
+              placeholder="Vacío = 48"
+              className={inp}
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              La jornada para la que está publicada la escala. Si el convenio es de 44 horas
+              y acá dice 48, a quien trabaje 44 se le paga un 8% menos de lo que le toca.
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Divisor para el valor de la hora
+            </label>
+            <input
+              value={form.jornadaDivisor}
+              onChange={(e) => set("jornadaDivisor", e.target.value)}
+              inputMode="decimal"
+              placeholder="Vacío = 200"
+              className={inp}
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Horas mensuales por las que se divide el sueldo para sacar la hora extra.
+            </p>
+          </div>
+        </div>
+
         {/* Antigüedad */}
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-4">

@@ -153,14 +153,18 @@ una regla que nadie sigue.
 | Qué | Contra qué regla va |
 |---|---|
 | `lib/calculoEmpleador.js` y `lib/parametrosLaborales.js` importan de `data/` | Regla 3 |
-| La jornada de 48 horas está fija en el motor | Regla 2 |
-| El divisor de horas extras (200) y los recargos (1,5 y 2,0) están fijos | Regla 2 |
+| Los recargos de la hora extra (1,5 y 2,0) están fijos. Hay convenios con el sábado al 100% | Regla 2 |
 | El aguinaldo (50%) y el plus vacacional (/150) están fijos | Regla 2 |
 | Jubilación 11%, PAMI 3% y obra social 3% están fijos en el motor, y un convenio no puede declarar otros | Regla 2 |
 | La base de la obra social está fija; los dos motores viejos la tenían como opción, y Comercio y Gastronómicos elegían valores **distintos** | Regla 2 |
 | Un adicional sólo puede ser un porcentaje, y siempre está prendido. No se puede hacer "adicional por título, sólo si es terciario" ni un adicional de monto fijo, aunque las retenciones sí lo aceptan | Modelo incompleto |
 | Los dos convenios en Firestore todavía tienen `antiguedad.aplica_sobre` guardado, que ya nadie escribe | Se limpia al abrir cada convenio en `/admin` y guardarlo |
 | `firestore.rules` niega toda colección que no esté declarada a mano, y **el archivo no se aplica solo**: lo que rige vive en la consola de Firebase | A tener en cuenta antes de mover un dato a la base |
+
+**Ya saldado:** la jornada completa del convenio y el divisor de horas mensuales
+salieron del motor y ahora se cargan desde el panel (13 de septiembre de 2026).
+Eran el primer muro contra el que chocaba cualquier convenio que no fuera de 48
+horas.
 
 Cada línea de esta tabla es un convenio futuro que va a chocar. No hay que
 arreglarlas todas ahora: hay que arreglar la que bloquee al próximo convenio que

@@ -174,3 +174,54 @@ describe("la base del presentismo", () => {
     expect(doc.reglas_calculo.presentismo.aplica_sobre).toBe("basico_mas_antiguedad");
   });
 });
+
+describe("la jornada completa del convenio", () => {
+  const base = {
+    id: "x-cct-1-1", nombre: "X", cct: "1/1", activo: true,
+    antiguedadPct: "", presentismoPct: "", retenciones: [], adicionales: [],
+  };
+
+  it("no se guarda si no se carga: el motor usa los valores comunes", () => {
+    expect(formToConvenio({ ...base }).reglas_calculo.jornada).toBeUndefined();
+    expect(formToConvenio({ ...base, jornadaHoras: "", jornadaDivisor: "" })
+      .reglas_calculo.jornada).toBeUndefined();
+  });
+
+  it("un campo ausente no se guarda como CERO", () => {
+    // Pasó de verdad: al no distinguir "" de undefined, la jornada quedaba en 0
+    // y la próxima vez que abrías el convenio el panel lo rechazaba por estar
+    // fuera de rango, sin que vos hubieras tocado nada.
+    const doc = formToConvenio({ ...base });
+    expect(JSON.stringify(doc.reglas_calculo)).not.toContain("horas_semanales_completas");
+    expect(() => formToConvenio(convenioToForm(doc), doc)).not.toThrow();
+  });
+
+  it("se guarda lo que se carga, y sólo eso", () => {
+    expect(formToConvenio({ ...base, jornadaHoras: 44 }).reglas_calculo.jornada)
+      .toEqual({ horas_semanales_completas: 44 });
+    expect(formToConvenio({ ...base, jornadaHoras: 44, jornadaDivisor: 176 }).reglas_calculo.jornada)
+      .toEqual({ horas_semanales_completas: 44, divisor_horas_mensuales: 176 });
+  });
+
+  it("ida y vuelta sin perder nada", () => {
+    const doc = formToConvenio({ ...base, jornadaHoras: 36, jornadaDivisor: 156 });
+    const form = convenioToForm(doc);
+    expect(form.jornadaHoras).toBe(36);
+    expect(form.jornadaDivisor).toBe(156);
+    expect(formToConvenio(form, doc).reglas_calculo.jornada).toEqual(doc.reglas_calculo.jornada);
+  });
+
+  it("no acepta una jornada imposible", () => {
+    expect(validarFormConvenio({ ...base, jornadaHoras: 0 }))
+      .toContainEqual(expect.objectContaining({ campo: "jornadaHoras" }));
+    expect(validarFormConvenio({ ...base, jornadaHoras: 200 }))
+      .toContainEqual(expect.objectContaining({ campo: "jornadaHoras" }));
+    expect(validarFormConvenio({ ...base, jornadaDivisor: 0 }))
+      .toContainEqual(expect.objectContaining({ campo: "jornadaDivisor" }));
+  });
+
+  it("un número ilegible se frena en vez de guardarse como cero", () => {
+    expect(validarFormConvenio({ ...base, jornadaHoras: "cuarenta y cuatro" }))
+      .toContainEqual(expect.objectContaining({ campo: "jornadaHoras" }));
+  });
+});
