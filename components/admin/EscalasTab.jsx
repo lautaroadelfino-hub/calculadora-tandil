@@ -16,6 +16,9 @@ export default function EscalasTab({ convenios }) {
   const [categoriasActuales, setCategoriasActuales] = useState([]);
   const [periodoID, setPeriodoID] = useState("");
   const [mesVigencia, setMesVigencia] = useState("");
+  // El nombre de la segunda suma no remunerativa, sin incidencia, si la escala
+  // la tiene. El monto viaja en el CSV; el nombre es del período.
+  const [nombreSinIncidencia, setNombreSinIncidencia] = useState("");
   const [sueldos, setSueldos] = useState({});
   // Lo que ya estaba guardado en este periodo. Se usa para avisar que
   // publicar reemplaza el periodo entero y borra lo que no venga en el CSV.
@@ -50,6 +53,7 @@ export default function EscalasTab({ convenios }) {
     setSueldos(estadoInicial);
     setPeriodoID("");
     setMesVigencia("");
+    setNombreSinIncidencia("");
     setClavesPrevias([]);
   };
 
@@ -65,6 +69,7 @@ export default function EscalasTab({ convenios }) {
       if (escalaSnap.exists()) {
         const data = escalaSnap.data();
         setMesVigencia(data.mes_vigencia);
+        setNombreSinIncidencia(data.nombre_sin_incidencia || "");
 
         const catsEscala = Object.keys(data.categorias || {});
         const listaCombinada = Array.from(new Set([...categoriasActuales, ...catsEscala])).sort((a, b) => a.localeCompare(b));
@@ -75,6 +80,7 @@ export default function EscalasTab({ convenios }) {
           sueldosCargados[cat] = {
             basico: data.categorias?.[cat]?.basico || "",
             no_remunerativo: data.categorias?.[cat]?.no_remunerativo || "",
+            no_remunerativo_sin_incidencia: data.categorias?.[cat]?.no_remunerativo_sin_incidencia || "",
           };
         });
         setSueldos(sueldosCargados);
@@ -82,6 +88,7 @@ export default function EscalasTab({ convenios }) {
         alert(`¡Período encontrado! Cargada la escala de: ${data.mes_vigencia}. Ya podés descargar el CSV para editarlo.`);
       } else {
         setClavesPrevias([]);
+        setNombreSinIncidencia("");
         alert(
           "No hay una escala cargada para " + periodoID + "." + String.fromCharCode(10, 10) +
           "Descargá la plantilla CSV, completala con los sueldos del acuerdo y volvé a subirla."
@@ -191,9 +198,15 @@ export default function EscalasTab({ convenios }) {
           basico: sueldos[cat]?.basico || 0,
           no_remunerativo: sueldos[cat]?.no_remunerativo || 0,
         };
+        // La suma sin incidencia se escribe sólo si la hay, para no ensuciar
+        // las escalas que no la usan con un campo en cero.
+        const sinIncidencia = Number(sueldos[cat]?.no_remunerativo_sin_incidencia) || 0;
+        if (sinIncidencia > 0) categoriasLimpias[cat].no_remunerativo_sin_incidencia = sinIncidencia;
       });
 
-      await setDoc(escalaRef, { mes_vigencia: mesVigencia, categorias: categoriasLimpias });
+      const escalaDoc = { mes_vigencia: mesVigencia, categorias: categoriasLimpias };
+      if (nombreSinIncidencia.trim()) escalaDoc.nombre_sin_incidencia = nombreSinIncidencia.trim();
+      await setDoc(escalaRef, escalaDoc);
 
       // Magia para crear las zonas y actualizar categorías automáticamente en el convenio
       const convenioRef = doc(db, "convenios", convenioSeleccionado);
@@ -309,6 +322,24 @@ export default function EscalasTab({ convenios }) {
         </div>
       </div>
 
+      {/* Una segunda suma no remunerativa, sin incidencia (no genera antigüedad
+          ni presentismo, no entra en ninguna base). El monto va en el CSV, en la
+          columna no_remunerativo_sin_incidencia; acá sólo va su nombre. */}
+      <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-100">
+        <label className="block text-sm font-bold text-blue-900 mb-1">Nombre de la suma no remunerativa sin incidencia (opcional)</label>
+        <input
+          type="text"
+          value={nombreSinIncidencia}
+          onChange={(e) => setNombreSinIncidencia(e.target.value)}
+          placeholder="ej: Asignación Extraordinaria por Única Vez – Revisión 2026"
+          className="w-full border border-blue-200 p-2.5 rounded-lg outline-none bg-white text-sm"
+        />
+        <p className="text-[11px] text-blue-800/70 mt-1">
+          Es como aparece en el recibo. El monto va en el CSV, en la columna <code>no_remunerativo_sin_incidencia</code>:
+          no genera antigüedad ni presentismo, y no paga aportes ni contribuciones. Si ninguna categoría la tiene, dejalo vacío.
+        </p>
+      </div>
+
       <div className="flex flex-col sm:flex-row gap-4 bg-slate-100 p-4 rounded-xl border border-slate-200 items-center justify-center">
         <button type="button" onClick={descargarPlantilla} className="bg-white hover:bg-gray-50 text-slate-800 font-bold px-6 py-3 rounded-lg border border-slate-300 shadow-sm text-sm w-full sm:w-auto">
           📥 Descargar CSV de este mes
@@ -337,6 +368,7 @@ export default function EscalasTab({ convenios }) {
               // es lo que vuelve visible de un vistazo un 1,50 donde iba 1.500.
               const basico = Number(sueldos[categoria]?.basico) || 0;
               const noRem = Number(sueldos[categoria]?.no_remunerativo) || 0;
+              const sinIncidencia = Number(sueldos[categoria]?.no_remunerativo_sin_incidencia) || 0;
               const sinBasico = basico <= 0;
               return (
                 <div
@@ -359,6 +391,12 @@ export default function EscalasTab({ convenios }) {
                       <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">No Rem.</p>
                       <p className="text-sm font-mono text-gray-800">${formatearNumero(noRem)}</p>
                     </div>
+                    {sinIncidencia > 0 && (
+                      <div className="flex-1">
+                        <p className="text-[9px] uppercase text-gray-400 font-bold mb-0.5">Sin incid.</p>
+                        <p className="text-sm font-mono text-gray-800">${formatearNumero(sinIncidencia)}</p>
+                      </div>
+                    )}
                   </div>
                   {sinBasico && (
                     <p className="text-[10px] text-rose-600 mt-1.5 font-medium">Sin sueldo básico cargado</p>

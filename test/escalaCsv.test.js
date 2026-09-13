@@ -177,3 +177,35 @@ describe("revisar antes de publicar", () => {
     expect(r.advertencias[0]).toMatch(/básico en cero/);
   });
 });
+
+describe("la suma no remunerativa sin incidencia (columna opcional)", () => {
+  it("se lee cuando el encabezado la declara, con y sin zona", () => {
+    const r = parsearCsvEscala("categoria,basico,no_remunerativo,no_remunerativo_sin_incidencia\nVendedor B,1177947,120000,25000");
+    expect(r.errores).toEqual([]);
+    expect(r.sueldos["Vendedor B"]).toEqual({ basico: 1177947, no_remunerativo: 120000, no_remunerativo_sin_incidencia: 25000 });
+    const z = parsearCsvEscala("zona,categoria,basico,no_remunerativo,no_remunerativo_sin_incidencia\nEscala A,Nivel 1,1074307,74000,0");
+    expect(z.errores).toEqual([]);
+    expect(z.sueldos["Escala A|Nivel 1"]).toEqual({ basico: 1074307, no_remunerativo: 74000, no_remunerativo_sin_incidencia: 0 });
+  });
+
+  it("cuatro columnas SIN esa cabecera siguen siendo zona + categoría, como siempre", () => {
+    const r = parsearCsvEscala("zona,categoria,basico,no_remunerativo\nEscala A,Nivel 1,999420,38700");
+    expect(r.claves).toEqual(["Escala A|Nivel 1"]);
+    expect(r.sueldos["Escala A|Nivel 1"].no_remunerativo_sin_incidencia).toBeUndefined();
+  });
+
+  it("un valor ilegible frena, como los otros dos", () => {
+    const r = parsearCsvEscala("categoria,basico,no_remunerativo,no_remunerativo_sin_incidencia\nA,100,0,veinticinco mil");
+    expect(r.errores[0]).toMatch(/suma sin incidencia no se entiende/);
+  });
+
+  it("al generar el CSV, la columna aparece sólo si alguien la tiene", () => {
+    const sin = generarCsvEscala(["A"], { A: { basico: 100, no_remunerativo: 0 } });
+    expect(sin.split("\n")[0]).toBe("categoria,basico,no_remunerativo");
+    const con = generarCsvEscala(["A", "B"], { A: { basico: 100, no_remunerativo: 0, no_remunerativo_sin_incidencia: 25000 }, B: { basico: 200, no_remunerativo: 0 } });
+    expect(con.split("\n")).toEqual(["categoria,basico,no_remunerativo,no_remunerativo_sin_incidencia", "A,100,0,25000", "B,200,0,0"]);
+    const vuelta = parsearCsvEscala(con);
+    expect(vuelta.sueldos.A.no_remunerativo_sin_incidencia).toBe(25000);
+    expect(vuelta.sueldos.B.no_remunerativo_sin_incidencia).toBe(0);
+  });
+});

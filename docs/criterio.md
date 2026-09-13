@@ -180,6 +180,16 @@ una regla que nadie sigue.
 | Las bases de una contribución patronal son dos palabras (`remunerativo`, `remunerativo_mas_no_remunerativo`). Alcanzan para los convenios cargados; el día que uno tenga dos sumas no remunerativas con tratamiento distinto, la línea tiene que crecer | Modelo incompleto |
 | **`firestore.rules` no describe lo que rige.** Verificado el 13/9/2026: la consola tiene lectura pública de todo y escritura para cualquier usuario autenticado, mientras el archivo dice "todo lo demás cerrado". El archivo hay que alinearlo con la consola (o al revés, con el UID del dueño) antes de confiar en él | Seguridad |
 
+**Ya saldado (13 de septiembre de 2026, segunda pasada):** la escala acepta una
+segunda suma no remunerativa **sin incidencia** (`no_remunerativo_sin_incidencia`,
+con su nombre en el período): no genera antigüedad ni presentismo, no entra en
+ninguna base y va derecho al neto. Salió del acuerdo de Comercio de julio de
+2026, que paga $120.000 con incidencia y $25.000 sin ella el mismo mes. Y las
+retenciones sindicales pueden calcularse sobre la remuneración habitual
+(`remunerativo_habitual`, sin horas extras, SAC ni vacaciones), que es la base
+de la contribución solidaria de UTHGRA con el tope del Decreto 612/26. Una base
+que el motor no conoce ahora frena, en vez de caer callada al remunerativo.
+
 **Ya saldado (13 de septiembre de 2026, con la pasada del costo laboral):** el
 motor y todo lo que importa dejaron de leer `data/` (Regla 3); las alícuotas de
 las contribuciones, la detracción, las sumas fijas y las bases del art. 9 son
