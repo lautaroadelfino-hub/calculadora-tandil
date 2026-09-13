@@ -1,0 +1,77 @@
+rules_version = '2';
+
+// firestore.rules
+//
+// OJO: ESTE ARCHIVO NO SE APLICA SOLO.
+// Las reglas que están rigiendo hoy viven únicamente en la consola de Firebase
+// (Firestore Database -> Reglas). Este archivo existe para que queden
+// versionadas, revisables y con historial, que es lo que faltaba: hasta ahora
+// no había forma de saber cuándo ni por qué habían cambiado.
+//
+// Para aplicarlas, copiar el contenido en la consola, o usar la CLI de Firebase:
+//     firebase deploy --only firestore:rules
+//
+// Lo que se verificó por prueba en julio de 2026 sobre las reglas vigentes:
+//   - la lectura anónima funciona (hace falta: la calculadora es pública)
+//   - la escritura anónima está denegada
+//   - la escritura autenticada funciona (así escribe el panel)
+//
+// LO QUE FALTA, y es una decisión del dueño:
+// hoy cualquier usuario autenticado de Firebase puede escribir. Si el registro
+// está abierto, alguien que se cree una cuenta podría reescribir las escalas
+// salariales de un sitio público. Abajo queda preparada la versión con lista de
+// administradores; hay que poner el UID real antes de activarla, porque si se
+// aplica con la lista vacía el dueño se queda afuera de su propio panel.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- Administradores -----------------------------------------------
+    // Para pasar al control por UID:
+    //   1) Buscar el UID en la consola de Firebase, en Authentication.
+    //   2) Ponerlo en la lista de abajo.
+    //   3) Cambiar `estaAutenticado()` por `esAdmin()` en las reglas de
+    //      escritura, y recién ahí publicar.
+    function esAdmin() {
+      return request.auth != null
+          && request.auth.uid in [
+               // "PONER-ACA-EL-UID-DEL-DUENO",
+             ];
+    }
+
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    // --- Convenios y sus escalas ---------------------------------------
+    // Lectura pública: es lo que hace funcionar la calculadora sin registro.
+    match /convenios/{convenioId} {
+      allow read: if true;
+      allow write: if estaAutenticado();
+
+      match /escalas/{periodo} {
+        allow read: if true;
+        allow write: if estaAutenticado();
+      }
+    }
+
+    // --- Parámetros del impuesto a las Ganancias -----------------------
+    match /parametros_ganancias/{periodo} {
+      allow read: if true;
+      allow write: if estaAutenticado();
+    }
+
+    // --- Novedades del sitio -------------------------------------------
+    match /novedades/{novedadId} {
+      allow read: if true;
+      allow write: if estaAutenticado();
+    }
+
+    // --- Todo lo demás está cerrado ------------------------------------
+    // Cualquier colección que se agregue en el futuro arranca denegada, y hay
+    // que habilitarla a propósito acá.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

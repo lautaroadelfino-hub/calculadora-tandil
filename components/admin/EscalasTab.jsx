@@ -236,8 +236,25 @@ export default function EscalasTab({ convenios }) {
         }
       }
 
-      await setDoc(convenioRef, { ...convenioCompleto, inputs_requeridos: inputsModificados }, { merge: true });
-      setConvenioCompleto({ ...convenioCompleto, inputs_requeridos: inputsModificados });
+      // Se anota hasta qué período llegan las escalas. La portada lo usa para
+      // decir la verdad ("Escalas hasta septiembre 2026") en vez de afirmar que
+      // están actualizadas, que es lo que venía diciendo incluso con dos meses
+      // de atraso. Es un campo más en el setDoc que ya se hacía: cero consultas
+      // nuevas en la portada.
+      const periodoMasNuevo =
+        !convenioCompleto.ultimo_periodo || periodoID > convenioCompleto.ultimo_periodo
+          ? periodoID
+          : convenioCompleto.ultimo_periodo;
+      const nombreMasNuevo = periodoMasNuevo === periodoID ? mesVigencia : convenioCompleto.ultimo_periodo_nombre;
+
+      const convenioActualizado = {
+        ...convenioCompleto,
+        inputs_requeridos: inputsModificados,
+        ultimo_periodo: periodoMasNuevo,
+        ultimo_periodo_nombre: nombreMasNuevo || mesVigencia,
+      };
+      await setDoc(convenioRef, convenioActualizado, { merge: true });
+      setConvenioCompleto(convenioActualizado);
 
       setClavesPrevias([...categoriasActuales]);
       alert("Listo: se publicaron " + categoriasActuales.length + " categorías para " + mesVigencia + ".");

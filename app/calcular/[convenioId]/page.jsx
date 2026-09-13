@@ -9,6 +9,19 @@ import { valoresIniciales } from "@/lib/inputsIniciales";
 
 export const runtime = 'edge';
 
+const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+/** "2026-07" -> "julio de 2026" */
+function nombreDePeriodo(periodo) {
+  if (!periodo) return "otro período";
+  const [anio, mes] = String(periodo).split("-");
+  const nombre = MESES[Number(mes) - 1];
+  return nombre ? `${nombre} de ${anio}` : periodo;
+}
+
 const money = (n) =>
   "$" + Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -24,6 +37,11 @@ export default function CalculadoraDinamica() {
   const [valoresUsuario, setValoresUsuario] = useState({});
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState("");
   const [resultadoLiquidacion, setResultadoLiquidacion] = useState(null);
+  // De qué período salieron las tablas de Ganancias que se usaron. Si no
+  // coincide con el mes liquidado hay que decirlo: la escala del impuesto
+  // cambia por semestre, así que usar la de otro semestre da un número que
+  // no es el que corresponde, y hasta ahora eso pasaba sin ningún aviso.
+  const [periodoGanancias, setPeriodoGanancias] = useState(null);
 
   useEffect(() => {
     async function inicializarCalculadora() {
@@ -108,6 +126,7 @@ export default function CalculadoraDinamica() {
         const gSnap = await getDoc(gRef);
         if (gSnap.exists()) {
           paramsGanancias = gSnap.data();
+          setPeriodoGanancias(periodoSeleccionado);
         } else {
           const allSnap = await getDocs(collection(db, "parametros_ganancias"));
           const candidatos = [];
@@ -115,7 +134,12 @@ export default function CalculadoraDinamica() {
           const previos = candidatos
             .filter((c) => c.id <= periodoSeleccionado)
             .sort((a, b) => b.id.localeCompare(a.id));
-          if (previos.length > 0) paramsGanancias = previos[0].data;
+          if (previos.length > 0) {
+            paramsGanancias = previos[0].data;
+            setPeriodoGanancias(previos[0].id);
+          } else {
+            setPeriodoGanancias(null);
+          }
         }
       } catch (err) {
         console.warn("No se pudieron cargar parámetros de Ganancias:", err);
@@ -368,6 +392,17 @@ export default function CalculadoraDinamica() {
                     la liquidación anual acumulada de ARCA.
                   </p>
                 )}
+
+                {resultadoLiquidacion.ganancias?.aplica &&
+                  periodoGanancias &&
+                  periodoGanancias !== periodoSeleccionado && (
+                    <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
+                      <b>Ojo:</b> todavía no están cargadas las tablas de Ganancias de{" "}
+                      {nombreDePeriodo(periodoSeleccionado)}. Se usaron las de{" "}
+                      {nombreDePeriodo(periodoGanancias)}, que pueden ser de otro semestre y dar
+                      un impuesto distinto al que corresponde.
+                    </p>
+                  )}
                 <p className="text-[11px] text-slate-400">
                   Simulación orientativa según escalas vigentes cargadas. No reemplaza el recibo oficial emitido por el empleador.
                 </p>

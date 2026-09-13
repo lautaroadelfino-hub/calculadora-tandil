@@ -98,8 +98,12 @@ export default function Home() {
                       <div className="text-sm font-semibold text-slate-900">
                         {conv.nombre}
                       </div>
+                      {/* Antes decía "Liquidación actualizada" para todos, siempre,
+                          incluso con las escalas congeladas hace dos meses. Ahora
+                          dice hasta cuándo llegan de verdad. */}
                       <p className="mt-1 text-[11px] text-slate-600 line-clamp-2">
-                        CCT {conv.cct || "Vigente"} - Liquidación actualizada.
+                        CCT {conv.cct || "Vigente"}
+                        {conv.ultimo_periodo_nombre ? ` · Escalas hasta ${conv.ultimo_periodo_nombre}` : ""}
                       </p>
                       <span className={`mt-2 text-[11px] font-medium group-hover:underline ${estilos.texto}`}>
                         Comenzar →
@@ -152,7 +156,9 @@ export default function Home() {
             <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-10 border border-slate-100 flex flex-col items-center justify-center text-center">
               <h2 className="text-xl font-bold text-slate-800 mb-2">¡Todo listo para liquidar!</h2>
               <p className="text-sm text-slate-600 max-w-md">
-                Seleccioná uno de los convenios en la parte superior para ingresar a su calculadora específica. Las escalas salariales y retenciones se encuentran actualizadas mediante nuestra base de datos.
+                Elegí un convenio de arriba para entrar a su calculadora. Cada tarjeta
+                indica hasta qué mes están cargadas sus escalas salariales, y el recibo
+                avisa si alguna tabla que usó no es la del período que estás liquidando.
               </p>
             </section>
 
