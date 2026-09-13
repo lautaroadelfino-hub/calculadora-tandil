@@ -65,7 +65,7 @@ export default function ConveniosTab({ onConveniosChanged }) {
   const setAdic = (i, campo, valor) =>
     setForm((f) => ({ ...f, adicionales: f.adicionales.map((a, idx) => (idx === i ? { ...a, [campo]: valor } : a)) }));
   const agregarAdic = () =>
-    setForm((f) => ({ ...f, adicionales: [...f.adicionales, { label: "", valorPct: "", base: "basico" }] }));
+    setForm((f) => ({ ...f, adicionales: [...f.adicionales, { label: "", valorPct: "", base: "basico", condicional: false, pregunta: "", preguntaPorDefecto: true }] }));
   const quitarAdic = (i) =>
     setForm((f) => ({ ...f, adicionales: f.adicionales.filter((_, idx) => idx !== i) }));
 
@@ -375,6 +375,40 @@ export default function ConveniosTab({ onConveniosChanged }) {
                     <option value="basico_mas_antiguedad">Sobre básico + antigüedad</option>
                   </select>
                 </div>
+
+                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!a.condicional}
+                    onChange={(e) => setAdic(i, "condicional", e.target.checked)}
+                    className="h-4 w-4 accent-purple-600"
+                  />
+                  Sólo corresponde a veces: preguntárselo a la persona
+                </label>
+
+                {a.condicional && (
+                  <div className="pl-6 space-y-2 border-l-2 border-purple-200">
+                    <input
+                      value={a.pregunta || ""}
+                      onChange={(e) => setAdic(i, "pregunta", e.target.value)}
+                      placeholder="La pregunta. Ej: ¿Tuvo asistencia perfecta este mes?"
+                      className={inp}
+                    />
+                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={a.preguntaPorDefecto !== false}
+                        onChange={(e) => setAdic(i, "preguntaPorDefecto", e.target.checked)}
+                        className="h-4 w-4 accent-purple-600"
+                      />
+                      Viene contestada que sí
+                    </label>
+                    <p className="text-[11px] text-slate-400">
+                      La pregunta le va a aparecer a quien use la calculadora, y el adicional
+                      sólo se suma si contesta que sí.
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
