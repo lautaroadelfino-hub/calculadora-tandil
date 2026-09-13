@@ -1,6 +1,7 @@
 // components/Header.jsx
 "use client";
 import { useState } from "react";
+import { LINKS_NAVEGACION } from "@/lib/herramientas";
 
 export default function Header() {
   const [open, setOpen] = useState(false);
@@ -37,9 +38,13 @@ export default function Header() {
           </button>
 
           {/* Nav desktop */}
+          {/* Los links salen de lib/herramientas.js. Antes estaban escritos dos
+              veces, una acá y otra en el panel móvil, y había que acordarse de
+              tocar las dos. */}
           <nav className="ml-auto hidden md:flex items-center gap-8">
-            <a href="/" className="hover:text-emerald-100 whitespace-nowrap">Calculadora</a>
-            <a href="/novedades" className="hover:text-emerald-100 whitespace-nowrap">Novedades</a>
+            {LINKS_NAVEGACION.map((l) => (
+              <a key={l.href} href={l.href} className="hover:text-emerald-100 whitespace-nowrap">{l.texto}</a>
+            ))}
           </nav>
         </div>
 
@@ -49,20 +54,16 @@ export default function Header() {
           className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${open ? "max-h-40" : "max-h-0"}`}
         >
           <nav className="flex flex-col gap-1 pb-4">
-            <a
-              href="/"
-              onClick={() => setOpen(false)}
-              className="block rounded-xl px-3 py-3 bg-white/10 hover:bg-white/15 whitespace-nowrap"
-            >
-              Calculadora
-            </a>
-            <a
-              href="/novedades"
-              onClick={() => setOpen(false)}
-              className="block rounded-xl px-3 py-3 bg-white/10 hover:bg-white/15 whitespace-nowrap"
-            >
-              Novedades
-            </a>
+            {LINKS_NAVEGACION.map((l) => (
+              <a
+                key={l.href}
+                href={l.href}
+                onClick={() => setOpen(false)}
+                className="block rounded-xl px-3 py-3 bg-white/10 hover:bg-white/15 whitespace-nowrap"
+              >
+                {l.texto}
+              </a>
+            ))}
           </nav>
         </div>
       </div>

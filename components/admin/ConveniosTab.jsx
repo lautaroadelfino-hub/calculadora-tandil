@@ -6,9 +6,10 @@ import { useState, useEffect } from "react";
 import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { convenioToForm, formToConvenio, validarFormConvenio, BASES, CONDICIONES } from "@/lib/convenioForm";
+import { SECTORES } from "@/lib/herramientas";
 
 const VACIO = {
-  id: "", nombre: "", cct: "", activo: true,
+  id: "", nombre: "", cct: "", activo: true, sector: "privado",
   antiguedadModo: "lineal", antiguedadPct: "", antiguedadTramos: [],
   presentismoPct: "", presentismoBase: "basico_mas_antiguedad",
   adicionales: [], retenciones: [],
@@ -213,6 +214,15 @@ export default function ConveniosTab({ onConveniosChanged }) {
               className={`${inp} font-mono ${!esNuevo ? "bg-slate-100 text-slate-400" : ""}`}
             />
             <p className="text-[11px] text-slate-400 mt-1">{esNuevo ? "Solo minúsculas, números y guiones. No se puede cambiar después." : "El ID no se modifica al editar."}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Sector</label>
+            <select value={form.sector || "privado"} onChange={(e) => set("sector", e.target.value)} className={inp}>
+              {SECTORES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-400 mt-1">Define la etiqueta y el color de la tarjeta en la portada.</p>
           </div>
           <div className="flex items-end">
             <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer">
