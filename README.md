@@ -150,9 +150,18 @@ forma más rápida de romper producción sin que nadie se entere.
 1. `npm test` — la cantidad de tests nunca baja.
 2. `npm run build`.
 3. Pushear a una rama que no sea `main` y mirar la preview que arma Cloudflare.
-4. Probar a mano: Comercio con Vendedor B, 5 años, jornada 48, no afiliado,
-   julio 2026 → **neto $1.166.249,70**. Ese número es el canario: si cambió sin
-   que lo hayas decidido, algo se rompió.
+4. Probar a mano en producción: Comercio con Vendedor B, 5 años, jornada 48,
+   no afiliado, **septiembre 2026 → neto $1.251.841,10** (con la tabla de
+   contribuciones de septiembre y Ganancias jul-dic 2026). Si cambió sin que lo
+   hayas decidido, algo se rompió.
+
+   Ojo, son dos canarios distintos: los tests usan una foto congelada de julio
+   2026 en `test/fixtures/` que da **$1.166.249,70**, y esa foto tenía la escala
+   de julio mal cargada (los $120.000 no remunerativos sumados al básico y sin
+   el tramo del 1,9%). El 13/9/2026 se corrigió en Firestore con la planilla
+   firmada del acuerdo; la foto de los tests se dejó a propósito, porque lo que
+   vigila es la aritmética del motor, no la escala. Si algún día se recapturan
+   los fixtures, esos números esperados cambian y hay que actualizarlos a mano.
 5. Recién ahí, a `main`.
 
 ---
