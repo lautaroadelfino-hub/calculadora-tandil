@@ -12,6 +12,8 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { procesarRecibo } from "../lib/motorLiquidacion.js";
 import { valoresIniciales, selectsConDefaultInvalido } from "../lib/inputsIniciales.js";
+import { TIPOS_DE_LINEA } from "../lib/vocabularioConvenios.js";
+import semillaContribuciones from "../data/contribuciones.seed.json";
 
 const dirFixtures = join(dirname(fileURLToPath(import.meta.url)), "fixtures");
 const leer = (f) => JSON.parse(readFileSync(join(dirFixtures, f), "utf8"));
@@ -101,6 +103,35 @@ describe.each(convenios)("$id", ({ convenio, escalas }) => {
     it("las retenciones no se comen el sueldo", () => {
       const total = recibo.totales.bruto + recibo.totales.noRemunerativo;
       expect(recibo.totales.retenciones).toBeLessThan(total * 0.5);
+    });
+
+    it("toda línea tiene un tipo que la pantalla sabe dibujar", () => {
+      // La pantalla filtraba por tres tipos sin `else`: una línea con un tipo
+      // nuevo desaparecía en silencio. El tipo tiene que estar en la lista.
+      for (const l of recibo.detalle) expect(TIPOS_DE_LINEA, `"${l.concepto}"`).toContain(l.tipo);
+    });
+
+    it("con la tabla de contribuciones, el trabajador cobra exactamente lo mismo", () => {
+      const conTabla = procesarRecibo(convenio, escalas[periodo], valoresIniciales(convenio.inputs_requeridos), null, {
+        tablaContribuciones: semillaContribuciones, periodoContribuciones: "2026-07",
+      });
+      expect(conTabla.totales.bruto).toBe(recibo.totales.bruto);
+      expect(conTabla.totales.noRemunerativo).toBe(recibo.totales.noRemunerativo);
+      expect(conTabla.totales.retenciones).toBe(recibo.totales.retenciones);
+      expect(conTabla.totales.neto).toBe(recibo.totales.neto);
+    });
+
+    it("el costo del empleador cierra: bruto + no remunerativo + contribuciones", () => {
+      const r = procesarRecibo(convenio, escalas[periodo], valoresIniciales(convenio.inputs_requeridos), null, {
+        tablaContribuciones: semillaContribuciones,
+      });
+      const lineas = r.detalle.filter((l) => l.tipo === "contribucion");
+      expect(lineas.length).toBeGreaterThan(0);
+      const suma = lineas.reduce((a, l) => a + l.monto, 0);
+      expect(r.totales.contribuciones).toBeCloseTo(suma, 6);
+      expect(r.totales.costoEmpleador).toBeCloseTo(r.totales.bruto + r.totales.noRemunerativo + r.totales.contribuciones, 6);
+      expect(r.costoEmpleador.costoLaboral).toBeCloseTo(r.totales.costoEmpleador, 6);
+      for (const l of lineas) expect(l.rubro, `"${l.concepto}" sin rubro`).toBeTruthy();
     });
   });
 });

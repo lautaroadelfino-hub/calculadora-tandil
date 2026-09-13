@@ -81,6 +81,11 @@ const formularioValido = {
     { label: "Fija", tipoValor: "fijo", valor: 1500 },
     { label: "OS gremial", tipoValor: "porcentaje", valor: 3, reemplazaObraSocial: true },
   ],
+  artAlicuotaTipicaPct: 3,
+  contribuciones: [
+    { label: "Aporte a la cámara", tipoValor: "porcentaje", valor: 1, base: "remunerativo", rubro: "camaras" },
+    { label: "Fondo convencional", tipoValor: "fijo", valor: 500, rubro: "otros" },
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -143,6 +148,11 @@ describe("3. el motor no adivina: si no entiende una palabra, frena", () => {
         for (const opcion of opciones) {
           if (!fuenteDelMotor.includes(opcion)) faltan.push(`${regla}.${campo} = "${opcion}"`);
         }
+      }
+      // Una lista con nombre se verifica por el nombre: el motor la importa y
+      // frena con cualquier valor que no esté en ella.
+      for (const [campo, nombreLista] of Object.entries(forma.opcionesDeLista || {})) {
+        if (!fuenteDelMotor.includes(nombreLista)) faltan.push(`${regla}.${campo} (la lista ${nombreLista})`);
       }
     }
     expect(faltan, faltan.length ? "\nEl motor no conoce estas opciones:\n" + faltan.join("\n") : "").toEqual([]);

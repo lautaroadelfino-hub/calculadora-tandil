@@ -5,7 +5,8 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { convenioToForm, formToConvenio, validarFormConvenio, BASES, CONDICIONES } from "@/lib/convenioForm";
+import { convenioToForm, formToConvenio, validarFormConvenio, BASES, BASES_PATRONALES, CONDICIONES } from "@/lib/convenioForm";
+import { RUBROS_DEL_COSTO_LABORAL } from "@/lib/vocabularioConvenios";
 import { SECTORES } from "@/lib/herramientas";
 import { ESCALAS_ANTIGUEDAD, tramosParaElFormulario } from "@/lib/escalasAntiguedadOficiales";
 
@@ -16,6 +17,7 @@ const VACIO = {
   antiguedadModo: "lineal", antiguedadPct: "", antiguedadTramos: [],
   presentismoPct: "", presentismoBase: "basico_mas_antiguedad",
   adicionales: [], retenciones: [],
+  artAlicuotaTipicaPct: "", contribuciones: [],
 };
 
 export default function ConveniosTab({ onConveniosChanged }) {
@@ -86,6 +88,13 @@ export default function ConveniosTab({ onConveniosChanged }) {
 
   const quitarRet = (i) =>
     setForm((f) => ({ ...f, retenciones: f.retenciones.filter((_, idx) => idx !== i) }));
+
+  const setContrib = (i, campo, valor) =>
+    setForm((f) => ({ ...f, contribuciones: f.contribuciones.map((c, idx) => (idx === i ? { ...c, [campo]: valor } : c)) }));
+  const agregarContrib = () =>
+    setForm((f) => ({ ...f, contribuciones: [...(f.contribuciones || []), { label: "", tipoValor: "porcentaje", valor: "", base: "remunerativo", rubro: "" }] }));
+  const quitarContrib = (i) =>
+    setForm((f) => ({ ...f, contribuciones: f.contribuciones.filter((_, idx) => idx !== i) }));
 
   const guardar = async () => {
     if (!form.id || !/^[a-z0-9-]+$/.test(form.id)) {
@@ -505,6 +514,66 @@ export default function ConveniosTab({ onConveniosChanged }) {
         <p className="text-[11px] text-slate-400 mt-3">
           Las retenciones nacionales (jubilación 11%, PAMI 3%, obra social 3%) las aplica el sistema automáticamente. Acá van solo las sindicales del gremio.
         </p>
+      </div>
+
+      {/* Lo que paga el empleador (la sección del costo laboral del recibo) */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-slate-700">Lo que paga el empleador</h3>
+          <p className="text-[11px] text-slate-400 mt-1">
+            Desde junio de 2026 el recibo muestra las contribuciones del empleador. Las de ley (SIPA, INSSJP,
+            asignaciones, FNE, obra social, FFEP, seguro de vida) salen de la tabla del período de la pestaña
+            Contribuciones. Acá va lo que depende del convenio.
+          </p>
+        </div>
+        <div className="sm:w-72">
+          <label className="block text-xs font-medium text-slate-600 mb-1">Alícuota de ART típica de la actividad</label>
+          <div className="relative">
+            <input value={form.artAlicuotaTipicaPct ?? ""} onChange={(e) => set("artAlicuotaTipicaPct", e.target.value)} inputMode="decimal" placeholder="ej: 3" className={`${inp} pr-6`} />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1">
+            Es el valor por defecto que ve la persona; cada empleador negocia la suya y el recibo la marca como
+            estimada. Vacío = no se propone ninguna y el recibo avisa.
+          </p>
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-xs font-bold uppercase tracking-wide text-slate-500">Contribuciones propias del convenio</h4>
+            <button type="button" onClick={agregarContrib} className="text-xs font-bold text-purple-700 hover:text-purple-900">+ Agregar contribución</button>
+          </div>
+          {(form.contribuciones || []).length === 0 ? (
+            <p className="text-sm text-slate-400 py-3">Sin contribuciones propias. Agregá una si el convenio le cobra algo al empleador (cámara, fondo, seguro).</p>
+          ) : (
+            <div className="space-y-3">
+              {form.contribuciones.map((c, i) => (
+                <div key={i} className="border border-slate-200 rounded-lg p-3 bg-slate-50/60 space-y-3">
+                  <div className="flex gap-2">
+                    <input value={c.label} onChange={(e) => setContrib(i, "label", e.target.value)} placeholder="Nombre (ej: Aporte patronal INACAP)" className={`${inp} flex-1`} />
+                    <button type="button" onClick={() => quitarContrib(i)} title="Quitar" className="text-rose-500 hover:text-rose-700 font-bold px-2 shrink-0">×</button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    <select value={c.tipoValor} onChange={(e) => setContrib(i, "tipoValor", e.target.value)} className={inp}>
+                      <option value="porcentaje">Porcentaje %</option>
+                      <option value="fijo">Monto fijo $</option>
+                    </select>
+                    <div className="relative">
+                      <input value={c.valor} onChange={(e) => setContrib(i, "valor", e.target.value)} inputMode="decimal" placeholder="Valor" className={`${inp} ${c.tipoValor === "fijo" ? "pl-6" : "pr-6"}`} />
+                      <span className="absolute top-1/2 -translate-y-1/2 text-slate-400 text-sm" style={c.tipoValor === "fijo" ? { left: "0.7rem" } : { right: "0.7rem" }}>{c.tipoValor === "fijo" ? "$" : "%"}</span>
+                    </div>
+                    <select value={c.base} onChange={(e) => setContrib(i, "base", e.target.value)} disabled={c.tipoValor === "fijo"} className={`${inp} ${c.tipoValor === "fijo" ? "opacity-40" : ""}`}>
+                      {BASES_PATRONALES.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+                    </select>
+                    <select value={c.rubro} onChange={(e) => setContrib(i, "rubro", e.target.value)} className={inp}>
+                      <option value="">— rubro del decreto —</option>
+                      {RUBROS_DEL_COSTO_LABORAL.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
+                    </select>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3">
