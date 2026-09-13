@@ -81,6 +81,12 @@ const formularioValido = {
     { label: "Fija", tipoValor: "fijo", valor: 1500 },
     { label: "OS gremial", tipoValor: "porcentaje", valor: 3, reemplazaObraSocial: true },
   ],
+  antiguedadBase: "basico_mas_adicionales",
+  porUnidad: [
+    { label: "Comida", valor: "comida", unidad: "dia", naturaleza: "no_remunerativo", conIncidencia: false, cantidadDe: "dias_trabajados", preguntaCantidad: "Días trabajados", cantidadPorDefecto: 22, condicional: true, dependeDe: "larga_distancia", pregunta: "¿Larga distancia?", preguntaPorDefecto: false, cuando: "no" },
+    { label: "Kilómetros", valor: "km", unidad: "km", naturaleza: "remunerativo", cantidadDe: "km_recorridos", preguntaCantidad: "Km recorridos", cantidadPorDefecto: 0, condicional: true, dependeDe: "larga_distancia", pregunta: "¿Larga distancia?", preguntaPorDefecto: false, cuando: "si" },
+    { label: "Bitrenes", valor: "bitrenes", unidad: "mes", naturaleza: "remunerativo" },
+  ],
   artAlicuotaTipicaPct: 3,
   contribuciones: [
     { label: "Aporte a la cámara", tipoValor: "porcentaje", valor: 1, base: "remunerativo", rubro: "camaras" },

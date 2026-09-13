@@ -5,7 +5,10 @@
 import { useState, useEffect } from "react";
 import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { convenioToForm, formToConvenio, validarFormConvenio, BASES, BASES_PATRONALES, CONDICIONES } from "@/lib/convenioForm";
+import {
+  convenioToForm, formToConvenio, validarFormConvenio, BASES, BASES_PATRONALES, CONDICIONES,
+  BASES_ANTIGUEDAD, UNIDADES_POR_UNIDAD, NATURALEZAS,
+} from "@/lib/convenioForm";
 import { RUBROS_DEL_COSTO_LABORAL } from "@/lib/vocabularioConvenios";
 import { SECTORES } from "@/lib/herramientas";
 import { ESCALAS_ANTIGUEDAD, tramosParaElFormulario } from "@/lib/escalasAntiguedadOficiales";
@@ -14,7 +17,8 @@ const VACIO = {
   id: "", nombre: "", cct: "", activo: true, sector: "privado",
   jornadaHoras: "", jornadaDivisor: "",
   nrGeneraAdicionales: true,
-  antiguedadModo: "lineal", antiguedadPct: "", antiguedadTramos: [],
+  antiguedadModo: "lineal", antiguedadPct: "", antiguedadTramos: [], antiguedadBase: "basico",
+  porUnidad: [],
   presentismoPct: "", presentismoBase: "basico_mas_antiguedad",
   adicionales: [], retenciones: [],
   artAlicuotaTipicaPct: "", contribuciones: [],
@@ -95,6 +99,16 @@ export default function ConveniosTab({ onConveniosChanged }) {
     setForm((f) => ({ ...f, contribuciones: [...(f.contribuciones || []), { label: "", tipoValor: "porcentaje", valor: "", base: "remunerativo", rubro: "" }] }));
   const quitarContrib = (i) =>
     setForm((f) => ({ ...f, contribuciones: f.contribuciones.filter((_, idx) => idx !== i) }));
+
+  const setPU = (i, campo, valor) =>
+    setForm((f) => ({ ...f, porUnidad: f.porUnidad.map((u, idx) => (idx === i ? { ...u, [campo]: valor } : u)) }));
+  const agregarPU = () =>
+    setForm((f) => ({
+      ...f,
+      porUnidad: [...(f.porUnidad || []), { label: "", valor: "", unidad: "dia", naturaleza: "no_remunerativo", conIncidencia: false, cantidadDe: "dias_trabajados", preguntaCantidad: "Días trabajados en el mes", cantidadPorDefecto: 22, condicional: false, dependeDe: "", pregunta: "", preguntaPorDefecto: true, cuando: "si" }],
+    }));
+  const quitarPU = (i) =>
+    setForm((f) => ({ ...f, porUnidad: f.porUnidad.filter((_, idx) => idx !== i) }));
 
   const guardar = async () => {
     if (!form.id || !/^[a-z0-9-]+$/.test(form.id)) {
@@ -329,6 +343,16 @@ export default function ConveniosTab({ onConveniosChanged }) {
             </label>
           </div>
 
+          <div className="sm:max-w-md">
+            <select value={form.antiguedadBase || "basico"} onChange={(e) => set("antiguedadBase", e.target.value)} className={inp}>
+              {BASES_ANTIGUEDAD.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
+            </select>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Comercio y gastronómicos la calculan sobre el básico. Camioneros (ítem 6.1.5 del CCT 40/89), sobre todos los
+              conceptos remunerativos: básico más adicionales. En ese caso ningún adicional puede calcularse sobre la antigüedad.
+            </p>
+          </div>
+
           {form.antiguedadModo !== "tramos" ? (
             <div className="sm:max-w-xs">
               <div className="relative">
@@ -463,6 +487,78 @@ export default function ConveniosTab({ onConveniosChanged }) {
                       La pregunta le va a aparecer a quien use la calculadora, y el adicional
                       sólo se suma si contesta que sí.
                     </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Adicionales por unidad: por día, por km, por viaje o por mes */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-bold text-slate-700">Adicionales por día, por kilómetro o por viaje</h3>
+          <button type="button" onClick={agregarPU} className="text-xs font-bold text-purple-700 hover:text-purple-900">+ Agregar adicional</button>
+        </div>
+        <p className="text-[11px] text-slate-400 mb-3">
+          Un importe que fija cada planilla, multiplicado por una cantidad que informa la persona: la comida, el viático
+          especial, la pernoctada y los kilómetros de Camioneros. El IMPORTE se carga por período en Escalas paritarias →
+          Valores del período, con la clave que pongas acá. La cantidad se pregunta en la calculadora.
+        </p>
+        {(form.porUnidad || []).length === 0 ? (
+          <p className="text-sm text-slate-400 py-3">Sin adicionales por unidad. Agregá uno si el convenio paga por día, por km o por viaje.</p>
+        ) : (
+          <div className="space-y-3">
+            {form.porUnidad.map((u, i) => (
+              <div key={i} className="border border-slate-200 rounded-lg p-3 bg-slate-50/60 space-y-3">
+                <div className="flex gap-2">
+                  <input value={u.label} onChange={(e) => setPU(i, "label", e.target.value)} placeholder="Nombre (ej: Comida - ítem 4.1.12)" className={`${inp} flex-1`} />
+                  <button type="button" onClick={() => quitarPU(i)} title="Quitar" className="text-rose-500 hover:text-rose-700 font-bold px-2 shrink-0">×</button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <input value={u.valor} onChange={(e) => setPU(i, "valor", e.target.value)} placeholder="Clave del importe en la escala (ej: comida)" className={`${inp} font-mono`} />
+                  <select value={u.unidad} onChange={(e) => setPU(i, "unidad", e.target.value)} className={inp}>
+                    {UNIDADES_POR_UNIDAD.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
+                  </select>
+                  <select value={u.naturaleza} onChange={(e) => setPU(i, "naturaleza", e.target.value)} className={inp}>
+                    {NATURALEZAS.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
+                  </select>
+                </div>
+                {u.naturaleza === "no_remunerativo" && (
+                  <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                    <input type="checkbox" checked={!!u.conIncidencia} onChange={(e) => setPU(i, "conIncidencia", e.target.checked)} className="h-4 w-4 accent-purple-600" />
+                    Paga obra social, sindicales y contribuciones (con incidencia). Los viáticos del art. 106 LCT no la tienen.
+                  </label>
+                )}
+                {u.unidad !== "mes" && (
+                  <div className="pl-6 space-y-2 border-l-2 border-purple-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_auto] gap-2">
+                      <input value={u.cantidadDe} onChange={(e) => setPU(i, "cantidadDe", e.target.value)} placeholder="id de la pregunta (ej: dias_trabajados)" className={`${inp} font-mono`} />
+                      <input value={u.preguntaCantidad} onChange={(e) => setPU(i, "preguntaCantidad", e.target.value)} placeholder="La pregunta. Ej: Días trabajados en el mes" className={inp} />
+                      <input value={u.cantidadPorDefecto} onChange={(e) => setPU(i, "cantidadPorDefecto", e.target.value)} inputMode="numeric" placeholder="Default" className={`${inp} w-24 text-center`} />
+                    </div>
+                    <p className="text-[11px] text-slate-400">Si dos adicionales usan el mismo id (la comida y el viático usan los días trabajados), la pregunta se hace una sola vez.</p>
+                  </div>
+                )}
+                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                  <input type="checkbox" checked={!!u.condicional} onChange={(e) => setPU(i, "condicional", e.target.checked)} className="h-4 w-4 accent-purple-600" />
+                  Sólo si la persona contesta una pregunta sí/no (ej: la comida sólo si NO es de larga distancia)
+                </label>
+                {u.condicional && (
+                  <div className="pl-6 space-y-2 border-l-2 border-purple-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-[1fr_2fr_auto] gap-2">
+                      <input value={u.dependeDe} onChange={(e) => setPU(i, "dependeDe", e.target.value)} placeholder="id de la pregunta (ej: larga_distancia)" className={`${inp} font-mono`} />
+                      <input value={u.pregunta} onChange={(e) => setPU(i, "pregunta", e.target.value)} placeholder="La pregunta. Ej: ¿Es chofer de larga distancia?" className={inp} />
+                      <select value={u.cuando || "si"} onChange={(e) => setPU(i, "cuando", e.target.value)} className={inp}>
+                        <option value="si">Se paga si contesta SÍ</option>
+                        <option value="no">Se paga si contesta NO</option>
+                      </select>
+                    </div>
+                    <label className="flex items-center gap-2 text-[11px] text-slate-500 cursor-pointer">
+                      <input type="checkbox" checked={u.preguntaPorDefecto !== false} onChange={(e) => setPU(i, "preguntaPorDefecto", e.target.checked)} className="h-3.5 w-3.5 accent-purple-600" />
+                      La pregunta arranca marcada en SÍ. Si varios adicionales usan el mismo id, se pregunta una sola vez.
+                    </label>
                   </div>
                 )}
               </div>

@@ -176,9 +176,16 @@ una regla que nadie sigue.
 |---|---|
 | Los recargos de la hora extra (1,5 y 2,0), el aguinaldo (50%), el plus vacacional (/150) y los aportes de ley (11%, 3%, 3%) son constantes con nombre en `parametrosLaborales.js`, pero **un convenio no puede declarar otros**. Hay convenios con el sábado al 100% y hay actividades con caja propia | Modelo incompleto |
 | Que la obra social del trabajador se prorratee por la jornada ya es un criterio de la tabla del período; que su base **incluya el no remunerativo** sigue fijo. Los dos motores viejos lo tenían como opción y Comercio y Gastronómicos elegían valores **distintos** | Regla 2 |
-| Un adicional sólo puede ser un porcentaje: no se puede cargar uno de monto fijo en pesos, aunque las retenciones y las contribuciones sí lo aceptan | Modelo incompleto |
+| Los adicionales de importe fijo van como "por unidad" con unidad `mes` y el importe en la escala del período; lo que todavía no existe es un adicional porcentual sobre otro adicional ("15% sobre el valor comida", ítem 5.3.11 del 40/89) ni los coeficientes zonales del sur (1,20 y 1,40) | Modelo incompleto |
 | Las bases de una contribución patronal son dos palabras (`remunerativo`, `remunerativo_mas_no_remunerativo`). Alcanzan para los convenios cargados; el día que uno tenga dos sumas no remunerativas con tratamiento distinto, la línea tiene que crecer | Modelo incompleto |
 | `firestore.rules` y la consola coinciden desde el 13/9/2026 (lectura sólo de lo que usa la calculadora; escribe sólo `admin@csueldos.com`; el resto cerrado). Lo que sigue siendo cierto: **el archivo no se aplica solo**, y cada cambio hay que volver a pegarlo en la consola con la cuenta `info@liquidar.ar` | A recordar al agregar una colección |
+
+**Ya saldado (13 de septiembre de 2026, tercera pasada, por Camioneros):** los
+adicionales **por unidad** (`adicionales_por_unidad`: por día, por km, por viaje o
+por mes, remunerativos o no, con el importe en `valores_del_periodo` de la escala
+y la cantidad en una pregunta del convenio) y la antigüedad **sobre básico más
+adicionales** (`antiguedad.aplica_sobre`, ítem 6.1.5 del CCT 40/89). Un importe
+que la escala no trae frena: no se inventa.
 
 **Ya saldado (13 de septiembre de 2026, segunda pasada):** la escala acepta una
 segunda suma no remunerativa **sin incidencia** (`no_remunerativo_sin_incidencia`,

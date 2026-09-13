@@ -9,6 +9,7 @@ import {
   parsearCsvEscala, generarCsvEscala, plantillaEjemplo, tieneZonas, leerClave,
   validarPeriodo, revisarEscalaAntesDePublicar,
 } from "@/lib/escalaCsv";
+import { slug } from "@/lib/texto";
 
 export default function EscalasTab({ convenios }) {
   const [convenioSeleccionado, setConvenioSeleccionado] = useState("");
@@ -19,6 +20,10 @@ export default function EscalasTab({ convenios }) {
   // El nombre de la segunda suma no remunerativa, sin incidencia, si la escala
   // la tiene. El monto viaja en el CSV; el nombre es del período.
   const [nombreSinIncidencia, setNombreSinIncidencia] = useState("");
+  // Los importes por día, por km o por mes que fija la planilla (comida,
+  // viático especial, pernoctada, km). Los usan los adicionales por unidad
+  // del convenio, por su clave.
+  const [valoresPeriodo, setValoresPeriodo] = useState([]);
   const [sueldos, setSueldos] = useState({});
   // Lo que ya estaba guardado en este periodo. Se usa para avisar que
   // publicar reemplaza el periodo entero y borra lo que no venga en el CSV.
@@ -54,6 +59,7 @@ export default function EscalasTab({ convenios }) {
     setPeriodoID("");
     setMesVigencia("");
     setNombreSinIncidencia("");
+    setValoresPeriodo([]);
     setClavesPrevias([]);
   };
 
@@ -70,6 +76,7 @@ export default function EscalasTab({ convenios }) {
         const data = escalaSnap.data();
         setMesVigencia(data.mes_vigencia);
         setNombreSinIncidencia(data.nombre_sin_incidencia || "");
+        setValoresPeriodo(Object.entries(data.valores_del_periodo || {}).map(([clave, valor]) => ({ clave, valor })));
 
         const catsEscala = Object.keys(data.categorias || {});
         const listaCombinada = Array.from(new Set([...categoriasActuales, ...catsEscala])).sort((a, b) => a.localeCompare(b));
@@ -89,6 +96,7 @@ export default function EscalasTab({ convenios }) {
       } else {
         setClavesPrevias([]);
         setNombreSinIncidencia("");
+        setValoresPeriodo([]);
         alert(
           "No hay una escala cargada para " + periodoID + "." + String.fromCharCode(10, 10) +
           "Descargá la plantilla CSV, completala con los sueldos del acuerdo y volvé a subirla."
@@ -206,6 +214,15 @@ export default function EscalasTab({ convenios }) {
 
       const escalaDoc = { mes_vigencia: mesVigencia, categorias: categoriasLimpias };
       if (nombreSinIncidencia.trim()) escalaDoc.nombre_sin_incidencia = nombreSinIncidencia.trim();
+      const valoresDelPeriodo = {};
+      for (const v of valoresPeriodo) {
+        const clave = slug(String(v.clave || "").trim(), "");
+        if (!clave) continue;
+        const numero = aNumero(v.valor, NaN);
+        if (!Number.isFinite(numero)) return alert(`El valor del período "${clave}" no se entiende: ${v.valor}`);
+        valoresDelPeriodo[clave] = numero;
+      }
+      if (Object.keys(valoresDelPeriodo).length) escalaDoc.valores_del_periodo = valoresDelPeriodo;
       await setDoc(escalaRef, escalaDoc);
 
       // Magia para crear las zonas y actualizar categorías automáticamente en el convenio
@@ -338,6 +355,30 @@ export default function EscalasTab({ convenios }) {
           Es como aparece en el recibo. El monto va en el CSV, en la columna <code>no_remunerativo_sin_incidencia</code>:
           no genera antigüedad ni presentismo, y no paga aportes ni contribuciones. Si ninguna categoría la tiene, dejalo vacío.
         </p>
+      </div>
+
+      {/* Valores del período: los importes por día, por km o por mes que fija la
+          planilla. Los usan los adicionales por unidad del convenio, por su clave. */}
+      <div className="bg-blue-50/50 p-5 rounded-xl border border-blue-100">
+        <div className="flex items-center justify-between mb-1">
+          <label className="block text-sm font-bold text-blue-900">Valores del período (opcional)</label>
+          <button type="button" onClick={() => setValoresPeriodo((v) => [...v, { clave: "", valor: "" }])} className="text-xs font-bold text-blue-700 hover:text-blue-900">+ Agregar valor</button>
+        </div>
+        <p className="text-[11px] text-blue-800/70 mb-2">
+          Los importes por día, por kilómetro o por mes que fija la planilla (comida, viático especial, pernoctada, km).
+          La clave tiene que ser la misma que usa el adicional en Convenios. Si el convenio no los usa, dejalo vacío.
+        </p>
+        {valoresPeriodo.length > 0 && (
+          <div className="space-y-2">
+            {valoresPeriodo.map((v, i) => (
+              <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <input value={v.clave} onChange={(e) => setValoresPeriodo((xs) => xs.map((x, j) => (j === i ? { ...x, clave: e.target.value } : x)))} placeholder="clave (ej: comida)" className="border border-blue-200 p-2 rounded-lg outline-none bg-white text-sm font-mono" />
+                <input value={v.valor} onChange={(e) => setValoresPeriodo((xs) => xs.map((x, j) => (j === i ? { ...x, valor: e.target.value } : x)))} placeholder="importe (ej: 16219,85)" inputMode="decimal" className="border border-blue-200 p-2 rounded-lg outline-none bg-white text-sm font-mono text-right" />
+                <button type="button" onClick={() => setValoresPeriodo((xs) => xs.filter((_, j) => j !== i))} title="Quitar" className="text-rose-500 hover:text-rose-700 font-bold px-2">×</button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 bg-slate-100 p-4 rounded-xl border border-slate-200 items-center justify-center">

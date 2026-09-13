@@ -113,6 +113,8 @@ tocar código.
 | **Antigüedad — por tramos** | El porcentaje de cada tramo es el **total**, no se multiplica. Gastronómicos: desde los 5 años, 4% del básico. |
 | **Presentismo** | Un porcentaje. Elegís si se calcula sobre el básico o sobre básico + antigüedad. |
 | **Adicionales remunerativos** | Conceptos propios del convenio que suman al sueldo. En gastronómicos: complemento de servicio 12% y asistencia perfecta 10%. |
+| **Adicionales por día, por km o por viaje** | Un importe que fija cada planilla, multiplicado por una cantidad que informa la persona: la comida, el viático especial, la pernoctada y los kilómetros de Camioneros. El importe se carga por período en Escalas → Valores del período, con la clave que usa el adicional. Los no remunerativos van sin incidencia (viáticos del art. 106 LCT) salvo que lo marques. |
+| **Antigüedad: sobre qué** | Sobre el básico (Comercio, gastronómicos) o sobre básico + adicionales remunerativos (Camioneros, ítem 6.1.5). |
 | **Retenciones sindicales** | Descuentos. Pueden ser un porcentaje o un monto fijo, y pueden aplicarse sólo a afiliados o sólo a no afiliados. La base puede ser el remunerativo, el **remunerativo habitual** (sin horas extras, SAC ni vacaciones: es el tope del Decreto 612/26 para las cuotas solidarias), remunerativo + no remunerativo, o sólo el no remunerativo. |
 | **Reemplaza la obra social** | Marcala si esa retención va en lugar del 3% de obra social, para que no se cobren las dos. |
 | **ART típica** | La alícuota de ART habitual de la actividad, en %. Es el valor que el recibo propone; el empleador la cambia, y siempre se muestra como estimada. Vacía = el recibo avisa que falta. Hoy Comercio y Gastronómicos tienen 5%, el valor de tu Nacional Sistema: cambialo si querés. |
