@@ -18,6 +18,7 @@ export const meta = {
   whenToUse: 'Después de un cambio grande de pantalla o de un convenio nuevo, para ver el sitio con ojos de primera vez',
   phases: [
     { title: 'Auditar', detail: 'una persona por vez, sólo con el navegador' },
+    { title: 'Consolidar', detail: 'un editor agrupa los hallazgos por problema de fondo' },
     { title: 'Verificar', detail: 'un verificador fresco intenta reproducir cada hallazgo de severidad media o más' },
   ],
 }
@@ -294,29 +295,100 @@ for (const inf of informesExtra) {
   }
 }
 
-// Deduplicación en código: mismo lugar y observación parecida = mismo hallazgo.
+// ---------------------------------------------------------------------------
+// Consolidación. Seis personas describen el mismo problema con palabras
+// distintas ("la tabla se corta" / "no se ven los importes"), así que una
+// deduplicación por texto parecido casi nunca coincide: en la corrida del
+// 13/9/2026 dejó 84 "únicos" de 84 y la verificación alcanzó a 12. Ahora un
+// editor (sin navegador) agrupa los hallazgos por problema de fondo; si no
+// responde, se cae a la deduplicación por texto.
+
 const PESO = { bloqueante: 4, alta: 3, media: 2, baja: 1 }
+const todos = informes.flatMap((inf) => (inf.hallazgos || []).map((h) => ({ ...h, persona: inf.persona, idGlobal: `${inf.persona}:${h.id}` })))
+const porId = Object.fromEntries(todos.map((h) => [h.idGlobal, h]))
+
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]+/g, ' ').trim()
 const palabras = (s) => new Set(norm(s).split(' ').filter((w) => w.length > 3))
 const jaccard = (a, b) => { const i = [...a].filter((w) => b.has(w)).length; const u = new Set([...a, ...b]).size; return u ? i / u : 0 }
 const ruta = (s) => { const m = String(s || '').match(/https?:\/\/[^\s/]+(\/[^\s?#)]*)?/); return m ? (m[1] || '/') : norm(s).slice(0, 30) }
 
-const unicos = []
-for (const inf of informes) {
-  for (const h of inf.hallazgos || []) {
-    const item = { ...h, personas: [inf.persona], idGlobal: `${inf.persona}:${h.id}` }
+function dedupPorTexto() {
+  const unicos = []
+  for (const item0 of todos) {
+    const item = { ...item0, personas: [item0.persona], miembros: [item0.idGlobal], tema: item0.observado.slice(0, 120) }
     const igual = unicos.find((u) => ruta(u.donde) === ruta(item.donde) && u.tipo === item.tipo && jaccard(palabras(u.observado), palabras(item.observado)) >= 0.5)
     if (igual) {
-      igual.personas.push(inf.persona)
-      if (PESO[item.severidad] > PESO[igual.severidad]) { igual.severidad = item.severidad }
+      if (!igual.personas.includes(item.persona)) igual.personas.push(item.persona)
+      igual.miembros.push(item.idGlobal)
+      if (PESO[item.severidad] > PESO[igual.severidad]) igual.severidad = item.severidad
       if (!igual.evidencia && item.evidencia) igual.evidencia = item.evidencia
     } else {
       unicos.push(item)
     }
   }
+  return unicos
+}
+
+const GRUPOS = {
+  type: 'object',
+  properties: {
+    grupos: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          tema: { type: 'string', description: 'una frase: el problema de fondo, no la pantalla' },
+          severidad: { type: 'string', enum: ['bloqueante', 'alta', 'media', 'baja'] },
+          tipo: { type: 'string', enum: ['funcional', 'ux', 'copy', 'accesibilidad', 'rendimiento'] },
+          miembros: { type: 'array', items: { type: 'string' }, description: 'idGlobal de cada hallazgo del grupo' },
+          representante: { type: 'string', description: 'idGlobal del hallazgo con los pasos más claros para reproducirlo' },
+        },
+        required: ['tema', 'severidad', 'tipo', 'miembros', 'representante'],
+      },
+    },
+  },
+  required: ['grupos'],
+}
+
+phase('Consolidar')
+let unicos = []
+if (todos.length > 0) {
+  const editor = await agent(`Sos el editor de una auditoría de usabilidad. ${informes.length} personas distintas recorrieron el mismo sitio y reportaron ${todos.length} hallazgos, cada uno con su idGlobal. Agrupalos por PROBLEMA DE FONDO: el mismo defecto contado con otras palabras, o visto en otra pantalla, es el mismo grupo ("la tabla de contribuciones se corta en celular" y "no se ven los importes del empleador en el teléfono" son uno solo). Dos problemas distintos en el mismo lugar son dos grupos. Cada hallazgo va en exactamente un grupo; no inventes ninguno ni dejes ninguno afuera. La severidad del grupo es la más alta de sus miembros; el tipo, el más representativo. Elegí como representante el hallazgo con los pasos más claros para reproducirlo. No uses ninguna herramienta: todo lo que necesitás está acá.\n\nHALLAZGOS:\n${JSON.stringify(todos.map((h) => ({ idGlobal: h.idGlobal, severidad: h.severidad, tipo: h.tipo, donde: h.donde, observado: h.observado, pasos: h.pasos })))}`, {
+    label: 'consolidar',
+    phase: 'Consolidar',
+    schema: GRUPOS,
+    effort: 'high',
+  })
+  if (editor && Array.isArray(editor.grupos) && editor.grupos.length) {
+    const vistos = new Set()
+    for (const g of editor.grupos) {
+      const miembros = (g.miembros || []).filter((id) => porId[id] && !vistos.has(id))
+      if (!miembros.length) continue
+      miembros.forEach((id) => vistos.add(id))
+      const rep = porId[g.representante] && miembros.includes(g.representante) ? porId[g.representante] : porId[miembros[0]]
+      const severidad = miembros.reduce((mx, id) => (PESO[porId[id].severidad] > PESO[mx] ? porId[id].severidad : mx), g.severidad in PESO ? g.severidad : 'baja')
+      unicos.push({
+        ...rep,
+        tema: g.tema,
+        severidad,
+        tipo: g.tipo || rep.tipo,
+        personas: [...new Set(miembros.map((id) => porId[id].persona))],
+        miembros,
+        evidencia: rep.evidencia || miembros.map((id) => porId[id].evidencia).find(Boolean) || '',
+      })
+    }
+    // Lo que el editor haya olvidado entra como grupo propio: nada se pierde.
+    for (const h of todos) {
+      if (!vistos.has(h.idGlobal)) unicos.push({ ...h, tema: h.observado.slice(0, 120), personas: [h.persona], miembros: [h.idGlobal] })
+    }
+    log(`consolidado en ${unicos.length} temas (${editor.grupos.length} del editor)`)
+  } else {
+    unicos = dedupPorTexto()
+    log(`el editor no respondió: deduplicación por texto, ${unicos.length} únicos`)
+  }
 }
 unicos.sort((a, b) => PESO[b.severidad] - PESO[a.severidad] || b.personas.length - a.personas.length)
-log(`${unicos.length} hallazgos únicos de ${informes.reduce((n, i) => n + (i.hallazgos || []).length, 0)} reportados`)
+log(`${unicos.length} temas de ${todos.length} hallazgos reportados`)
 
 // ---------------------------------------------------------------------------
 
@@ -356,6 +428,7 @@ razonable, o es gusto personal), marcalo como "no_es_problema" y explicá.`, {
 
 return {
   url: URL,
+  temas: unicos.map((u) => ({ tema: u.tema, severidad: u.severidad, tipo: u.tipo, personas: u.personas, miembros: u.miembros, representante: u.idGlobal })),
   personas: informes.map((i) => ({
     persona: i.persona, titulo: i.titulo, resumen: i.resumen, tarea_completada: i.tarea_completada,
     minutos: i.minutos_hasta_completar, funciono_bien: i.funciono_bien,
