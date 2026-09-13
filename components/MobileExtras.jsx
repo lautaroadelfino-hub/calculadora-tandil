@@ -20,7 +20,7 @@ export default function MobileExtras({ open, onClose, onReport }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 xl:hidden">
+    <div data-flotante="" className="fixed inset-0 z-50 xl:hidden">
       {/* backdrop */}
       <button
         aria-label="Cerrar"

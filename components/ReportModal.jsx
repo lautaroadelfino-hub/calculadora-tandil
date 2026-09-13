@@ -145,6 +145,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
       aria-modal="true"
       aria-labelledby="report-title"
       aria-describedby="report-desc"
+      data-flotante=""
       className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
     >
       <div

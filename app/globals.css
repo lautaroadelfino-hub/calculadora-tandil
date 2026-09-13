@@ -142,9 +142,13 @@ body {
 /* ==== Overrides anti-superposición en el panel central ==== */
 @media (max-width: 1535px) {
   main .sticky { position: static !important; top: auto !important; }
-  main .fixed  { position: static !important; top: auto !important; right: auto !important; }
+  /* Los modales (ReportModal, MobileExtras) llevan data-flotante y quedan
+     afuera: en cualquier pantalla de menos de 1536 px esta regla los
+     incrustaba en el flujo de la página como un bloque gris, en vez de
+     flotar encima de todo. Detectado el 13/9/2026 al rehacer la portada. */
+  main .fixed:not([data-flotante])  { position: static !important; top: auto !important; right: auto !important; }
 }
-main .z-50, main .z-40, main .z-30 { z-index: auto !important; }
+main .z-50:not([data-flotante]), main .z-40:not([data-flotante]), main .z-30:not([data-flotante]) { z-index: auto !important; }
 main > * { isolation: isolate; }
 
 /* Evitar overflow horizontal accidental en mobile */
