@@ -8,10 +8,10 @@ rules_version = '2';
 // publicar, o usar la CLI:
 //     firebase deploy --only firestore:rules
 //
-// LO QUE RIGE HOY EN LA CONSOLA (verificado por prueba el 13/9/2026): lectura
-// pública de TODO y escritura para cualquier usuario autenticado de Firebase.
-// Alcanza para que el sitio funcione, pero es más laxo de lo que hace falta:
-// cualquier colección nueva nace pública, y si el registro estuviera abierto,
+// LO QUE RIGÍA HASTA EL 13/9/2026 (verificado por prueba): lectura pública de
+// TODO y escritura para cualquier usuario autenticado de Firebase. Alcanzaba
+// para que el sitio funcionara, pero era más laxo de lo que hace falta:
+// cualquier colección nueva nacía pública, y si el registro estuviera abierto,
 // cualquier cuenta podría reescribir las escalas salariales de un sitio
 // público. Estas reglas cierran las dos cosas:
 //

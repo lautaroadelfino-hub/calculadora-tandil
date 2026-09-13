@@ -192,14 +192,14 @@ mandale esa hoja primero.
 - **`npm run lint` está roto** y no es culpa de nadie: el plugin pide
   `typescript`, que no está instalado porque el proyecto es JavaScript puro. No
   afecta al deploy.
-- **`firestore.rules` está en el repo pero NO se aplica solo.** Hoy la consola
-  es más laxa que el archivo (verificado el 13/9/2026: lectura pública de todo y
-  escritura para cualquier usuario autenticado). El archivo tiene la versión
-  cerrada: se lee sólo lo que la calculadora usa, y escribe únicamente la
-  cuenta `admin@csueldos.com` con la que entrás a /admin. Para que rija hay que
-  pegarlo en la consola (Firestore Database → Reglas → Publicar), con la cuenta
-  de Google dueña del proyecto `liquidar-f01ab`. Si cambiás el mail del
-  administrador, cambialo en el archivo y en la consola antes de usar el panel.
+- **`firestore.rules` está en el repo pero NO se aplica solo.** Desde el
+  13/9/2026 (10:56) la consola y el archivo dicen lo mismo: se lee sin registro
+  sólo lo que la calculadora usa, y escribe únicamente la cuenta
+  `admin@csueldos.com` con la que entrás a /admin; todo lo demás está cerrado.
+  Si alguna vez cambiás el archivo, hay que volver a pegarlo en la consola
+  (Firestore Database → Reglas → Publicar) con la cuenta de Google dueña del
+  proyecto, que es `info@liquidar.ar`. Y si cambiás el mail del administrador,
+  cambialo en el archivo y en la consola antes de usar el panel.
 - **Hoy entra a `/admin` cualquier usuario autenticado de Firebase.** El archivo
   de reglas tiene preparada la versión con lista de administradores, pero hay
   que poner el UID antes de activarla: si se aplica con la lista vacía, te
