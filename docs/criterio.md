@@ -106,8 +106,14 @@ actualizarlos requiere editar el repositorio y desplegar. Los que viven en la
 base tardan un segundo pero los actualiza el dueño solo. Para un proyecto que
 mantiene una persona que no programa, **la segunda gana siempre**.
 
-> **Hoy esto no se cumple.** `lib/calculoEmpleador.js` y
-> `lib/parametrosLaborales.js` importan de `data/`. Está anotado abajo.
+**Se cumple desde el 13 de septiembre de 2026.** El módulo que importaba de
+`data/` (`calculoEmpleador.js`) se retiró junto con el panel del empleador, y
+las bases del art. 9 y las alícuotas de las contribuciones pasaron a Firestore
+(colección `parametros_contribuciones`, pestaña Contribuciones), con
+`data/contribuciones.seed.json` como semilla y un botón que la carga.
+
+**Se controla solo:** `test/criterio.test.js` lee el código del motor y de
+los módulos que usa, y falla si alguno importa de `data/`.
 
 ### 4. Qué pregunta es del convenio y qué es de la ley
 
@@ -119,7 +125,12 @@ La prueba no es mirar el código, es contestar en voz alta:
 
 | Del convenio | Universales |
 |---|---|
-| categoría, zona, años de antigüedad, afiliación al gremio | jornada, horas extras, aguinaldo, vacaciones, cónyuge, hijos, hijos con discapacidad |
+| categoría, zona, años de antigüedad, afiliación al gremio | jornada, horas extras, aguinaldo, vacaciones, cónyuge, hijos, hijos con discapacidad, régimen de contribuciones, alícuota y cuota fija de ART |
+
+Un caso mixto que conviene tener claro: la **ART** es universal (cada empleador
+negocia la suya, no la fija el convenio), pero el **valor propuesto** sale del
+convenio (`art.alicuota_tipica`, cargado en `/admin`). El recibo la muestra
+siempre como estimada.
 
 La lista completa está en `lib/vocabularioConvenios.js`.
 
@@ -127,9 +138,20 @@ La lista completa está en `lib/vocabularioConvenios.js`.
 
 ## Cómo se agrega una regla nueva
 
-**Paso 0 — ¿de qué tipo es?** ¿Podrían dos convenios cargar números distintos?
-- **Sí** → es del convenio: va a `reglas_calculo` y al panel. Seguí todos los pasos.
-- **No** → es de ley: va a `parametrosLaborales.js`. Sólo los pasos 1, 2 y 6.
+**Paso 0 — ¿de qué tipo es?** Son tres tipos, no dos. La pasada del costo
+laboral (septiembre de 2026) mostró que confundir los dos últimos termina con
+un dato que cambia por período clavado adentro del código.
+- **¿Podrían dos convenios cargar números distintos?** → es **del convenio**:
+  va a `reglas_calculo` y al panel. Seguí todos los pasos.
+- **¿Es de ley y no cambia** (el 11% de jubilación, el /150 del plus
+  vacacional)? → es una **constante**: va a `parametrosLaborales.js`, con nombre
+  y con el porqué. Sólo los pasos 1, 2 y 6.
+- **¿Es de ley pero cambia por período** (bases del art. 9, alícuotas de las
+  contribuciones, escala de Ganancias)? → es **dato del período**: va a
+  Firestore con su pestaña en `/admin` (el patrón de Ganancias y de
+  Contribuciones), con una semilla en `data/` y un botón que la carga. La
+  pantalla se la pasa al motor como tabla; el motor no la busca. Pasos 1, 2, 5
+  y 6.
 
 1. **Declarala** en `lib/vocabularioConvenios.js`. Si no está ahí, no existe.
 2. **Que el motor la lea**, con el valor por defecto igual al comportamiento de
@@ -152,14 +174,21 @@ una regla que nadie sigue.
 
 | Qué | Contra qué regla va |
 |---|---|
-| `lib/calculoEmpleador.js` y `lib/parametrosLaborales.js` importan de `data/` | Regla 3 |
-| Los recargos de la hora extra (1,5 y 2,0) están fijos. Hay convenios con el sábado al 100% | Regla 2 |
-| El aguinaldo (50%) y el plus vacacional (/150) están fijos | Regla 2 |
-| Jubilación 11%, PAMI 3% y obra social 3% están fijos en el motor, y un convenio no puede declarar otros | Regla 2 |
-| La base de la obra social está fija; los dos motores viejos la tenían como opción, y Comercio y Gastronómicos elegían valores **distintos** | Regla 2 |
-| Un adicional sólo puede ser un porcentaje: no se puede cargar uno de monto fijo en pesos, aunque las retenciones sí lo aceptan | Modelo incompleto |
-| Los dos convenios en Firestore todavía tienen `antiguedad.aplica_sobre` guardado, que ya nadie escribe | Se limpia al abrir cada convenio en `/admin` y guardarlo |
-| `firestore.rules` niega toda colección que no esté declarada a mano, y **el archivo no se aplica solo**: lo que rige vive en la consola de Firebase | A tener en cuenta antes de mover un dato a la base |
+| Los recargos de la hora extra (1,5 y 2,0), el aguinaldo (50%), el plus vacacional (/150) y los aportes de ley (11%, 3%, 3%) son constantes con nombre en `parametrosLaborales.js`, pero **un convenio no puede declarar otros**. Hay convenios con el sábado al 100% y hay actividades con caja propia | Modelo incompleto |
+| Que la obra social del trabajador se prorratee por la jornada ya es un criterio de la tabla del período; que su base **incluya el no remunerativo** sigue fijo. Los dos motores viejos lo tenían como opción y Comercio y Gastronómicos elegían valores **distintos** | Regla 2 |
+| Un adicional sólo puede ser un porcentaje: no se puede cargar uno de monto fijo en pesos, aunque las retenciones y las contribuciones sí lo aceptan | Modelo incompleto |
+| Las bases de una contribución patronal son dos palabras (`remunerativo`, `remunerativo_mas_no_remunerativo`). Alcanzan para los convenios cargados; el día que uno tenga dos sumas no remunerativas con tratamiento distinto, la línea tiene que crecer | Modelo incompleto |
+| **`firestore.rules` no describe lo que rige.** Verificado el 13/9/2026: la consola tiene lectura pública de todo y escritura para cualquier usuario autenticado, mientras el archivo dice "todo lo demás cerrado". El archivo hay que alinearlo con la consola (o al revés, con el UID del dueño) antes de confiar en él | Seguridad |
+
+**Ya saldado (13 de septiembre de 2026, con la pasada del costo laboral):** el
+motor y todo lo que importa dejaron de leer `data/` (Regla 3); las alícuotas de
+las contribuciones, la detracción, las sumas fijas y las bases del art. 9 son
+una tabla por período en Firestore; los topes del art. 9 y el prorrateo de la
+obra social son criterios de esa tabla, encendidos por decisión del dueño; los
+números que el motor tenía sueltos (11%, 3%, 3%, 1,5, 2,0, 0,5, /150, /30)
+tienen nombre en `parametrosLaborales.js`; y los dos convenios en Firestore
+quedaron sin el `antiguedad.aplica_sobre` viejo, porque se guardaron desde
+`/admin` al cargarles la ART típica.
 
 **Ya saldado:** si las sumas no remunerativas generan antigüedad, presentismo y
 adicionales es una casilla del convenio (13 de septiembre de 2026). Salió de

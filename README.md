@@ -21,7 +21,7 @@ algo de acá no se entiende, está mal escrito: avisá.
 
 ---
 
-## Las tres tareas que vas a hacer siempre
+## Las cuatro tareas que vas a hacer siempre
 
 ### 1. Cargar la escala de un mes (lo más frecuente)
 
@@ -79,6 +79,24 @@ Si liquidás un mes cuyo semestre no está cargado, **el recibo te lo avisa en
 pantalla** y te dice qué tabla usó. No lo ignores: la escala cambia por
 semestre.
 
+### 4. Cargar la tabla de contribuciones patronales de un mes
+
+Desde el 01/06/2026 el recibo muestra lo que paga el empleador por cada
+trabajador (art. 140 inc. j) LCT, Decreto 407/2026), antes del bruto. Para eso
+necesita la tabla del mes: alícuotas por régimen, detracción de la Ley 27.541,
+sumas fijas (FFEP y seguro colectivo de vida), bases del art. 9 y los criterios
+contables. `/admin` → pestaña **Contribuciones** → período `AAAA-MM` →
+**Cargar valores oficiales** → revisá los números → **Guardar**.
+
+Si un mes no tiene tabla, la calculadora usa la del mes anterior más cercano y
+lo avisa; si no hay ninguna anterior, el recibo sale **sin la sección del
+empleador** y lo dice en ámbar. Junio y julio de 2026 ya están cargados.
+
+Los tres criterios contables de esa pestaña (topes del art. 9 en los aportes,
+obra social del trabajador prorrateada por la jornada, SAC en la base patronal)
+arrancan **encendidos** por tu decisión del 13/9/2026. Se apagan desde ahí, sin
+tocar código.
+
 ---
 
 ## Qué significa cada regla de un convenio
@@ -91,9 +109,13 @@ semestre.
 | **Adicionales remunerativos** | Conceptos propios del convenio que suman al sueldo. En gastronómicos: complemento de servicio 12% y asistencia perfecta 10%. |
 | **Retenciones sindicales** | Descuentos. Pueden ser un porcentaje o un monto fijo, y pueden aplicarse sólo a afiliados o sólo a no afiliados. |
 | **Reemplaza la obra social** | Marcala si esa retención va en lugar del 3% de obra social, para que no se cobren las dos. |
+| **ART típica** | La alícuota de ART habitual de la actividad, en %. Es el valor que el recibo propone; el empleador la cambia, y siempre se muestra como estimada. Vacía = el recibo avisa que falta. Hoy Comercio y Gastronómicos tienen 5%, el valor de tu Nacional Sistema: cambialo si querés. |
+| **Contribuciones propias del convenio** | Lo que el CCT le cobra al empleador (cámaras, fondos, seguros), con su rubro del decreto. |
 
 Las retenciones de ley (jubilación 11%, PAMI 3%, obra social 3%) las aplica el
-motor solo: no hay que cargarlas en ningún convenio.
+motor solo: no hay que cargarlas en ningún convenio. Con la tabla de
+contribuciones del mes, además, aplica los topes del art. 9 y prorratea la obra
+social por la jornada (los dos se apagan desde la pestaña Contribuciones).
 
 ---
 
@@ -102,7 +124,7 @@ motor solo: no hay que cargarlas en ningún convenio.
 ```bash
 npm install          # la primera vez
 npm run dev          # levanta http://localhost:3000
-npm test             # corre los tests (más de 200)
+npm test             # corre los tests (más de 380)
 npm run build        # verifica que compile, que es lo que decide el deploy
 ```
 
@@ -155,9 +177,11 @@ mandale esa hoja primero.
 - **`npm run lint` está roto** y no es culpa de nadie: el plugin pide
   `typescript`, que no está instalado porque el proyecto es JavaScript puro. No
   afecta al deploy.
-- **`firestore.rules` está en el repo pero NO se aplica solo.** Las reglas que
-  rigen viven en la consola de Firebase. El archivo existe para tenerlas
-  versionadas.
+- **`firestore.rules` está en el repo pero NO se aplica solo, y hoy NO describe
+  lo que rige.** Verificado el 13/9/2026: la consola permite leer todo sin
+  registro y escribir cualquier colección a cualquier usuario autenticado,
+  mientras el archivo dice "todo lo demás cerrado". Conviene abrir la consola
+  (Firestore Database → Reglas) y alinear una cosa con la otra.
 - **Hoy entra a `/admin` cualquier usuario autenticado de Firebase.** El archivo
   de reglas tiene preparada la versión con lista de administradores, pero hay
   que poner el UID antes de activarla: si se aplica con la lista vacía, te
