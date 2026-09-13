@@ -5,8 +5,22 @@ import { useParams } from "next/navigation";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { procesarRecibo } from "@/lib/motorLiquidacion";
+import { valoresIniciales } from "@/lib/inputsIniciales";
 
 export const runtime = 'edge';
+
+const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+/** "2026-07" -> "julio de 2026" */
+function nombreDePeriodo(periodo) {
+  if (!periodo) return "otro período";
+  const [anio, mes] = String(periodo).split("-");
+  const nombre = MESES[Number(mes) - 1];
+  return nombre ? `${nombre} de ${anio}` : periodo;
+}
 
 const money = (n) =>
   "$" + Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -23,6 +37,11 @@ export default function CalculadoraDinamica() {
   const [valoresUsuario, setValoresUsuario] = useState({});
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState("");
   const [resultadoLiquidacion, setResultadoLiquidacion] = useState(null);
+  // De qué período salieron las tablas de Ganancias que se usaron. Si no
+  // coincide con el mes liquidado hay que decirlo: la escala del impuesto
+  // cambia por semestre, así que usar la de otro semestre da un número que
+  // no es el que corresponde, y hasta ahora eso pasaba sin ningún aviso.
+  const [periodoGanancias, setPeriodoGanancias] = useState(null);
 
   useEffect(() => {
     async function inicializarCalculadora() {
@@ -36,12 +55,11 @@ export default function CalculadoraDinamica() {
           const data = docSnap.data();
           setConvenio(data);
 
-          // Preparamos los inputs por defecto
-          const initialValues = {};
-          data.inputs_requeridos.forEach(input => {
-            initialValues[input.id] = input.default;
-          });
-          setValoresUsuario(initialValues);
+          // Preparamos los inputs por defecto. valoresIniciales() se encarga de
+          // que un select cuyo "default" no esté entre sus "opciones" arranque
+          // en la primera opción (la que el navegador muestra elegida), en vez
+          // de guardar un valor que el motor después no va a poder resolver.
+          setValoresUsuario(valoresIniciales(data.inputs_requeridos));
 
           // 2. Traemos todos los períodos (escalas) cargados para este convenio
           const escalasRef = collection(db, "convenios", convenioId, "escalas");
@@ -108,6 +126,7 @@ export default function CalculadoraDinamica() {
         const gSnap = await getDoc(gRef);
         if (gSnap.exists()) {
           paramsGanancias = gSnap.data();
+          setPeriodoGanancias(periodoSeleccionado);
         } else {
           const allSnap = await getDocs(collection(db, "parametros_ganancias"));
           const candidatos = [];
@@ -115,7 +134,12 @@ export default function CalculadoraDinamica() {
           const previos = candidatos
             .filter((c) => c.id <= periodoSeleccionado)
             .sort((a, b) => b.id.localeCompare(a.id));
-          if (previos.length > 0) paramsGanancias = previos[0].data;
+          if (previos.length > 0) {
+            paramsGanancias = previos[0].data;
+            setPeriodoGanancias(previos[0].id);
+          } else {
+            setPeriodoGanancias(null);
+          }
         }
       } catch (err) {
         console.warn("No se pudieron cargar parámetros de Ganancias:", err);
@@ -260,6 +284,22 @@ export default function CalculadoraDinamica() {
                     className={`${inputBase} w-24 text-center`}
                   />
                 </div>
+                {/* El motor ya deducía los hijos con discapacidad (valen el doble en
+                    Ganancias), pero la pantalla nunca los pedía: siempre valían 0. */}
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm text-slate-700">
+                    Hijos con discapacidad
+                    <span className="block text-[11px] text-slate-400">Deducen el doble</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="hijos_incapacitados"
+                    min="0"
+                    value={valoresUsuario.hijos_incapacitados ?? 0}
+                    onChange={handleChange}
+                    className={`${inputBase} w-24 text-center`}
+                  />
+                </div>
               </div>
 
               <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all text-base">
@@ -352,6 +392,30 @@ export default function CalculadoraDinamica() {
                     la liquidación anual acumulada de ARCA.
                   </p>
                 )}
+
+                {resultadoLiquidacion.ganancias?.aplica &&
+                  periodoGanancias &&
+                  periodoGanancias !== periodoSeleccionado && (
+                    <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
+                      <b>Ojo:</b> todavía no están cargadas las tablas de Ganancias de{" "}
+                      {nombreDePeriodo(periodoSeleccionado)}. Se usaron las de{" "}
+                      {nombreDePeriodo(periodoGanancias)}, que pueden ser de otro semestre y dar
+                      un impuesto distinto al que corresponde.
+                    </p>
+                  )}
+                {/* Lo que el usuario cargó y el recibo no usó. Antes pasaba en
+                    silencio: escribías 20 años de antigüedad en un convenio que no
+                    tiene esa regla, el neto no se movía y no había ni un aviso. */}
+                {resultadoLiquidacion.avisos?.length > 0 && (
+                  <div className="space-y-1">
+                    {resultadoLiquidacion.avisos.map((aviso, i) => (
+                      <p key={i} className="text-[11px] text-slate-700 bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-2">
+                        {aviso}
+                      </p>
+                    ))}
+                  </div>
+                )}
+
                 <p className="text-[11px] text-slate-400">
                   Simulación orientativa según escalas vigentes cargadas. No reemplaza el recibo oficial emitido por el empleador.
                 </p>

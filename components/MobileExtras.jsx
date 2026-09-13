@@ -1,9 +1,13 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import SideRailLeft from "./SideRailLeft";
-import SideRailRight from "./AppShell";
+// Acá había un `import SideRailRight from "./AppShell"`. El archivo
+// SideRailRight.jsx se borró en noviembre de 2025 y alguien reapuntó el
+// import a AppShell, que tiene otra firma ({children, showLeft}): las tres
+// props que se le pasaban se ignoraban y, sin children, renderizaba una
+// grilla vacía. Resultado: en el celular, este panel no mostraba nada.
 
-export default function MobileExtras({ open, onClose, r, money, onReport }) {
+export default function MobileExtras({ open, onClose, onReport }) {
   const panelRef = useRef(null);
 
   // Cerrar con Esc
@@ -36,7 +40,15 @@ export default function MobileExtras({ open, onClose, r, money, onReport }) {
         {/* Reutilizamos el contenido de los rails */}
         <div className="space-y-4">
           <SideRailLeft />
-          <SideRailRight r={r} money={money} onReport={onReport} />
+          {onReport && (
+            <button
+              type="button"
+              onClick={() => { onClose(); onReport(); }}
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-slate-800"
+            >
+              Reportar error / sugerencia
+            </button>
+          )}
         </div>
 
         <div className="mt-4">

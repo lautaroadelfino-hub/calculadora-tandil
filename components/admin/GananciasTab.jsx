@@ -6,26 +6,11 @@ import { useState, useEffect } from "react";
 import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import plantillaGanancias from "@/data/ganancias.seed.json";
+import { aNumero as parseNum, formatearNumero as fmt, parsearNumero } from "@/lib/numeros";
 
-// ---- helpers de números en formato es-AR ----
-const parseNum = (v) => {
-  if (typeof v === "number") return v;
-  if (!v && v !== 0) return 0;
-  let s = String(v).trim().replace(/[^0-9,.\-]/g, "");
-  if (!s) return 0;
-  const c = s.includes(","), d = s.includes(".");
-  if (c && d) {
-    s = s.lastIndexOf(",") > s.lastIndexOf(".") ? s.replace(/\./g, "").replace(",", ".") : s.replace(/,/g, "");
-  } else if (c) {
-    s = s.replace(",", ".");
-  }
-  const n = Number(s);
-  return Number.isFinite(n) ? n : 0;
-};
-const fmt = (n) =>
-  n === "" || n === null || n === undefined
-    ? ""
-    : Number(n).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+// Los números los lee lib/numeros.js, el único lector del proyecto. Antes acá
+// había una copia incompleta que no entendía los miles con punto: pegar
+// "2.000.030" (el formato en que ARCA publica la escala) daba 0 en silencio.
 
 const DEDUCCIONES = [
   { key: "ganancia_no_imponible", label: "Ganancia no imponible" },
@@ -241,7 +226,7 @@ export default function GananciasTab() {
                       <td className="pr-2 py-1"><input value={t.desde} onChange={(e) => setTramo(i, "desde", e.target.value)} onBlur={(e) => setTramo(i, "desde", fmt(parseNum(e.target.value)))} className={`${inp} text-right font-mono`} /></td>
                       <td className="pr-2 py-1"><input value={t.hasta} onChange={(e) => setTramo(i, "hasta", e.target.value)} onBlur={(e) => t.hasta !== "" && setTramo(i, "hasta", fmt(parseNum(e.target.value)))} placeholder="en adelante" className={`${inp} text-right font-mono`} /></td>
                       <td className="pr-2 py-1"><input value={t.fijo} onChange={(e) => setTramo(i, "fijo", e.target.value)} onBlur={(e) => setTramo(i, "fijo", fmt(parseNum(e.target.value)))} className={`${inp} text-right font-mono`} /></td>
-                      <td className="pr-2 py-1"><input value={t.alicuotaPct} onChange={(e) => setTramo(i, "alicuotaPct", e.target.value)} className={`${inp} text-right font-mono w-20`} /></td>
+                      <td className="pr-2 py-1"><input value={t.alicuotaPct} onChange={(e) => setTramo(i, "alicuotaPct", e.target.value)} onBlur={(e) => setTramo(i, "alicuotaPct", fmt(parseNum(e.target.value)))} title="Porcentaje del tramo, de 0 a 100. Por ejemplo 35, no 0,35." className={`${inp} text-right font-mono w-20`} /></td>
                       <td className="py-1 text-center">
                         <button type="button" onClick={() => quitarTramo(i)} title="Quitar tramo" className="text-rose-500 hover:text-rose-700 font-bold px-2">×</button>
                       </td>

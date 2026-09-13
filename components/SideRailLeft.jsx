@@ -2,6 +2,7 @@
 "use client";
 import React from "react";
 import { getNovedades } from "@/lib/novedades";
+import { herramientasEnCamino } from "@/lib/herramientas";
 
 function formatDate(ymd) {
   // ymd = "YYYY-MM-DD"
@@ -13,7 +14,12 @@ function formatDate(ymd) {
 
 const FALLBACK = [];
 
-export default function SideRailLeft() {
+/**
+ * @param enPreparacion  Convenios cargados pero todavía inactivos. Aparecen
+ *   solos en "Próximas actualizaciones": cuando el dueño los activa, pasan a
+ *   ser tarjetas de la portada sin que nadie edite una línea de código.
+ */
+export default function SideRailLeft({ enPreparacion = [] }) {
   const [news, setNews] = React.useState(FALLBACK);
   const [loading, setLoading] = React.useState(true);
 
@@ -96,17 +102,27 @@ export default function SideRailLeft() {
         )}
       </div>
 
-{/* Próximas actualizaciones */}
-<div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4">
-  <h3 className="text-sm font-semibold text-slate-700">Próximas actualizaciones</h3>
-  <ul className="mt-3 space-y-2">
-    <li className="text-sm leading-5">Convenio UOM (metalúrgicos)</li>
-    <li className="text-sm leading-5">Encargados de edificios (SUTERH)</li>
-    <li className="text-sm leading-5">Empleadas de casas particulares</li>
-    <li className="text-sm leading-5">Descarga del recibo en PDF</li>
-    <li className="text-sm leading-5">Calculadoras de aguinaldo e indemnización</li>
-  </ul>
-</div>
+{/* Próximas actualizaciones.
+    Antes era una lista literal en el JSX: cuando el dueño cargaba un convenio
+    nuevo, tenía que editar código para sacarlo de acá. Ahora se arma sola con
+    los convenios que están cargados pero todavía inactivos, más las
+    herramientas que figuran como no disponibles en lib/herramientas.js. */}
+{(enPreparacion.length > 0 || herramientasEnCamino().length > 0) && (
+  <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4">
+    <h3 className="text-sm font-semibold text-slate-700">Próximas actualizaciones</h3>
+    <ul className="mt-3 space-y-2">
+      {enPreparacion.map((c) => (
+        <li key={c.id} className="text-sm leading-5">
+          {c.nombre}
+          {c.cct ? <span className="text-slate-400"> · CCT {c.cct}</span> : null}
+        </li>
+      ))}
+      {herramientasEnCamino().map((h) => (
+        <li key={h.id} className="text-sm leading-5">{h.nombre}</li>
+      ))}
+    </ul>
+  </div>
+)}
 
     </aside>
   );

@@ -2,17 +2,21 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 import ReportModal from "../components/ReportModal";
 import SideRailLeft from "../components/SideRailLeft";
 import MobileExtras from "../components/MobileExtras";
+import { herramientasDisponibles, estiloDeSector, estiloDeHerramienta } from "@/lib/herramientas";
 
 const APP_VERSION = "v1.5.0";
 
 export default function Home() {
   const [convenios, setConvenios] = useState([]);
+  // Los convenios inactivos son los que se están preparando: se muestran en
+  // "Próximas actualizaciones" en vez de estar escritos a mano en el código.
+  const [enPreparacion, setEnPreparacion] = useState([]);
   const [cargando, setCargando] = useState(true);
 
   // Modal / extras
@@ -23,8 +27,7 @@ export default function Home() {
   useEffect(() => {
     async function obtenerConveniosActivos() {
       try {
-        const q = query(collection(db, "convenios"), where("activo", "==", true));
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await getDocs(collection(db, "convenios"));
         
         const lista = [];
         querySnapshot.forEach((doc) => {
@@ -34,7 +37,8 @@ export default function Home() {
           });
         });
         
-        setConvenios(lista);
+        setConvenios(lista.filter((c) => c.activo !== false));
+        setEnPreparacion(lista.filter((c) => c.activo === false));
       } catch (error) {
         console.error("Error al traer convenios:", error);
       } finally {
@@ -44,35 +48,11 @@ export default function Home() {
     obtenerConveniosActivos();
   }, []);
 
-  // Función para mantener tus colores exactos según el tipo de convenio
-  const getEstilosTarjeta = (id, nombre) => {
-    const isPublico = id.includes("municipalidad") || nombre.toLowerCase().includes("municipalidad");
-    const isGastro = id.includes("fehgra") || id.includes("utghra");
-
-    if (isPublico) {
-      return {
-        sector: "Sector público",
-        border: "border-emerald-200 hover:border-emerald-400",
-        textSector: "text-emerald-700",
-        textFlecha: "text-emerald-700"
-      };
-    }
-    if (isGastro) {
-      return {
-        sector: "Sector privado",
-        border: "border-slate-200 hover:border-slate-400",
-        textSector: "text-amber-700",
-        textFlecha: "text-amber-700"
-      };
-    }
-    // Por defecto (Comercio y otros privados)
-    return {
-      sector: "Sector privado",
-      border: "border-slate-200 hover:border-slate-400",
-      textSector: "text-sky-700",
-      textFlecha: "text-sky-700"
-    };
-  };
+  // El sector y el color salen del campo `sector` del documento, elegible
+  // desde el panel. Antes se adivinaban buscando palabras dentro del id
+  // ("fehgra", "utghra"): el id gastronómico no contenía ninguna, así que su
+  // tarjeta ya caía al estilo genérico, y cualquier convenio cuyo id no
+  // coincidiera quedaba etiquetado mal en la portada.
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-slate-100 via-slate-50 to-white overflow-x-hidden">
@@ -105,23 +85,27 @@ export default function Home() {
                 </div>
               ) : (
                 convenios.map((conv) => {
-                  const estilos = getEstilosTarjeta(conv.id, conv.nombre);
+                  const estilos = estiloDeSector(conv.sector);
                   return (
                     <Link
                       key={conv.id}
                       href={`/calcular/${conv.id}`}
                       className={`group flex flex-col items-start justify-between rounded-2xl border bg-white/80 px-4 py-3 text-left shadow-sm hover:shadow-md transition-all ${estilos.border}`}
                     >
-                      <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${estilos.textSector}`}>
+                      <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${estilos.texto}`}>
                         {estilos.sector}
                       </div>
                       <div className="text-sm font-semibold text-slate-900">
                         {conv.nombre}
                       </div>
+                      {/* Antes decía "Liquidación actualizada" para todos, siempre,
+                          incluso con las escalas congeladas hace dos meses. Ahora
+                          dice hasta cuándo llegan de verdad. */}
                       <p className="mt-1 text-[11px] text-slate-600 line-clamp-2">
-                        CCT {conv.cct || "Vigente"} - Liquidación actualizada.
+                        CCT {conv.cct || "Vigente"}
+                        {conv.ultimo_periodo_nombre ? ` · Escalas hasta ${conv.ultimo_periodo_nombre}` : ""}
                       </p>
-                      <span className={`mt-2 text-[11px] font-medium group-hover:underline ${estilos.textFlecha}`}>
+                      <span className={`mt-2 text-[11px] font-medium group-hover:underline ${estilos.texto}`}>
                         Comenzar →
                       </span>
                     </Link>
@@ -129,25 +113,28 @@ export default function Home() {
                 })
               )}
 
-              {/* Card fija: Panel Empleador */}
-              <Link
-                href="/empleador"
-                className="group flex flex-col items-start justify-between rounded-2xl border border-emerald-200 bg-white/80 px-4 py-3 text-left shadow-sm hover:shadow-md hover:border-emerald-500 transition-all"
-              >
-                <div className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">
-                  Empleadores
-                </div>
-                <div className="text-sm font-semibold text-slate-900">
-                  Panel Empleador
-                </div>
-                <p className="mt-1 text-[11px] text-slate-600">
-                  Calculá el costo laboral total de un puesto, con detalle de
-                  contribuciones, ART y otros aportes.
-                </p>
-                <span className="mt-2 text-[11px] font-medium text-emerald-700 group-hover:underline">
-                  Abrir panel →
-                </span>
-              </Link>
+              {/* Herramientas: salen de lib/herramientas.js. Antes la del Panel
+                  Empleador era un <Link> escrito a mano acá, así que sumar una
+                  calculadora nueva implicaba editar la portada. */}
+              {herramientasDisponibles().map((h) => {
+                const estilo = estiloDeHerramienta(h.color);
+                return (
+                  <Link
+                    key={h.id}
+                    href={h.href}
+                    className={`group flex flex-col items-start justify-between rounded-2xl border bg-white/80 px-4 py-3 text-left shadow-sm hover:shadow-md transition-all ${estilo.border}`}
+                  >
+                    <div className={`text-xs font-semibold uppercase tracking-wide mb-1 ${estilo.texto}`}>
+                      {h.etiqueta}
+                    </div>
+                    <div className="text-sm font-semibold text-slate-900">{h.nombre}</div>
+                    <p className="mt-1 text-[11px] text-slate-600">{h.descripcion}</p>
+                    <span className={`mt-2 text-[11px] font-medium group-hover:underline ${estilo.texto}`}>
+                      {h.accion} →
+                    </span>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -162,14 +149,16 @@ export default function Home() {
           "
         >
           <div className="hidden xl:block min-h-0">
-            <SideRailLeft />
+            <SideRailLeft enPreparacion={enPreparacion} />
           </div>
 
           <div className="grid grid-cols-1 min-h-0 gap-8 2xl:gap-12">
             <section className="min-w-0 bg-white/90 backdrop-blur rounded-2xl shadow p-10 border border-slate-100 flex flex-col items-center justify-center text-center">
               <h2 className="text-xl font-bold text-slate-800 mb-2">¡Todo listo para liquidar!</h2>
               <p className="text-sm text-slate-600 max-w-md">
-                Seleccioná uno de los convenios en la parte superior para ingresar a su calculadora específica. Las escalas salariales y retenciones se encuentran actualizadas mediante nuestra base de datos.
+                Elegí un convenio de arriba para entrar a su calculadora. Cada tarjeta
+                indica hasta qué mes están cargadas sus escalas salariales, y el recibo
+                avisa si alguna tabla que usó no es la del período que estás liquidando.
               </p>
             </section>
 

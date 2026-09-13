@@ -1,0 +1,92 @@
+{
+  "nombre": "Gastronómicos (UTHGRA)",
+  "activo": true,
+  "reglas_calculo": {
+    "adicionales_remunerativos": {
+      "complemento_servicio": {
+        "porcentaje": 0.12,
+        "label": "Complemento de Servicio (12%)"
+      },
+      "asistencia_perfecta": {
+        "porcentaje": 0.1,
+        "label": "Asistencia Perfecta (10%)"
+      }
+    },
+    "retenciones_sindicales": {
+      "uthgra_afiliado": {
+        "label": "Cuota Afiliado UTHGRA (2.5%)",
+        "porcentaje": 0.025,
+        "base": "remunerativo_mas_no_remunerativo",
+        "condicion": "solo_afiliado"
+      },
+      "uthgra_sepelio": {
+        "label": "Seguro de Vida y Sepelio (1%)",
+        "base": "remunerativo_mas_no_remunerativo",
+        "porcentaje": 0.01
+      }
+    },
+    "antiguedad": {
+      "porcentaje_por_año": 0.01,
+      "aplica_sobre": "basico"
+    }
+  },
+  "cct": "389/04",
+  "inputs_requeridos": [
+    {
+      "id": "zona",
+      "opciones": [
+        "Escala A",
+        "Escala B"
+      ],
+      "label": "Zona / Escala",
+      "tipo": "select",
+      "default": "Escala A"
+    },
+    {
+      "id": "categoria",
+      "tipo": "select",
+      "label": "Categoría (Nivel Profesional)",
+      "default": "Nivel 1 (Peón, Lavacopas, Guardarropas)",
+      "opciones": [
+        "Nivel 1 (Peón - Lavacopas)",
+        "Nivel 2 (Mozo Mostrador - Cadete)",
+        "Nivel 3 (Ayudante Cocina - Comis)",
+        "Nivel 4 (Mucama - Medio Oficial)",
+        "Nivel 5 (Cajero - Comis Cocina)",
+        "Nivel 6 (Mozo - Maître)",
+        "Nivel 7 (Jefe Brigada - Recepción)"
+      ]
+    },
+    {
+      "default": 48,
+      "tipo": "number",
+      "id": "carga_horaria",
+      "label": "Horas Semanales (Jornada)"
+    },
+    {
+      "label": "Años de Antigüedad",
+      "default": 0,
+      "tipo": "number",
+      "id": "antiguedad_años"
+    },
+    {
+      "id": "horas_extras_50",
+      "label": "Horas Extras al 50%",
+      "tipo": "number",
+      "default": 0
+    },
+    {
+      "tipo": "number",
+      "id": "horas_extras_100",
+      "label": "Horas Extras al 100%",
+      "default": 0
+    },
+    {
+      "default": false,
+      "tipo": "boolean",
+      "label": "Afiliado a UTHGRA (2.5%)",
+      "id": "afiliado_sindicato"
+    }
+  ],
+  "id": "gastronomicos-cct-389-04"
+}

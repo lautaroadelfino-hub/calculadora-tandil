@@ -3,13 +3,19 @@
 // convenio (antigüedad, presentismo, retenciones sindicales). Sin editar JSON.
 // La conversión doc<->formulario vive en lib/convenioForm.js (con tests).
 import { useState, useEffect } from "react";
-import { collection, getDocs, doc, setDoc } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { convenioToForm, formToConvenio, BASES, CONDICIONES } from "@/lib/convenioForm";
+import { convenioToForm, formToConvenio, validarFormConvenio, BASES, CONDICIONES } from "@/lib/convenioForm";
+import { SECTORES } from "@/lib/herramientas";
+import { ESCALAS_ANTIGUEDAD, tramosParaElFormulario } from "@/lib/escalasAntiguedadOficiales";
 
 const VACIO = {
-  id: "", nombre: "", cct: "", activo: true,
-  antiguedadPct: "", presentismoPct: "", retenciones: [],
+  id: "", nombre: "", cct: "", activo: true, sector: "privado",
+  jornadaHoras: "", jornadaDivisor: "",
+  nrGeneraAdicionales: true,
+  antiguedadModo: "lineal", antiguedadPct: "", antiguedadTramos: [],
+  presentismoPct: "", presentismoBase: "basico_mas_antiguedad",
+  adicionales: [], retenciones: [],
 };
 
 export default function ConveniosTab({ onConveniosChanged }) {
@@ -51,6 +57,33 @@ export default function ConveniosTab({ onConveniosChanged }) {
     setForm((f) => ({ ...f, retenciones: f.retenciones.map((r, idx) => (idx === i ? { ...r, [campo]: valor } : r)) }));
   const agregarRet = () =>
     setForm((f) => ({ ...f, retenciones: [...f.retenciones, { label: "", tipoValor: "porcentaje", valor: "", base: "remunerativo", condicion: "siempre" }] }));
+  const setTramo = (i, campo, valor) =>
+    setForm((f) => ({ ...f, antiguedadTramos: f.antiguedadTramos.map((t, idx) => (idx === i ? { ...t, [campo]: valor } : t)) }));
+  const cargarEscalaOficial = (escala) => {
+    const tramos = tramosParaElFormulario(escala.id);
+    const aviso =
+      `Se van a cargar los ${tramos.length} tramos del artículo ${escala.articulo} del CCT ${escala.cct}, ` +
+      `copiados del texto oficial.` +
+      String.fromCharCode(10, 10) +
+      (form.antiguedadTramos.length ? `Esto reemplaza los ${form.antiguedadTramos.length} tramos que tenés cargados.` : "") +
+      String.fromCharCode(10, 10) +
+      "Revisalos igual antes de guardar: el convenio puede haber cambiado después de la fecha en que se leyó.";
+    if (!window.confirm(aviso)) return;
+    setForm((f) => ({ ...f, antiguedadModo: "tramos", antiguedadTramos: tramos }));
+  };
+
+  const agregarTramo = () =>
+    setForm((f) => ({ ...f, antiguedadTramos: [...f.antiguedadTramos, { desdeAños: "", porcentajePct: "" }] }));
+  const quitarTramo = (i) =>
+    setForm((f) => ({ ...f, antiguedadTramos: f.antiguedadTramos.filter((_, idx) => idx !== i) }));
+
+  const setAdic = (i, campo, valor) =>
+    setForm((f) => ({ ...f, adicionales: f.adicionales.map((a, idx) => (idx === i ? { ...a, [campo]: valor } : a)) }));
+  const agregarAdic = () =>
+    setForm((f) => ({ ...f, adicionales: [...f.adicionales, { label: "", valorPct: "", base: "basico", condicional: false, pregunta: "", preguntaPorDefecto: true }] }));
+  const quitarAdic = (i) =>
+    setForm((f) => ({ ...f, adicionales: f.adicionales.filter((_, idx) => idx !== i) }));
+
   const quitarRet = (i) =>
     setForm((f) => ({ ...f, retenciones: f.retenciones.filter((_, idx) => idx !== i) }));
 
@@ -60,7 +93,36 @@ export default function ConveniosTab({ onConveniosChanged }) {
     }
     if (!form.nombre.trim()) return alert("Poné el nombre del convenio.");
 
-    const docFinal = formToConvenio(form, original);
+    // Los números se revisan ANTES de armar el documento. Antes, un valor
+    // ilegible se guardaba como 0 y podía borrar una regla entera en silencio:
+    // escribir "8,333%" con el signo dejaba al convenio sin presentismo.
+    const errores = validarFormConvenio(form);
+    if (errores.length) {
+      return alert(
+        "Revisá estos campos antes de guardar:" + String.fromCharCode(10, 10) +
+        errores.map((e) => "• " + e.mensaje).join(String.fromCharCode(10))
+      );
+    }
+
+    // Crear un convenio con un identificador que ya existe lo sobreescribe
+    // entero y le borra las categorías cargadas. Antes no avisaba nada.
+    if (esNuevo) {
+      const yaExiste = await getDoc(doc(db, "convenios", form.id));
+      if (yaExiste.exists()) {
+        return alert(
+          `Ya existe un convenio con el identificador "${form.id}" (${yaExiste.data()?.nombre || "sin nombre"}).` + String.fromCharCode(10, 10) +
+          "Si querés editarlo, abrilo desde la lista. Si es otro convenio, poné un identificador distinto."
+        );
+      }
+    }
+
+    let docFinal;
+    try {
+      docFinal = formToConvenio(form, original);
+    } catch (e) {
+      return alert("No se pudo preparar el convenio: " + (e.message || e));
+    }
+
     const aviso = esNuevo
       ? `¿Crear el convenio nuevo "${form.nombre}"?`
       : `¿Guardar los cambios en "${form.nombre}"?`;
@@ -82,7 +144,12 @@ export default function ConveniosTab({ onConveniosChanged }) {
   };
 
   const descargarRespaldo = () => {
-    const docFinal = formToConvenio(form, original);
+    let docFinal;
+    try {
+      docFinal = formToConvenio(form, original);
+    } catch (e) {
+      return alert("No se puede descargar la copia porque hay campos con errores:" + String.fromCharCode(10, 10) + (e.message || e));
+    }
     const blob = new Blob([JSON.stringify(docFinal, null, 2)], { type: "application/json" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -164,6 +231,34 @@ export default function ConveniosTab({ onConveniosChanged }) {
             />
             <p className="text-[11px] text-slate-400 mt-1">{esNuevo ? "Solo minúsculas, números y guiones. No se puede cambiar después." : "El ID no se modifica al editar."}</p>
           </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Sector</label>
+            <select value={form.sector || "privado"} onChange={(e) => set("sector", e.target.value)} className={inp}>
+              {SECTORES.map((s) => (
+                <option key={s.value} value={s.value}>{s.label}</option>
+              ))}
+            </select>
+            <p className="text-[11px] text-slate-400 mt-1">Define la etiqueta y el color de la tarjeta en la portada.</p>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-2.5 text-sm text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.nrGeneraAdicionales !== false}
+                onChange={(e) => set("nrGeneraAdicionales", e.target.checked)}
+                className="h-4 w-4 accent-purple-600 mt-0.5"
+              />
+              <span>
+                Las sumas no remunerativas generan antigüedad, presentismo y adicionales
+                <span className="block text-[11px] text-slate-400 font-normal">
+                  Si lo destildás, esos conceptos se calculan sólo sobre el sueldo básico. Es
+                  criterio contable y cambia según el convenio: el artículo 11.3.3 del CCT
+                  389/04, por ejemplo, dice que la base de la antigüedad son únicamente los
+                  salarios básicos de la categoría.
+                </span>
+              </span>
+            </label>
+          </div>
           <div className="flex items-end">
             <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer">
               <input type="checkbox" checked={form.activo} onChange={(e) => set("activo", e.target.checked)} className="h-4 w-4 accent-purple-600" />
@@ -176,14 +271,110 @@ export default function ConveniosTab({ onConveniosChanged }) {
       {/* Reglas base */}
       <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4">
         <h3 className="text-sm font-bold text-slate-700">Reglas de cálculo</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Jornada */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-2 border-b border-slate-100">
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">Antigüedad (% por año)</label>
-            <div className="relative">
-              <input value={form.antiguedadPct} onChange={(e) => set("antiguedadPct", e.target.value)} inputMode="decimal" placeholder="0 = sin antigüedad" className={`${inp} pr-7`} />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
-            </div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Jornada completa (horas por semana)
+            </label>
+            <input
+              value={form.jornadaHoras}
+              onChange={(e) => set("jornadaHoras", e.target.value)}
+              inputMode="decimal"
+              placeholder="Vacío = 48"
+              className={inp}
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              La jornada para la que está publicada la escala. Si el convenio es de 44 horas
+              y acá dice 48, a quien trabaje 44 se le paga un 8% menos de lo que le toca.
+            </p>
           </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">
+              Divisor para el valor de la hora
+            </label>
+            <input
+              value={form.jornadaDivisor}
+              onChange={(e) => set("jornadaDivisor", e.target.value)}
+              inputMode="decimal"
+              placeholder="Vacío = 200"
+              className={inp}
+            />
+            <p className="text-[11px] text-slate-400 mt-1">
+              Horas mensuales por las que se divide el sueldo para sacar la hora extra.
+            </p>
+          </div>
+        </div>
+
+        {/* Antigüedad */}
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="text-xs font-medium text-slate-600">Antigüedad</span>
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="antiguedadModo" checked={form.antiguedadModo !== "tramos"} onChange={() => set("antiguedadModo", "lineal")} className="accent-purple-600" />
+              Un porcentaje por año
+            </label>
+            <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+              <input type="radio" name="antiguedadModo" checked={form.antiguedadModo === "tramos"} onChange={() => set("antiguedadModo", "tramos")} className="accent-purple-600" />
+              Por tramos de años
+            </label>
+          </div>
+
+          {form.antiguedadModo !== "tramos" ? (
+            <div className="sm:max-w-xs">
+              <div className="relative">
+                <input value={form.antiguedadPct} onChange={(e) => set("antiguedadPct", e.target.value)} inputMode="decimal" placeholder="0 = sin antigüedad" className={`${inp} pr-7`} />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Se multiplica por los años. Comercio usa 1% por año.</p>
+            </div>
+          ) : (
+            <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/60">
+              <p className="text-[11px] text-slate-500 mb-2">
+                El porcentaje de cada tramo es el <strong>total</strong>, no se multiplica por los años.
+                Ejemplo de gastronómicos: desde los 5 años, 4% del básico.
+              </p>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-[11px] uppercase tracking-wide text-slate-400 text-left">
+                    <th className="pb-1 font-medium">Desde (años)</th>
+                    <th className="pb-1 font-medium">Porcentaje</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {form.antiguedadTramos.map((t, i) => (
+                    <tr key={i}>
+                      <td className="pr-2 py-1"><input value={t.desdeAños} onChange={(e) => setTramo(i, "desdeAños", e.target.value)} inputMode="numeric" className={`${inp} text-right font-mono w-24`} /></td>
+                      <td className="pr-2 py-1"><input value={t.porcentajePct} onChange={(e) => setTramo(i, "porcentajePct", e.target.value)} inputMode="decimal" className={`${inp} text-right font-mono w-24`} /></td>
+                      <td className="py-1"><button type="button" onClick={() => quitarTramo(i)} title="Quitar tramo" className="text-rose-500 hover:text-rose-700 font-bold px-2">×</button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {form.antiguedadTramos.length === 0 && (
+                <p className="text-sm text-slate-400 py-2">Todavía no cargaste ningún tramo.</p>
+              )}
+              <div className="flex flex-wrap items-center gap-3 mt-2">
+                <button type="button" onClick={agregarTramo} className="text-xs font-bold text-purple-700 hover:text-purple-900">+ Agregar tramo</button>
+                {ESCALAS_ANTIGUEDAD.map((escala) => (
+                  <button
+                    key={escala.id}
+                    type="button"
+                    onClick={() => cargarEscalaOficial(escala)}
+                    title={`Texto oficial leído el ${escala.leidoEl} de ${escala.fuente}`}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-900"
+                  >
+                    Cargar la escala oficial del CCT {escala.cct}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Presentismo */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Presentismo (%)</label>
             <div className="relative">
@@ -191,7 +382,84 @@ export default function ConveniosTab({ onConveniosChanged }) {
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
             </div>
           </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Se calcula sobre</label>
+            <select value={form.presentismoBase || "basico_mas_antiguedad"} onChange={(e) => set("presentismoBase", e.target.value)} className={inp}>
+              <option value="basico_mas_antiguedad">Básico + antigüedad</option>
+              <option value="basico">Sólo el básico</option>
+            </select>
+          </div>
         </div>
+      </div>
+
+      {/* Adicionales remunerativos */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-bold text-slate-700">Adicionales remunerativos</h3>
+          <button type="button" onClick={agregarAdic} className="text-xs font-bold text-purple-700 hover:text-purple-900">+ Agregar adicional</button>
+        </div>
+        <p className="text-[11px] text-slate-400 mb-3">
+          Conceptos propios del convenio que suman al sueldo. Por ejemplo, en gastronómicos:
+          complemento de servicio 12% y asistencia perfecta 10%.
+        </p>
+        {form.adicionales.length === 0 ? (
+          <p className="text-sm text-slate-400 py-3">Sin adicionales. Agregá uno si el convenio los tiene.</p>
+        ) : (
+          <div className="space-y-3">
+            {form.adicionales.map((a, i) => (
+              <div key={i} className="border border-slate-200 rounded-lg p-3 bg-slate-50/60 space-y-3">
+                <div className="flex gap-2">
+                  <input value={a.label} onChange={(e) => setAdic(i, "label", e.target.value)} placeholder="Nombre (ej: Complemento de Servicio)" className={`${inp} flex-1`} />
+                  <button type="button" onClick={() => quitarAdic(i)} title="Quitar" className="text-rose-500 hover:text-rose-700 font-bold px-2 shrink-0">×</button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="relative">
+                    <input value={a.valorPct} onChange={(e) => setAdic(i, "valorPct", e.target.value)} inputMode="decimal" placeholder="Porcentaje" className={`${inp} pr-7`} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                  </div>
+                  <select value={a.base || "basico"} onChange={(e) => setAdic(i, "base", e.target.value)} className={inp}>
+                    <option value="basico">Sobre el básico</option>
+                    <option value="basico_mas_antiguedad">Sobre básico + antigüedad</option>
+                  </select>
+                </div>
+
+                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!a.condicional}
+                    onChange={(e) => setAdic(i, "condicional", e.target.checked)}
+                    className="h-4 w-4 accent-purple-600"
+                  />
+                  Sólo corresponde a veces: preguntárselo a la persona
+                </label>
+
+                {a.condicional && (
+                  <div className="pl-6 space-y-2 border-l-2 border-purple-200">
+                    <input
+                      value={a.pregunta || ""}
+                      onChange={(e) => setAdic(i, "pregunta", e.target.value)}
+                      placeholder="La pregunta. Ej: ¿Tuvo asistencia perfecta este mes?"
+                      className={inp}
+                    />
+                    <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={a.preguntaPorDefecto !== false}
+                        onChange={(e) => setAdic(i, "preguntaPorDefecto", e.target.checked)}
+                        className="h-4 w-4 accent-purple-600"
+                      />
+                      Viene contestada que sí
+                    </label>
+                    <p className="text-[11px] text-slate-400">
+                      La pregunta le va a aparecer a quien use la calculadora, y el adicional
+                      sólo se suma si contesta que sí.
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Retenciones sindicales */}
@@ -210,6 +478,10 @@ export default function ConveniosTab({ onConveniosChanged }) {
                   <input value={r.label} onChange={(e) => setRet(i, "label", e.target.value)} placeholder="Nombre (ej: Aporte Solidario 2%)" className={`${inp} flex-1`} />
                   <button type="button" onClick={() => quitarRet(i)} title="Quitar" className="text-rose-500 hover:text-rose-700 font-bold px-2 shrink-0">×</button>
                 </div>
+                <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                  <input type="checkbox" checked={!!r.reemplazaObraSocial} onChange={(e) => setRet(i, "reemplazaObraSocial", e.target.checked)} className="h-4 w-4 accent-purple-600" />
+                  Esta retención reemplaza la obra social del 3% (no se cobran las dos)
+                </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <select value={r.tipoValor} onChange={(e) => setRet(i, "tipoValor", e.target.value)} className={inp}>
                     <option value="porcentaje">Porcentaje %</option>

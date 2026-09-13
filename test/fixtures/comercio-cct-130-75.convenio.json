@@ -1,13 +1,9 @@
 {
-  "activo": true,
-  "nombre": "Empleados de Comercio",
-  "id": "comercio-cct-130-75",
   "inputs_requeridos": [
     {
       "id": "categoria",
-      "tipo": "select",
-      "default": "Administrativo A",
       "label": "Categoría",
+      "default": "Administrativo A",
       "opciones": [
         "Administrativo A",
         "Administrativo B",
@@ -30,70 +26,74 @@
         "Vendedor B",
         "Vendedor C",
         "Vendedor D"
-      ]
+      ],
+      "tipo": "select"
     },
     {
-      "label": "Horas Semanales (Jornada)",
-      "tipo": "number",
       "id": "carga_horaria",
-      "default": 48
+      "tipo": "number",
+      "default": 48,
+      "label": "Horas Semanales (Jornada)"
     },
     {
       "default": 0,
-      "id": "antiguedad_años",
+      "tipo": "number",
       "label": "Años de Antigüedad",
+      "id": "antiguedad_años"
+    },
+    {
+      "label": "Horas Extras al 50%",
+      "id": "horas_extras_50",
+      "default": 0,
       "tipo": "number"
     },
     {
-      "id": "horas_extras_50",
-      "label": "Horas Extras al 50%",
       "tipo": "number",
-      "default": 0
-    },
-    {
-      "id": "horas_extras_100",
       "label": "Horas Extras al 100%",
-      "tipo": "number",
-      "default": 0
+      "default": 0,
+      "id": "horas_extras_100"
     },
     {
-      "tipo": "boolean",
-      "label": "Afiliado al Sindicato (SEC)",
       "id": "afiliado_sindicato",
-      "default": false
+      "default": false,
+      "label": "Afiliado al Sindicato (SEC)",
+      "tipo": "boolean"
     }
   ],
+  "activo": true,
   "cct": "130/75",
   "reglas_calculo": {
+    "presentismo": {
+      "porcentaje": 0.08333,
+      "aplica_sobre": "basico_mas_antiguedad"
+    },
     "antiguedad": {
       "aplica_sobre": "basico",
       "porcentaje_por_año": 0.01
     },
     "retenciones_sindicales": {
+      "sec_solidario": {
+        "label": "Aporte Solidario Gremial (2%)",
+        "porcentaje": 0.02,
+        "base": "remunerativo_mas_no_remunerativo"
+      },
+      "sec_afiliado": {
+        "porcentaje": 0.02,
+        "base": "remunerativo_mas_no_remunerativo",
+        "label": "Cuota Afiliado Sindical (2%)",
+        "condicion": "solo_afiliado"
+      },
       "osecac_fijo": {
         "valor_fijo": 100,
         "label": "Aporte Fijo OSECAC"
       },
       "faecys": {
+        "label": "Aporte FAECyS (0,5%)",
         "base": "remunerativo_mas_no_remunerativo",
-        "porcentaje": 0.005,
-        "label": "Aporte FAECyS (0,5%)"
-      },
-      "sec_afiliado": {
-        "porcentaje": 0.02,
-        "condicion": "solo_afiliado",
-        "label": "Cuota Afiliado Sindical (2%)",
-        "base": "remunerativo_mas_no_remunerativo"
-      },
-      "sec_solidario": {
-        "base": "remunerativo_mas_no_remunerativo",
-        "label": "Aporte Solidario Gremial (2%)",
-        "porcentaje": 0.02
+        "porcentaje": 0.005
       }
-    },
-    "presentismo": {
-      "aplica_sobre": "basico_mas_antiguedad",
-      "porcentaje": 0.08333
     }
-  }
+  },
+  "id": "comercio-cct-130-75",
+  "nombre": "Empleados de Comercio"
 }
