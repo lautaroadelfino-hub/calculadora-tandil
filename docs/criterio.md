@@ -161,6 +161,12 @@ una regla que nadie sigue.
 | Los dos convenios en Firestore todavía tienen `antiguedad.aplica_sobre` guardado, que ya nadie escribe | Se limpia al abrir cada convenio en `/admin` y guardarlo |
 | `firestore.rules` niega toda colección que no esté declarada a mano, y **el archivo no se aplica solo**: lo que rige vive en la consola de Firebase | A tener en cuenta antes de mover un dato a la base |
 
+**Ya saldado:** si las sumas no remunerativas generan antigüedad, presentismo y
+adicionales es una casilla del convenio (13 de septiembre de 2026). Salió de
+leer el art. 11.3.3 del CCT 389/04, que dice que la base es "únicamente los
+salarios básicos de la categoría": es criterio contable y cambia por convenio,
+así que lo decide el dueño, no el código.
+
 **Ya saldado:** un adicional puede colgarse de una pregunta en vez de estar
 siempre prendido, y la pregunta la escribe el dueño desde el panel (13 de
 septiembre de 2026). Es el mecanismo que faltaba para que lo que depende del

@@ -7,10 +7,12 @@ import { collection, getDocs, doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { convenioToForm, formToConvenio, validarFormConvenio, BASES, CONDICIONES } from "@/lib/convenioForm";
 import { SECTORES } from "@/lib/herramientas";
+import { ESCALAS_ANTIGUEDAD, tramosParaElFormulario } from "@/lib/escalasAntiguedadOficiales";
 
 const VACIO = {
   id: "", nombre: "", cct: "", activo: true, sector: "privado",
   jornadaHoras: "", jornadaDivisor: "",
+  nrGeneraAdicionales: true,
   antiguedadModo: "lineal", antiguedadPct: "", antiguedadTramos: [],
   presentismoPct: "", presentismoBase: "basico_mas_antiguedad",
   adicionales: [], retenciones: [],
@@ -57,6 +59,19 @@ export default function ConveniosTab({ onConveniosChanged }) {
     setForm((f) => ({ ...f, retenciones: [...f.retenciones, { label: "", tipoValor: "porcentaje", valor: "", base: "remunerativo", condicion: "siempre" }] }));
   const setTramo = (i, campo, valor) =>
     setForm((f) => ({ ...f, antiguedadTramos: f.antiguedadTramos.map((t, idx) => (idx === i ? { ...t, [campo]: valor } : t)) }));
+  const cargarEscalaOficial = (escala) => {
+    const tramos = tramosParaElFormulario(escala.id);
+    const aviso =
+      `Se van a cargar los ${tramos.length} tramos del artículo ${escala.articulo} del CCT ${escala.cct}, ` +
+      `copiados del texto oficial.` +
+      String.fromCharCode(10, 10) +
+      (form.antiguedadTramos.length ? `Esto reemplaza los ${form.antiguedadTramos.length} tramos que tenés cargados.` : "") +
+      String.fromCharCode(10, 10) +
+      "Revisalos igual antes de guardar: el convenio puede haber cambiado después de la fecha en que se leyó.";
+    if (!window.confirm(aviso)) return;
+    setForm((f) => ({ ...f, antiguedadModo: "tramos", antiguedadTramos: tramos }));
+  };
+
   const agregarTramo = () =>
     setForm((f) => ({ ...f, antiguedadTramos: [...f.antiguedadTramos, { desdeAños: "", porcentajePct: "" }] }));
   const quitarTramo = (i) =>
@@ -225,6 +240,25 @@ export default function ConveniosTab({ onConveniosChanged }) {
             </select>
             <p className="text-[11px] text-slate-400 mt-1">Define la etiqueta y el color de la tarjeta en la portada.</p>
           </div>
+          <div className="sm:col-span-2">
+            <label className="flex items-start gap-2.5 text-sm text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.nrGeneraAdicionales !== false}
+                onChange={(e) => set("nrGeneraAdicionales", e.target.checked)}
+                className="h-4 w-4 accent-purple-600 mt-0.5"
+              />
+              <span>
+                Las sumas no remunerativas generan antigüedad, presentismo y adicionales
+                <span className="block text-[11px] text-slate-400 font-normal">
+                  Si lo destildás, esos conceptos se calculan sólo sobre el sueldo básico. Es
+                  criterio contable y cambia según el convenio: el artículo 11.3.3 del CCT
+                  389/04, por ejemplo, dice que la base de la antigüedad son únicamente los
+                  salarios básicos de la categoría.
+                </span>
+              </span>
+            </label>
+          </div>
           <div className="flex items-end">
             <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer">
               <input type="checkbox" checked={form.activo} onChange={(e) => set("activo", e.target.checked)} className="h-4 w-4 accent-purple-600" />
@@ -321,7 +355,20 @@ export default function ConveniosTab({ onConveniosChanged }) {
               {form.antiguedadTramos.length === 0 && (
                 <p className="text-sm text-slate-400 py-2">Todavía no cargaste ningún tramo.</p>
               )}
-              <button type="button" onClick={agregarTramo} className="text-xs font-bold text-purple-700 hover:text-purple-900 mt-2">+ Agregar tramo</button>
+              <div className="flex flex-wrap items-center gap-3 mt-2">
+                <button type="button" onClick={agregarTramo} className="text-xs font-bold text-purple-700 hover:text-purple-900">+ Agregar tramo</button>
+                {ESCALAS_ANTIGUEDAD.map((escala) => (
+                  <button
+                    key={escala.id}
+                    type="button"
+                    onClick={() => cargarEscalaOficial(escala)}
+                    title={`Texto oficial leído el ${escala.leidoEl} de ${escala.fuente}`}
+                    className="text-xs font-bold text-emerald-700 hover:text-emerald-900"
+                  >
+                    Cargar la escala oficial del CCT {escala.cct}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>
