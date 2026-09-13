@@ -1,0 +1,300 @@
+{
+  "id": "camioneros-cct-40-89",
+  "nombre": "Camioneros (CCT 40/89)",
+  "cct": "40/89",
+  "activo": true,
+  "sector": "transporte",
+  "reglas_calculo": {
+    "jornada": {
+      "horas_semanales_completas": 44,
+      "divisor_horas_mensuales": 192
+    },
+    "antiguedad": {
+      "porcentaje_por_año": 0.01,
+      "aplica_sobre": "basico_mas_adicionales"
+    },
+    "adicionales_remunerativos": {
+      "combustibles": {
+        "label": "Adicional transporte de combustibles líquidos (15%, ítem 5.5.1)",
+        "porcentaje": 0.15,
+        "aplica_sobre": "basico",
+        "depende_de": "combustibles"
+      },
+      "materiales_peligrosos": {
+        "label": "Adicional transporte de materiales peligrosos (20%, ítem 5.6.2)",
+        "porcentaje": 0.2,
+        "aplica_sobre": "basico",
+        "depende_de": "materiales_peligrosos"
+      },
+      "residuos": {
+        "label": "Adicional recolección de residuos y barrido (15%, ítems 5.3.3 / 5.3.6 / 5.3.8)",
+        "porcentaje": 0.15,
+        "aplica_sobre": "basico",
+        "depende_de": "residuos"
+      },
+      "caudales": {
+        "label": "Adicional transporte de caudales (20%, ítem 5.1.13)",
+        "porcentaje": 0.2,
+        "aplica_sobre": "basico",
+        "depende_de": "caudales"
+      },
+      "logistica_correo": {
+        "label": "Adicional de especialidad logística y correo (20%, acta 13/3/2026)",
+        "porcentaje": 0.2,
+        "aplica_sobre": "basico",
+        "depende_de": "logistica_correo"
+      },
+      "mudanzas": {
+        "label": "Adicional expresos, mudanzas y encomiendas (10%, ítem 5.10.4)",
+        "porcentaje": 0.1,
+        "aplica_sobre": "basico",
+        "depende_de": "mudanzas"
+      }
+    },
+    "adicionales_por_unidad": {
+      "comida": {
+        "label": "Comida (ítem 4.1.12)",
+        "valor": "comida",
+        "unidad": "dia",
+        "naturaleza": "no_remunerativo",
+        "con_incidencia": false,
+        "cantidad_de": "dias_trabajados",
+        "depende_de": "larga_distancia",
+        "cuando": false
+      },
+      "viatico_especial": {
+        "label": "Viático especial (ítem 4.1.13)",
+        "valor": "viatico_especial",
+        "unidad": "dia",
+        "naturaleza": "no_remunerativo",
+        "con_incidencia": false,
+        "cantidad_de": "dias_trabajados",
+        "depende_de": "larga_distancia",
+        "cuando": false
+      },
+      "pernoctada": {
+        "label": "Pernoctada (ítem 4.1.14)",
+        "valor": "pernoctada",
+        "unidad": "dia",
+        "naturaleza": "no_remunerativo",
+        "con_incidencia": false,
+        "cantidad_de": "pernoctes"
+      },
+      "km_hora_extra": {
+        "label": "Horas extraordinarias por km recorrido (ítem 4.2.3)",
+        "valor": "km_hora_extra",
+        "unidad": "km",
+        "naturaleza": "remunerativo",
+        "cantidad_de": "km_recorridos",
+        "depende_de": "larga_distancia"
+      },
+      "km_viatico": {
+        "label": "Viático por km recorrido (ítem 4.2.4)",
+        "valor": "km_viatico",
+        "unidad": "km",
+        "naturaleza": "no_remunerativo",
+        "con_incidencia": false,
+        "cantidad_de": "km_recorridos",
+        "depende_de": "larga_distancia"
+      }
+    },
+    "retenciones_sindicales": {
+      "cuota_sindical": {
+        "label": "Cuota sindical (3%)",
+        "condicion": "solo_afiliado",
+        "base": "remunerativo",
+        "porcentaje": 0.03
+      },
+      "solidaria": {
+        "label": "Contribución solidaria (2%, tope Ley 27.802)",
+        "condicion": "solo_no_afiliado",
+        "base": "remunerativo_habitual",
+        "porcentaje": 0.02
+      },
+      "sepelio": {
+        "label": "Seguro de sepelio (1,5%, ítem 8.1.6)",
+        "base": "remunerativo",
+        "porcentaje": 0.015
+      }
+    },
+    "art": {
+      "alicuota_tipica": 0.05
+    },
+    "contribuciones_convenio": {
+      "fomento_social": {
+        "label": "Aporte empresario actividades sociales y culturales (2% del básico, ítem 8.1.2)",
+        "rubro": "sindical",
+        "base": "basico",
+        "porcentaje": 0.02
+      },
+      "capacitacion_federacion": {
+        "label": "Aporte empresario cultura y capacitación (0,5% del básico, ítem 8.1.4)",
+        "rubro": "sindical",
+        "base": "basico",
+        "porcentaje": 0.005
+      },
+      "profesionalizacion": {
+        "label": "Aporte empresario profesionalización del sector (2% del básico, ítem 8.1.5)",
+        "rubro": "sindical",
+        "base": "basico",
+        "porcentaje": 0.02
+      }
+    }
+  },
+  "inputs_requeridos": [
+    {
+      "id": "categoria",
+      "tipo": "select",
+      "label": "Categoría",
+      "default": "Conductor de primera categoría",
+      "opciones": [
+        "Conductor de primera categoría",
+        "Conductor de segunda categoría",
+        "Conductor de tercera categoría (fletes al instante)",
+        "Conductor de grúas de hasta 10 tn y operador de autoelevador",
+        "Conductor de grúas de más de 10 y hasta 20 tn",
+        "Conductor de grúas de más de 20 y hasta 35 tn",
+        "Conductor de grúas de más de 35 y hasta 45 tn",
+        "Conductor de grúas de más de 45 y hasta 55 tn",
+        "Conductor de grúas de más de 55 y hasta 70 tn",
+        "Conductor de grúas de más de 70 y hasta 90 tn",
+        "Conductor de grúas de más de 90 y hasta 110 tn",
+        "Conductor de grúas de más de 110 y hasta 140 tn",
+        "Conductor de grúas de más de 140 y hasta 170 tn",
+        "Conductor de grúas de más de 170 y hasta 300 tn",
+        "Conductor de grúas de más de 300 tn",
+        "Encargado",
+        "Recibidor y/o clasificador de guías",
+        "Operario especializado",
+        "Recolector de residuos y limpieza",
+        "Peón",
+        "Peón general de barrido y limpieza",
+        "Operador de servicios",
+        "Distribuidor domiciliario",
+        "Ayudante mayor de 18 años",
+        "Chofer de camión blindado",
+        "Chofer con firma",
+        "Custodia de camión de caudales",
+        "Auxiliar operativo de primera",
+        "Auxiliar operativo de segunda",
+        "Oficial de primera",
+        "Oficial completo de taller",
+        "Oficial",
+        "Medio oficial",
+        "Oficial gomero",
+        "Medio oficial gomero",
+        "Lavador / engrasador / ayudante de taller",
+        "Administrativo de primera categoría",
+        "Administrativo de segunda categoría",
+        "Administrativo de tercera categoría",
+        "Administrativo de cuarta categoría",
+        "Maestranza y/o sereno",
+        "Auxiliar operativo de primera de clearing y correo privado",
+        "Auxiliar operativo de segunda de clearing y correo privado"
+      ]
+    },
+    {
+      "id": "carga_horaria",
+      "tipo": "number",
+      "label": "Horas semanales (jornada completa del CCT: 44)",
+      "default": 44
+    },
+    {
+      "id": "antiguedad_años",
+      "tipo": "number",
+      "label": "Años de Antigüedad",
+      "default": 0
+    },
+    {
+      "id": "horas_extras_50",
+      "tipo": "number",
+      "label": "Horas Extras al 50%",
+      "default": 0
+    },
+    {
+      "id": "horas_extras_100",
+      "tipo": "number",
+      "label": "Horas Extras al 100%",
+      "default": 0
+    },
+    {
+      "id": "afiliado_sindicato",
+      "tipo": "boolean",
+      "label": "Afiliado al sindicato de Camioneros (cuota 3%)",
+      "default": false
+    },
+    {
+      "id": "combustibles",
+      "tipo": "boolean",
+      "label": "¿Transporta combustibles líquidos? (+15%)",
+      "default": false,
+      "origen": "adicional"
+    },
+    {
+      "id": "materiales_peligrosos",
+      "tipo": "boolean",
+      "label": "¿Transporta materiales peligrosos? (+20%)",
+      "default": false,
+      "origen": "adicional"
+    },
+    {
+      "id": "residuos",
+      "tipo": "boolean",
+      "label": "¿Recolección de residuos o barrido y limpieza? (+15%)",
+      "default": false,
+      "origen": "adicional"
+    },
+    {
+      "id": "caudales",
+      "tipo": "boolean",
+      "label": "¿Personal de unidades blindadas / caudales? (+20%)",
+      "default": false,
+      "origen": "adicional"
+    },
+    {
+      "id": "logistica_correo",
+      "tipo": "boolean",
+      "label": "¿Operaciones logísticas o correo / clearing? (+20%)",
+      "default": false,
+      "origen": "adicional"
+    },
+    {
+      "id": "mudanzas",
+      "tipo": "boolean",
+      "label": "¿Expresos, mudanzas o encomiendas? (+10%)",
+      "default": false,
+      "origen": "adicional"
+    },
+    {
+      "id": "dias_trabajados",
+      "tipo": "number",
+      "label": "Días efectivamente trabajados en el mes",
+      "default": 22,
+      "origen": "por_unidad"
+    },
+    {
+      "id": "larga_distancia",
+      "tipo": "boolean",
+      "label": "¿Es chofer de larga distancia (más de 100 km)? Cobra por kilómetro y no cobra comida ni viático especial.",
+      "default": false,
+      "origen": "por_unidad"
+    },
+    {
+      "id": "pernoctes",
+      "tipo": "number",
+      "label": "Noches que pernoctó fuera de su residencia",
+      "default": 0,
+      "origen": "por_unidad"
+    },
+    {
+      "id": "km_recorridos",
+      "tipo": "number",
+      "label": "Kilómetros recorridos en el mes (larga distancia)",
+      "default": 0,
+      "origen": "por_unidad"
+    }
+  ],
+  "ultimo_periodo": "2026-08",
+  "ultimo_periodo_nombre": "Agosto 2026",
+  "descripcion": "Transporte automotor de cargas, logística y servicios. Fuente: CCT 40/89 texto ordenado (FADEEAC) y planillas 7/26 y 8/26 de la Federación (acta 25/6/2026). Coeficientes zonales del sur (1,20 y 1,40), garantía de 350 km/día del viático por km, adicional del 15% sobre la comida en residuos, premio asistencia $60.000 (logística y correo) y contribución extraordinaria a OSCHOCA ($25.000) quedan pendientes."
+}

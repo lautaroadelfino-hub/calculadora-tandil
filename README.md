@@ -117,7 +117,7 @@ tocar código.
 | **Antigüedad: sobre qué** | Sobre el básico (Comercio, gastronómicos) o sobre básico + adicionales remunerativos (Camioneros, ítem 6.1.5). |
 | **Retenciones sindicales** | Descuentos. Pueden ser un porcentaje o un monto fijo, y pueden aplicarse sólo a afiliados o sólo a no afiliados. La base puede ser el remunerativo, el **remunerativo habitual** (sin horas extras, SAC ni vacaciones: es el tope del Decreto 612/26 para las cuotas solidarias), remunerativo + no remunerativo, o sólo el no remunerativo. |
 | **Reemplaza la obra social** | Marcala si esa retención va en lugar del 3% de obra social, para que no se cobren las dos. |
-| **ART típica** | La alícuota de ART habitual de la actividad, en %. Es el valor que el recibo propone; el empleador la cambia, y siempre se muestra como estimada. Vacía = el recibo avisa que falta. Hoy Comercio y Gastronómicos tienen 5%, el valor de tu Nacional Sistema: cambialo si querés. |
+| **ART típica** | La alícuota de ART habitual de la actividad, en %. Es el valor que el recibo propone; el empleador la cambia, y siempre se muestra como estimada. Vacía = el recibo avisa que falta. Hoy Comercio, Gastronómicos y Camioneros tienen 5%, el valor de tu Nacional Sistema: cambialo si querés (el transporte de cargas suele pagar más). |
 | **Contribuciones propias del convenio** | Lo que el CCT le cobra al empleador (cámaras, fondos, seguros), con su rubro del decreto. |
 
 Las retenciones de ley (jubilación 11%, PAMI 3%, obra social 3%) las aplica el
