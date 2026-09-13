@@ -61,6 +61,16 @@ service cloud.firestore {
       allow write: if estaAutenticado();
     }
 
+    // --- Parámetros de contribuciones patronales -----------------------
+    // Lo que el recibo necesita para la sección "Costo total empleador"
+    // (art. 140 inc. j) LCT, Decreto 407/2026): alícuotas por régimen,
+    // detracción, sumas fijas y bases del art. 9, por período. Lectura
+    // pública como todo lo que usa la calculadora; escritura desde el panel.
+    match /parametros_contribuciones/{periodo} {
+      allow read: if true;
+      allow write: if estaAutenticado();
+    }
+
     // --- Novedades del sitio -------------------------------------------
     match /novedades/{novedadId} {
       allow read: if true;

@@ -1,0 +1,47 @@
+{
+  "_nota": "Contribuciones patronales por período, para la sección 'Costo total empleador' del recibo (art. 140 inc. j) LCT según Ley 27.802, reglamentado por Decreto 407/2026). Se administra desde /admin → Contribuciones y se guarda en Firestore en 'parametros_contribuciones' con el ID del período (ej: 2026-07). Las alícuotas son FRACCIONES (0.1077 = 10,77%); el formulario las muestra en porcentaje y convierte al guardar. Cada concepto dice su base ('remunerativo' o 'remunerativo_mas_no_remunerativo'), si se le resta la detracción, y a cuál de los siete rubros del decreto pertenece. La contribución de obra social lleva base remunerativo_mas_no_remunerativo por decisión del dueño (los flags de su Nacional Sistema marcan que el no remunerativo la paga), aunque la fórmula cargada en ese sistema use sólo el remunerativo.",
+  "_fuente": "Alícuotas: Ley 27.541 art. 19 (18% resto de actividades y MiPyME; 20,40% servicios y comercio que superan los topes MiPyME), con la distribución por subsistema del F.931; verificadas contra las fórmulas cargadas en Nacional Sistema en julio de 2026 y contra el recibo real 07/2026 legajo 12427. Obra social 6%: Ley 23.660 art. 16. Detracción $7.003,68 por trabajador: Ley 27.541 art. 22 (no se actualiza). FFEP y SCVO: sumas fijas por trabajador vigentes en Nacional Sistema en julio de 2026. Bases del art. 9 Ley 24.241: las de julio 2026.",
+  "vigencia": "Julio 2026",
+  "detraccion": {
+    "monto": 7003.68,
+    "norma": "Ley 27.541 art. 22 (detracción mensual por trabajador, sólo en SIPA, INSSJP, asignaciones familiares y FNE)",
+    "prorratea_por_jornada": true
+  },
+  "bases_art9": {
+    "minima": 138757.90,
+    "maxima": 4509567.41
+  },
+  "regimenes": {
+    "resto_mipyme": {
+      "label": "Resto de actividades y MiPyME (18%)",
+      "predeterminado": true,
+      "conceptos": [
+        { "id": "sipa",        "label": "SIPA (jubilación)",                 "unidad": "porcentaje", "alicuota": 0.1077, "base": "remunerativo",                        "aplica_detraccion": true,  "rubro": "seguridad_social" },
+        { "id": "inssjp",      "label": "INSSJP (PAMI)",                     "unidad": "porcentaje", "alicuota": 0.0158, "base": "remunerativo",                        "aplica_detraccion": true,  "rubro": "inssjp" },
+        { "id": "aaff",        "label": "Asignaciones familiares",           "unidad": "porcentaje", "alicuota": 0.047,  "base": "remunerativo",                        "aplica_detraccion": true,  "rubro": "seguridad_social" },
+        { "id": "fne",         "label": "Fondo Nacional de Empleo",          "unidad": "porcentaje", "alicuota": 0.0095, "base": "remunerativo",                        "aplica_detraccion": true,  "rubro": "seguridad_social" },
+        { "id": "obra_social", "label": "Obra social (contribución 6%)",     "unidad": "porcentaje", "alicuota": 0.06,   "base": "remunerativo_mas_no_remunerativo",    "aplica_detraccion": false, "rubro": "obra_social" }
+      ]
+    },
+    "servicios_comercio_grande": {
+      "label": "Servicios y comercio, empresas grandes (20,40%)",
+      "predeterminado": false,
+      "conceptos": [
+        { "id": "sipa",        "label": "SIPA (jubilación)",                 "unidad": "porcentaje", "alicuota": 0.1235, "base": "remunerativo",                        "aplica_detraccion": true,  "rubro": "seguridad_social" },
+        { "id": "inssjp",      "label": "INSSJP (PAMI)",                     "unidad": "porcentaje", "alicuota": 0.0158, "base": "remunerativo",                        "aplica_detraccion": true,  "rubro": "inssjp" },
+        { "id": "aaff",        "label": "Asignaciones familiares",           "unidad": "porcentaje", "alicuota": 0.054,  "base": "remunerativo",                        "aplica_detraccion": true,  "rubro": "seguridad_social" },
+        { "id": "fne",         "label": "Fondo Nacional de Empleo",          "unidad": "porcentaje", "alicuota": 0.0107, "base": "remunerativo",                        "aplica_detraccion": true,  "rubro": "seguridad_social" },
+        { "id": "obra_social", "label": "Obra social (contribución 6%)",     "unidad": "porcentaje", "alicuota": 0.06,   "base": "remunerativo_mas_no_remunerativo",    "aplica_detraccion": false, "rubro": "obra_social" }
+      ]
+    }
+  },
+  "universales": [
+    { "id": "ffep", "label": "FFEP (Fondo Fiduciario de Enfermedades Profesionales)", "unidad": "suma_fija", "monto": 1624,   "rubro": "art" },
+    { "id": "scvo", "label": "Seguro Colectivo de Vida Obligatorio",                  "unidad": "suma_fija", "monto": 424.62, "rubro": "otros" }
+  ],
+  "criterios_contables": {
+    "tope_art9_en_aportes": true,
+    "obra_social_trabajador_prorratea_jornada": true,
+    "sac_integra_base_contribuciones": true
+  }
+}
