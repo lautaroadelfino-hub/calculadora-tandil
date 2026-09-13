@@ -10,6 +10,17 @@ eran tres motores separados por gremio y costó 3.726 líneas borrarlos (commit
 
 ---
 
+## Qué queda afuera
+
+**El sector público.** Es una decisión tomada, no una función pendiente. Cada
+municipio y cada provincia tiene su propio régimen, con caja jubilatoria y obra
+social propias que no son las nacionales que aplica el motor. Equivocarse ahí es
+mucho más fácil y mucho más caro que no ofrecerlo.
+
+No agregarlo sin hablarlo antes. Hay un test que frena el intento distraído.
+
+---
+
 ## La decisión de fondo
 
 **Un solo motor. El convenio es dato.**
@@ -69,10 +80,11 @@ nombre y con el porqué al lado.
 
 Y cuidado con una trampa: **que un número esté escrito fijo no prueba que sea
 universal. Prueba que todavía nadie necesitó otro.** La prueba está en este
-mismo repositorio: el motor del sector público que se borró no dividía por 200,
-usaba `horas semanales × 6` para obras y `× 4,4` para administrativos. El
-gastronómico tenía el divisor como parámetro y la base de la obra social como
-una opción de tres valores.
+mismo repositorio: el motor gastronómico que se borró tenía el divisor de horas
+como **parámetro** (con 200 apenas como valor por defecto) y la base de la obra
+social como una **opción de tres valores**. Hoy las dos están clavadas, y
+Comercio y Gastronómicos —que en aquel motor elegían valores distintos— reciben
+el mismo criterio.
 
 Cuando un parámetro tenga que poder venir del convenio, la forma es: **si el
 convenio lo dice, se usa el del convenio; si no lo dice, se usa el de ley y se
@@ -144,7 +156,7 @@ una regla que nadie sigue.
 | La jornada de 48 horas está fija en el motor | Regla 2 |
 | El divisor de horas extras (200) y los recargos (1,5 y 2,0) están fijos | Regla 2 |
 | El aguinaldo (50%) y el plus vacacional (/150) están fijos | Regla 2 |
-| Jubilación 11%, PAMI 3% y obra social 3% están fijos, y el convenio no puede decir otra cosa aunque su `sector` diga "público" | Regla 2 |
+| Jubilación 11%, PAMI 3% y obra social 3% están fijos en el motor, y un convenio no puede declarar otros | Regla 2 |
 | La base de la obra social está fija; los dos motores viejos la tenían como opción, y Comercio y Gastronómicos elegían valores **distintos** | Regla 2 |
 | Un adicional sólo puede ser un porcentaje, y siempre está prendido. No se puede hacer "adicional por título, sólo si es terciario" ni un adicional de monto fijo, aunque las retenciones sí lo aceptan | Modelo incompleto |
 | Los dos convenios en Firestore todavía tienen `antiguedad.aplica_sobre` guardado, que ya nadie escribe | Se limpia al abrir cada convenio en `/admin` y guardarlo |

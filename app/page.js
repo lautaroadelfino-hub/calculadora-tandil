@@ -50,9 +50,9 @@ export default function Home() {
 
   // El sector y el color salen del campo `sector` del documento, elegible
   // desde el panel. Antes se adivinaban buscando palabras dentro del id
-  // ("municipalidad", "fehgra", "utghra"): el id gastronómico no contenía
-  // ninguna, así que su tarjeta ya caía al estilo genérico, y un convenio
-  // municipal con otro id se etiquetaba "Sector privado" en la portada.
+  // ("fehgra", "utghra"): el id gastronómico no contenía ninguna, así que su
+  // tarjeta ya caía al estilo genérico, y cualquier convenio cuyo id no
+  // coincidiera quedaba etiquetado mal en la portada.
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-slate-100 via-slate-50 to-white overflow-x-hidden">

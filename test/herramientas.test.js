@@ -65,6 +65,15 @@ describe("navegación", () => {
 });
 
 describe("sectores de convenio", () => {
+  it("el sector público está fuera de alcance a propósito", () => {
+    // Decisión tomada, no una función pendiente: cada municipio y cada
+    // provincia tiene su propio régimen, con caja y obra social propias que no
+    // son las nacionales que aplica el motor. Si alguien vuelve a agregar la
+    // opción sin hablarlo, este test lo frena.
+    expect(SECTORES.map((x) => x.value)).not.toContain("publico");
+    expect(estiloDeSector("publico").sector).toBe("Sector privado");
+  });
+
   it("cada sector trae etiqueta y color", () => {
     for (const s of SECTORES) {
       expect(s.value).toBeTruthy();
@@ -74,7 +83,6 @@ describe("sectores de convenio", () => {
   });
 
   it("devuelve la etiqueta que corresponde", () => {
-    expect(estiloDeSector("publico").sector).toBe("Sector público");
     expect(estiloDeSector("gastronomico").sector).toBe("Gastronomía y hotelería");
   });
 
