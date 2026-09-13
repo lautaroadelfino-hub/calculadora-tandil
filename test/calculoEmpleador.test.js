@@ -8,8 +8,8 @@
 // vitest.config.mjs.
 
 import { describe, it, expect } from "vitest";
-import { calcularCostoEmpleador } from "../lib/calculoEmpleador.js";
-import { basesArt9, aplicarTopeArt9, ultimoPeriodoConBases } from "../lib/parametrosLaborales.js";
+import { calcularCostoEmpleador, basesArt9, ultimoPeriodoConBases } from "../lib/calculoEmpleador.js";
+import { aplicarTopeArt9 } from "../lib/parametrosLaborales.js";
 
 const money = (n) => Math.round(n * 100) / 100;
 
