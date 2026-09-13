@@ -7,14 +7,16 @@ import { db } from "@/lib/firebase";
 import { procesarRecibo } from "@/lib/motorLiquidacion";
 import { valoresIniciales } from "@/lib/inputsIniciales";
 import { elegirPeriodo, nombreDePeriodo } from "@/lib/periodos";
+import { TIPOS_DE_LINEA } from "@/lib/vocabularioConvenios";
+import { regimenPredeterminado } from "@/lib/contribucionesForm";
 
 export const runtime = 'edge';
 
 /**
- * Trae, de una colección de tablas por período (parametros_ganancias, y
- * pronto parametros_contribuciones), la que corresponde al mes pedido: la
- * exacta si está, y si no la más reciente anterior. Devuelve también de qué
- * período salió, porque cuando no es el pedido hay que decirlo en pantalla.
+ * Trae, de una colección de tablas por período (parametros_ganancias,
+ * parametros_contribuciones), la que corresponde al mes pedido: la exacta si
+ * está, y si no la más reciente anterior. Devuelve también de qué período
+ * salió, porque cuando no es el pedido hay que decirlo en pantalla.
  */
 async function traerTablaDelPeriodo(coleccion, periodo) {
   const exacta = await getDoc(doc(db, coleccion, periodo));
@@ -34,6 +36,10 @@ async function traerTablaDelPeriodo(coleccion, periodo) {
 const money = (n) =>
   "$" + Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
+/** 0.1077 -> "10,77%" */
+const pct = (fraccion) =>
+  (Number(fraccion || 0) * 100).toLocaleString("es-AR", { maximumFractionDigits: 2 }) + "%";
+
 export default function CalculadoraDinamica() {
   const { convenioId } = useParams();
 
@@ -46,11 +52,18 @@ export default function CalculadoraDinamica() {
   const [valoresUsuario, setValoresUsuario] = useState({});
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState("");
   const [resultadoLiquidacion, setResultadoLiquidacion] = useState(null);
+  // Con qué datos se armó el recibo que está en pantalla. Se guardan aparte
+  // porque la persona puede seguir tocando el formulario después de calcular.
+  const [entradasUsadas, setEntradasUsadas] = useState(null);
   // De qué período salieron las tablas de Ganancias que se usaron. Si no
   // coincide con el mes liquidado hay que decirlo: la escala del impuesto
   // cambia por semestre, así que usar la de otro semestre da un número que
   // no es el que corresponde, y hasta ahora eso pasaba sin ningún aviso.
   const [periodoGanancias, setPeriodoGanancias] = useState(null);
+  // La tabla de contribuciones patronales del período (art. 140 inc. j) LCT).
+  // undefined = todavía no se buscó; null = se buscó y no hay.
+  const [tablaContribuciones, setTablaContribuciones] = useState(undefined);
+  const [periodoContribuciones, setPeriodoContribuciones] = useState(null);
 
   useEffect(() => {
     async function inicializarCalculadora() {
@@ -68,7 +81,16 @@ export default function CalculadoraDinamica() {
           // que un select cuyo "default" no esté entre sus "opciones" arranque
           // en la primera opción (la que el navegador muestra elegida), en vez
           // de guardar un valor que el motor después no va a poder resolver.
-          setValoresUsuario(valoresIniciales(data.inputs_requeridos));
+          //
+          // La ART arranca en la alícuota típica que el convenio declara (en
+          // fracción; acá se muestra en %). Si no declara ninguna, queda vacía
+          // y el recibo lo avisa: no se inventa un 3%.
+          const artTipica = data.reglas_calculo?.art?.alicuota_tipica;
+          setValoresUsuario({
+            ...valoresIniciales(data.inputs_requeridos),
+            art_alicuota: artTipica != null ? +(Number(artTipica) * 100).toFixed(4) : "",
+            art_suma_fija: 0,
+          });
 
           // 2. Traemos todos los períodos (escalas) cargados para este convenio
           const escalasRef = collection(db, "convenios", convenioId, "escalas");
@@ -100,11 +122,43 @@ export default function CalculadoraDinamica() {
     inicializarCalculadora();
   }, [convenioId]);
 
+  // La tabla de contribuciones se busca al elegir el período, y no al calcular,
+  // porque el desplegable de régimen sale de ella.
+  useEffect(() => {
+    if (!periodoSeleccionado) return;
+    let vigente = true;
+    (async () => {
+      try {
+        const tabla = await traerTablaDelPeriodo("parametros_contribuciones", periodoSeleccionado);
+        if (!vigente) return;
+        setTablaContribuciones(tabla.datos);
+        setPeriodoContribuciones(tabla.periodo);
+        // El régimen por defecto es el que la tabla marca, salvo que la persona
+        // ya haya elegido uno que siga existiendo.
+        const predeterminado = tabla.datos ? regimenPredeterminado(tabla.datos) : null;
+        setValoresUsuario((prev) => {
+          const elegido = prev.regimen_contribuciones;
+          const sigueExistiendo = elegido && tabla.datos?.regimenes?.[elegido];
+          return { ...prev, regimen_contribuciones: sigueExistiendo ? elegido : predeterminado || "" };
+        });
+      } catch (err) {
+        console.warn("No se pudo cargar la tabla de contribuciones:", err);
+        if (vigente) {
+          setTablaContribuciones(null);
+          setPeriodoContribuciones(null);
+        }
+      }
+    })();
+    return () => { vigente = false; };
+  }, [periodoSeleccionado]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setValoresUsuario(prev => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : (type === "number" ? Number(value) : value)
+      // Un número borrado queda vacío, no cero: para la ART, vacío significa
+      // "no la sé" (el recibo lo avisa) y cero significa cero.
+      [name]: type === "checkbox" ? checked : (type === "number" ? (value === "" ? "" : Number(value)) : value)
     }));
   };
 
@@ -141,8 +195,12 @@ export default function CalculadoraDinamica() {
       // Enviamos las reglas, los montos y lo que cargó el usuario a nuestro Motor ciego
       const reciboArmado = procesarRecibo(convenio, escalaSnap.data(), valoresUsuario, paramsGanancias, {
         periodo: periodoSeleccionado,
+        // null y no undefined: la pantalla la buscó. Si no hay, el motor avisa.
+        tablaContribuciones: tablaContribuciones === undefined ? null : tablaContribuciones,
+        periodoContribuciones,
       });
       setResultadoLiquidacion(reciboArmado);
+      setEntradasUsadas({ ...valoresUsuario });
 
     } catch (error) {
       alert(error.message);
@@ -155,12 +213,20 @@ export default function CalculadoraDinamica() {
   const inputBase =
     "border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 bg-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors";
 
-  // Agrupamos las líneas del recibo para mostrarlas como un recibo real
+  // Agrupamos las líneas del recibo para mostrarlas como un recibo real.
   const lineas = resultadoLiquidacion?.detalle || [];
-  const remunerativos = lineas.filter((l) => l.tipo === "remunerativo");
-  const noRemunerativos = lineas.filter((l) => l.tipo === "no_remunerativo");
-  const retenciones = lineas.filter((l) => l.tipo === "retencion");
+  const porTipo = (tipo) => lineas.filter((l) => l.tipo === tipo);
+  const remunerativos = porTipo("remunerativo");
+  const noRemunerativos = porTipo("no_remunerativo");
+  const retenciones = porTipo("retencion");
+  const contribuciones = porTipo("contribucion");
+  // Lo que el motor produjo y esta pantalla no sabe dibujar. Antes se filtraba
+  // por tres tipos sin `else` y una línea de otro tipo desaparecía en silencio.
+  const desconocidas = lineas.filter((l) => !TIPOS_DE_LINEA.includes(l.tipo));
+  const empleador = resultadoLiquidacion?.costoEmpleador || null;
+  const metodo = resultadoLiquidacion?.metodo || null;
   const periodoNombre = periodosDisponibles.find((p) => p.id === periodoSeleccionado)?.nombre || "";
+  const artTipicaDelConvenio = convenio.reglas_calculo?.art?.alicuota_tipica;
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-slate-100 via-slate-50 to-white">
@@ -234,7 +300,10 @@ export default function CalculadoraDinamica() {
                     onChange={handleChange}
                     className="h-4 w-4 accent-emerald-600"
                   />
-                  Incluir SAC (medio aguinaldo)
+                  <span>
+                    Incluir SAC (medio aguinaldo)
+                    <span className="block text-[11px] text-slate-400">También sube las contribuciones del empleador.</span>
+                  </span>
                 </label>
 
                 <div className="flex items-center justify-between gap-3">
@@ -249,6 +318,76 @@ export default function CalculadoraDinamica() {
                   />
                 </div>
 
+              </div>
+
+              {/* LO QUE PAGA EL EMPLEADOR (art. 140 inc. j) LCT) */}
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-3">
+                <h2 className="text-xs font-bold uppercase tracking-wide text-indigo-700">Lo que paga el empleador</h2>
+                <p className="text-[11px] text-slate-500 -mt-1">
+                  Desde el 01/06/2026 el recibo muestra las contribuciones del empleador. Se calculan solas
+                  con la tabla del mes; acá van los dos datos que dependen de cada empleador.
+                </p>
+
+                {tablaContribuciones === null && (
+                  <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
+                    No hay tabla de contribuciones cargada para {nombreDePeriodo(periodoSeleccionado)}: el recibo
+                    va a salir sin la sección del empleador. Se carga en /admin → Contribuciones.
+                  </p>
+                )}
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-sm text-slate-700">Régimen de contribuciones</label>
+                  <select
+                    name="regimen_contribuciones"
+                    value={valoresUsuario.regimen_contribuciones ?? ""}
+                    onChange={handleChange}
+                    disabled={!tablaContribuciones}
+                    className={`${inputBase} w-full disabled:opacity-60`}
+                  >
+                    {!tablaContribuciones && <option value="">Sin tabla para este período</option>}
+                    {tablaContribuciones &&
+                      Object.entries(tablaContribuciones.regimenes || {}).map(([id, r]) => (
+                        <option key={id} value={id}>{r.label}{r.predeterminado ? " · el más común" : ""}</option>
+                      ))}
+                  </select>
+                  <span className="text-[11px] text-slate-400">Si no sabés, dejá el que está: es el de la mayoría de los empleadores.</span>
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm text-slate-700">
+                    Alícuota de ART
+                    <span className="block text-[11px] text-slate-400">
+                      La de tu póliza, en %.{" "}
+                      {artTipicaDelConvenio != null
+                        ? `La típica de esta actividad es ${pct(artTipicaDelConvenio)}.`
+                        : "El convenio no tiene una típica cargada."}
+                    </span>
+                  </label>
+                  <input
+                    type="number"
+                    name="art_alicuota"
+                    min="0"
+                    step="0.01"
+                    value={valoresUsuario.art_alicuota ?? ""}
+                    onChange={handleChange}
+                    className={`${inputBase} w-24 text-center`}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-3">
+                  <label className="text-sm text-slate-700">
+                    Cuota fija de la ART
+                    <span className="block text-[11px] text-slate-400">Por trabajador y por mes, si tu póliza la tiene.</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="art_suma_fija"
+                    min="0"
+                    value={valoresUsuario.art_suma_fija ?? 0}
+                    onChange={handleChange}
+                    className={`${inputBase} w-24 text-center`}
+                  />
+                </div>
               </div>
 
               {/* SITUACIÓN FAMILIAR (afecta el Impuesto a las Ganancias) */}
@@ -303,7 +442,9 @@ export default function CalculadoraDinamica() {
             </div>
           </form>
 
-          {/* PANEL DERECHO: El Recibo */}
+          {/* PANEL DERECHO: El Recibo, en el orden que manda el Decreto 407/2026:
+              datos · lo que paga el empleador · haberes y deducciones · neto ·
+              composición del costo laboral. */}
           {resultadoLiquidacion ? (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-6">
 
@@ -317,7 +458,96 @@ export default function CalculadoraDinamica() {
 
               <div className="p-5 space-y-5">
 
-                {/* Remunerativos */}
+                {/* 1. Datos */}
+                <section className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-[12px] text-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                  <span><span className="font-semibold text-slate-500">Convenio:</span> {convenio.nombre} · CCT {convenio.cct}</span>
+                  <span><span className="font-semibold text-slate-500">Período:</span> {periodoNombre || nombreDePeriodo(metodo?.periodo)}</span>
+                  <span>
+                    <span className="font-semibold text-slate-500">Categoría:</span> {entradasUsadas?.categoria}
+                    {entradasUsadas?.zona ? ` · ${entradasUsadas.zona}` : ""}
+                  </span>
+                  <span><span className="font-semibold text-slate-500">Antigüedad:</span> {Number(entradasUsadas?.antiguedad_años) || 0} años</span>
+                  {metodo && (
+                    <span><span className="font-semibold text-slate-500">Jornada:</span> {metodo.jornadaDelPuesto} hs de {metodo.jornadaCompletaSemanal} semanales</span>
+                  )}
+                  {empleador && (
+                    <span><span className="font-semibold text-slate-500">Régimen:</span> {empleador.regimen.label}</span>
+                  )}
+                  <span className="sm:col-span-2 text-[11px] text-slate-400">
+                    Un recibo real lleva además CUIT del empleador, CUIL, fecha de ingreso, y fecha y lugar de pago de las cargas sociales.
+                  </span>
+                </section>
+
+                {/* 2. Lo que paga el empleador: antes del bruto, que es el punto de la norma */}
+                <section>
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-indigo-700 border-b border-slate-100 pb-1.5 mb-2">Contribuciones a cargo del empleador</h3>
+                  {empleador ? (
+                    <>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-[12px]">
+                          <thead>
+                            <tr className="text-[10px] uppercase text-slate-400">
+                              <th className="text-left font-semibold pb-1">Concepto</th>
+                              <th className="text-right font-semibold pb-1">Base de cálculo</th>
+                              <th className="text-right font-semibold pb-1">Unidad</th>
+                              <th className="text-right font-semibold pb-1">Importe</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {contribuciones.map((l, i) => (
+                              <tr key={i} className={l.pendiente ? "text-amber-700" : "text-slate-700"}>
+                                <td className="py-0.5 pr-2 align-top">{l.concepto}</td>
+                                <td className="py-0.5 text-right tabular-nums whitespace-nowrap text-slate-500 align-top">
+                                  {l.base != null ? money(l.base) : "—"}
+                                  <span className="block text-[10px] text-slate-400">{l.baseLabel}</span>
+                                </td>
+                                <td className="py-0.5 pl-2 text-right whitespace-nowrap text-slate-500 align-top">
+                                  {l.unidad === "porcentaje" ? (l.alicuota != null ? pct(l.alicuota) : "sin dato") : "suma fija"}
+                                </td>
+                                <td className="py-0.5 pl-2 text-right tabular-nums whitespace-nowrap align-top">{money(l.monto)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <div className="mt-2 rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2 space-y-1 text-sm">
+                        <div className="flex justify-between text-indigo-900">
+                          <span>Subtotal contribuciones</span>
+                          <span className="tabular-nums">{money(empleador.totalContribuciones)}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600 text-[12px]">
+                          <span>Remuneración bruta + no remunerativo</span>
+                          <span className="tabular-nums">{money(resultadoLiquidacion.totales.bruto + resultadoLiquidacion.totales.noRemunerativo)}</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-indigo-900 border-t border-indigo-200 pt-1">
+                          <span>Costo laboral total</span>
+                          <span className="tabular-nums">{money(empleador.costoLaboral)}</span>
+                        </div>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1.5">
+                        {empleador.detraccion
+                          ? `Detracción Ley 27.541 aplicada: ${money(empleador.detraccion.prorrateada)}` +
+                            (empleador.detraccion.prorrateaPorJornada && metodo.jornadaDelPuesto !== metodo.jornadaCompletaSemanal ? " (prorrateada por la jornada)" : "") +
+                            ". "
+                          : ""}
+                        La ART es estimada: cada empleador negocia su alícuota.
+                      </p>
+                      {empleador.periodoTabla && empleador.periodoTabla !== metodo.periodo && (
+                        <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2 mt-2">
+                          <b>Ojo:</b> no hay tabla de contribuciones de {nombreDePeriodo(metodo.periodo)}. Se usó la de{" "}
+                          {nombreDePeriodo(empleador.periodoTabla)}, que puede tener otras bases o alícuotas.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
+                      Desde el 01/06/2026 el recibo tiene que mostrar las contribuciones del empleador, y para{" "}
+                      {nombreDePeriodo(metodo?.periodo)} no hay tabla cargada. Se carga en /admin → Contribuciones.
+                    </p>
+                  )}
+                </section>
+
+                {/* 3. Haberes y deducciones */}
                 <section>
                   <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400 border-b border-slate-100 pb-1.5 mb-2">Haberes remunerativos</h3>
                   <div className="space-y-1.5">
@@ -330,7 +560,6 @@ export default function CalculadoraDinamica() {
                   </div>
                 </section>
 
-                {/* No remunerativos */}
                 {noRemunerativos.length > 0 && (
                   <section>
                     <h3 className="text-xs font-bold uppercase tracking-wide text-sky-600 border-b border-slate-100 pb-1.5 mb-2">Haberes no remunerativos</h3>
@@ -345,7 +574,6 @@ export default function CalculadoraDinamica() {
                   </section>
                 )}
 
-                {/* Retenciones */}
                 <section>
                   <h3 className="text-xs font-bold uppercase tracking-wide text-rose-500 border-b border-slate-100 pb-1.5 mb-2">Descuentos y retenciones</h3>
                   <div className="space-y-1.5">
@@ -358,7 +586,14 @@ export default function CalculadoraDinamica() {
                   </div>
                 </section>
 
-                {/* Totales */}
+                {desconocidas.length > 0 && (
+                  <div className="text-[11px] text-rose-800 bg-rose-50 border border-rose-300 rounded-lg px-2.5 py-2">
+                    El recibo tiene {desconocidas.length} línea(s) de un tipo que esta pantalla no sabe mostrar:{" "}
+                    {desconocidas.map((l) => `${l.concepto} (${l.tipo})`).join(", ")}. No están sumadas en ninguna sección de arriba.
+                  </div>
+                )}
+
+                {/* 4. Totales y neto */}
                 <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-1.5">
                   <div className="flex justify-between text-sm text-slate-600">
                     <span>Total remunerativo</span>
@@ -380,6 +615,44 @@ export default function CalculadoraDinamica() {
                     {money(resultadoLiquidacion.totales.neto)}
                   </span>
                 </div>
+
+                {/* 5. Composición del costo laboral: los siete rubros del decreto */}
+                {empleador && (
+                  <section>
+                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400 border-b border-slate-100 pb-1.5 mb-2">Composición del costo laboral</h3>
+                    <div className="space-y-2">
+                      {Object.entries(empleador.rubros).map(([id, r]) => {
+                        const parteEmpleador = r.total > 0 ? (r.empleador / r.total) * 100 : 0;
+                        return (
+                          <div key={id} className="text-[12px]">
+                            <div className="flex justify-between gap-2 text-slate-700">
+                              <span>{r.label}</span>
+                              <span className="tabular-nums whitespace-nowrap">
+                                {r.total > 0
+                                  ? `${money(r.total)} · ${r.porcentaje.toLocaleString("es-AR", { maximumFractionDigits: 1 })}%`
+                                  : "—"}
+                              </span>
+                            </div>
+                            {r.total > 0 && (
+                              <>
+                                <div className="h-1.5 w-full rounded-full bg-rose-200 overflow-hidden mt-0.5">
+                                  <div className="h-full bg-indigo-500" style={{ width: `${parteEmpleador}%` }} />
+                                </div>
+                                <div className="flex justify-between text-[10px] text-slate-400">
+                                  <span>Empleador {money(r.empleador)}</span>
+                                  <span>Trabajador {money(r.trabajador)}</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-2">
+                      El Impuesto a las Ganancias no integra el costo laboral: es un impuesto del trabajador que el empleador sólo retiene.
+                    </p>
+                  </section>
+                )}
 
                 {resultadoLiquidacion.ganancias?.aplica && (
                   <p className="text-[11px] text-amber-700">
@@ -409,6 +682,36 @@ export default function CalculadoraDinamica() {
                       </p>
                     ))}
                   </div>
+                )}
+
+                {/* 6. Con qué supuestos se hizo la cuenta */}
+                {metodo && (
+                  <section className="rounded-xl border border-slate-200 p-3">
+                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-1.5">Cómo se hizo esta cuenta</h3>
+                    <ul className="text-[11px] text-slate-600 space-y-0.5 list-disc pl-4">
+                      <li>
+                        Jornada completa del convenio: {metodo.jornadaCompletaSemanal} hs semanales
+                        {metodo.laDeclaraElConvenio ? " (la declara el convenio)" : " (valor por defecto)"}; el puesto: {metodo.jornadaDelPuesto} hs.
+                        {metodo.divisorHorasMensuales ? ` Valor hora sobre ${metodo.divisorHorasMensuales} hs mensuales.` : ""}
+                      </li>
+                      <li>Las sumas no remunerativas {metodo.noRemunerativoGeneraAdicionales ? "generan" : "no generan"} antigüedad, presentismo y adicionales.</li>
+                      {periodoGanancias && <li>Ganancias: tabla de {nombreDePeriodo(periodoGanancias)}.</li>}
+                      {empleador && (
+                        <>
+                          <li>Contribuciones: tabla de {nombreDePeriodo(empleador.periodoTabla)}, régimen "{empleador.regimen.label}".</li>
+                          <li>
+                            ART: {empleador.art.pendiente
+                              ? "sin alícuota informada"
+                              : `${pct(empleador.art.alicuota)} ${metodo.artLaInformoLaPersona ? "(la que informaste)" : "(la típica del convenio)"}`}, estimada.
+                          </li>
+                          <li>El SAC {empleador.sacIntegraBase ? "integra" : "no integra"} la base de contribuciones.</li>
+                          <li>
+                            Costo por hora: {empleador.costoPorHora != null ? money(empleador.costoPorHora) : "—"} · por día: {money(empleador.costoPorDia)} (costo laboral / 30).
+                          </li>
+                        </>
+                      )}
+                    </ul>
+                  </section>
                 )}
 
                 <p className="text-[11px] text-slate-400">
