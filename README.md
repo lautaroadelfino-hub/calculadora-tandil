@@ -134,6 +134,21 @@ forma más rápida de romper producción sin que nadie se entere.
 
 ---
 
+---
+
+## Antes de tocar el código: leete el criterio
+
+`docs/criterio.md` contesta la pregunta que vuelve cada vez que aparece un
+convenio nuevo: **qué se carga como dato y qué obliga a tocar código**. Tiene la
+regla madre (*el motor no adivina nunca: o entiende, o avisa*), los cuatro
+criterios, los pasos para agregar una regla nueva, y la lista honesta de todo lo
+que todavía no cumple.
+
+Si vas a pedirle a alguien —persona o asistente— que toque este proyecto,
+mandale esa hoja primero.
+
+---
+
 ## Cosas que conviene saber
 
 - **`npm run lint` está roto** y no es culpa de nadie: el plugin pide

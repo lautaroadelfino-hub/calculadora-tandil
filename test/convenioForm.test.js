@@ -28,8 +28,35 @@ describe("Editor de convenios por formulario", () => {
     expect(form.retenciones).toHaveLength(4);
   });
 
-  it("la ida y vuelta preserva reglas_calculo EXACTO", () => {
-    expect(sortDeep(reconstruido.reglas_calculo)).toEqual(sortDeep(convenioComercio.reglas_calculo));
+  it("la ida y vuelta preserva todo lo que el motor lee", () => {
+    // Antes esta prueba exigía que el documento volviera IDÉNTICO. Dejó de
+    // exigirlo a propósito, por una sola diferencia: la antigüedad se venía
+    // guardando con `aplica_sobre: "basico"` y el motor NUNCA leyó ese campo
+    // (usa siempre el básico). Era un campo escrito que nadie lee, que es
+    // exactamente el error que ya costó dos veces en este proyecto. Ahora el
+    // formulario lo limpia al guardar.
+    //
+    // Lo que sí se sigue exigiendo, que es lo que importa: que no se pierda ni
+    // se invente nada de lo que el motor usa de verdad.
+    const esperado = sortDeep(convenioComercio.reglas_calculo);
+    delete esperado.antiguedad.aplica_sobre;
+    expect(sortDeep(reconstruido.reglas_calculo)).toEqual(esperado);
+  });
+
+  it("guardar dos veces seguidas da lo mismo que guardar una", () => {
+    // La propiedad de fondo: el documento se estabiliza. Si cada guardado lo
+    // fuera cambiando un poco, la limpieza de arriba sería una fuga lenta.
+    const segundaVuelta = formToConvenio(convenioToForm(reconstruido), reconstruido);
+    expect(sortDeep(segundaVuelta.reglas_calculo)).toEqual(sortDeep(reconstruido.reglas_calculo));
+  });
+
+  it("limpiar ese campo no mueve un solo peso del recibo", () => {
+    const entradas = { categoria: "Vendedor B", carga_horaria: 48, antiguedad_años: 5,
+      horas_extras_50: 0, horas_extras_100: 0, afiliado_sindicato: false };
+    const antes = procesarRecibo(convenioComercio, escalasComercio["2026-07"], entradas);
+    const despues = procesarRecibo(reconstruido, escalasComercio["2026-07"], entradas);
+    expect(money(despues.totales.neto)).toBe(money(antes.totales.neto));
+    expect(money(despues.totales.neto)).toBe(1166249.7);
   });
 
   it("preserva inputs_requeridos y datos generales", () => {
