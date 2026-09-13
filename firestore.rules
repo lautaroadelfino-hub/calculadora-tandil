@@ -2,84 +2,79 @@ rules_version = '2';
 
 // firestore.rules
 //
-// OJO: ESTE ARCHIVO NO SE APLICA SOLO.
-// Las reglas que están rigiendo hoy viven únicamente en la consola de Firebase
-// (Firestore Database -> Reglas). Este archivo existe para que queden
-// versionadas, revisables y con historial, que es lo que faltaba: hasta ahora
-// no había forma de saber cuándo ni por qué habían cambiado.
-//
-// Para aplicarlas, copiar el contenido en la consola, o usar la CLI de Firebase:
+// OJO: ESTE ARCHIVO NO SE APLICA SOLO. Las reglas que rigen viven en la consola
+// de Firebase (Firestore Database -> Reglas). Este archivo es la versión
+// versionada y revisable; para que rija hay que pegarlo en la consola y
+// publicar, o usar la CLI:
 //     firebase deploy --only firestore:rules
 //
-// Lo que se verificó por prueba en julio de 2026 sobre las reglas vigentes:
-//   - la lectura anónima funciona (hace falta: la calculadora es pública)
-//   - la escritura anónima está denegada
-//   - la escritura autenticada funciona (así escribe el panel)
+// LO QUE RIGE HOY EN LA CONSOLA (verificado por prueba el 13/9/2026): lectura
+// pública de TODO y escritura para cualquier usuario autenticado de Firebase.
+// Alcanza para que el sitio funcione, pero es más laxo de lo que hace falta:
+// cualquier colección nueva nace pública, y si el registro estuviera abierto,
+// cualquier cuenta podría reescribir las escalas salariales de un sitio
+// público. Estas reglas cierran las dos cosas:
 //
-// LO QUE FALTA, y es una decisión del dueño:
-// hoy cualquier usuario autenticado de Firebase puede escribir. Si el registro
-// está abierto, alguien que se cree una cuenta podría reescribir las escalas
-// salariales de un sitio público. Abajo queda preparada la versión con lista de
-// administradores; hay que poner el UID real antes de activarla, porque si se
-// aplica con la lista vacía el dueño se queda afuera de su propio panel.
+//   - se lee sin registro sólo lo que la calculadora necesita: los convenios y
+//     sus escalas, las tablas de Ganancias, las de contribuciones y las
+//     novedades. Todo lo demás está cerrado hasta que se abra a propósito acá;
+//   - escribe únicamente el administrador, identificado por el mail con el que
+//     entra a /admin.
+//
+// SI ALGÚN DÍA CAMBIA EL MAIL DEL ADMINISTRADOR, hay que cambiarlo acá y
+// publicar ANTES de usar el panel con la cuenta nueva: si no, el panel deja de
+// poder guardar. La consola de Firebase sigue accesible igual (las reglas no la
+// gobiernan), así que nunca es un encierro definitivo.
+//
+// Alternativa por UID, si se prefiere: request.auth.uid == "<uid>". El UID
+// está en la consola, en Authentication -> Users.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Administradores -----------------------------------------------
-    // Para pasar al control por UID:
-    //   1) Buscar el UID en la consola de Firebase, en Authentication.
-    //   2) Ponerlo en la lista de abajo.
-    //   3) Cambiar `estaAutenticado()` por `esAdmin()` en las reglas de
-    //      escritura, y recién ahí publicar.
+    // --- El único que escribe ------------------------------------------
+    // La cuenta de Firebase Authentication (proveedor "password") con la que
+    // se entra a /admin. Los tokens de esa cuenta traen el mail.
     function esAdmin() {
       return request.auth != null
-          && request.auth.uid in [
-               // "PONER-ACA-EL-UID-DEL-DUENO",
-             ];
-    }
-
-    function estaAutenticado() {
-      return request.auth != null;
+          && request.auth.token.email == "admin@csueldos.com";
     }
 
     // --- Convenios y sus escalas ---------------------------------------
     // Lectura pública: es lo que hace funcionar la calculadora sin registro.
     match /convenios/{convenioId} {
       allow read: if true;
-      allow write: if estaAutenticado();
+      allow write: if esAdmin();
 
       match /escalas/{periodo} {
         allow read: if true;
-        allow write: if estaAutenticado();
+        allow write: if esAdmin();
       }
     }
 
-    // --- Parámetros del impuesto a las Ganancias -----------------------
+    // --- Parámetros del impuesto a las Ganancias, por período -----------
     match /parametros_ganancias/{periodo} {
       allow read: if true;
-      allow write: if estaAutenticado();
+      allow write: if esAdmin();
     }
 
-    // --- Parámetros de contribuciones patronales -----------------------
+    // --- Parámetros de contribuciones patronales, por período -----------
     // Lo que el recibo necesita para la sección "Costo total empleador"
-    // (art. 140 inc. j) LCT, Decreto 407/2026): alícuotas por régimen,
-    // detracción, sumas fijas y bases del art. 9, por período. Lectura
-    // pública como todo lo que usa la calculadora; escritura desde el panel.
+    // (art. 140 inc. j) LCT, Decreto 407/2026).
     match /parametros_contribuciones/{periodo} {
       allow read: if true;
-      allow write: if estaAutenticado();
+      allow write: if esAdmin();
     }
 
     // --- Novedades del sitio -------------------------------------------
     match /novedades/{novedadId} {
       allow read: if true;
-      allow write: if estaAutenticado();
+      allow write: if esAdmin();
     }
 
     // --- Todo lo demás está cerrado ------------------------------------
     // Cualquier colección que se agregue en el futuro arranca denegada, y hay
-    // que habilitarla a propósito acá.
+    // que habilitarla a propósito acá (y volver a pegar en la consola).
     match /{document=**} {
       allow read, write: if false;
     }

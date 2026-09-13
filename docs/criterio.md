@@ -178,7 +178,7 @@ una regla que nadie sigue.
 | Que la obra social del trabajador se prorratee por la jornada ya es un criterio de la tabla del período; que su base **incluya el no remunerativo** sigue fijo. Los dos motores viejos lo tenían como opción y Comercio y Gastronómicos elegían valores **distintos** | Regla 2 |
 | Un adicional sólo puede ser un porcentaje: no se puede cargar uno de monto fijo en pesos, aunque las retenciones y las contribuciones sí lo aceptan | Modelo incompleto |
 | Las bases de una contribución patronal son dos palabras (`remunerativo`, `remunerativo_mas_no_remunerativo`). Alcanzan para los convenios cargados; el día que uno tenga dos sumas no remunerativas con tratamiento distinto, la línea tiene que crecer | Modelo incompleto |
-| **`firestore.rules` no describe lo que rige.** Verificado el 13/9/2026: la consola tiene lectura pública de todo y escritura para cualquier usuario autenticado, mientras el archivo dice "todo lo demás cerrado". El archivo hay que alinearlo con la consola (o al revés, con el UID del dueño) antes de confiar en él | Seguridad |
+| **Las reglas de la consola son más laxas que `firestore.rules`.** Verificado el 13/9/2026: la consola tiene lectura pública de todo y escritura para cualquier usuario autenticado. El archivo ya tiene la versión cerrada (lectura sólo de lo que usa la calculadora; escribe sólo `admin@csueldos.com`), pero **rige recién cuando el dueño la pegue en la consola**, que sólo abre su cuenta de Google | Seguridad, pendiente del dueño |
 
 **Ya saldado (13 de septiembre de 2026, segunda pasada):** la escala acepta una
 segunda suma no remunerativa **sin incidencia** (`no_remunerativo_sin_incidencia`,
