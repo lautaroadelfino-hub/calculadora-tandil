@@ -3,14 +3,10 @@
 import React from "react";
 import { getNovedades } from "@/lib/novedades";
 import { herramientasEnCamino } from "@/lib/herramientas";
+import { fechaCorta } from "@/lib/fechas";
 
-function formatDate(ymd) {
-  // ymd = "YYYY-MM-DD"
-  if (!ymd) return "";
-  const [y, m, d] = ymd.split("-").map(Number);
-  if (!y || !m || !d) return ymd;
-  return `${d.toString().padStart(2, "0")}/${m.toString().padStart(2, "0")}`;
-}
+// Con año: sin él, "13/09" (2026) arriba de "15/11" (2025) se leía desordenado.
+const formatDate = (ymd) => fechaCorta(ymd) || ymd || "";
 
 const FALLBACK = [];
 

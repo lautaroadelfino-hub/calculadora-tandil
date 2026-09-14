@@ -12,6 +12,7 @@ import { regimenPredeterminado } from "@/lib/contribucionesForm";
 import { normalizarEntradas, etiquetaDeCampo } from "@/lib/validacionEntradas";
 import { explicarLinea } from "@/lib/explicarLinea";
 import ReportModal from "@/components/ReportModal";
+import { paramsDesdeEntradas, entradasDesdeParams } from "@/lib/permalink";
 
 export const runtime = 'edge';
 
@@ -92,6 +93,9 @@ export default function CalculadoraDinamica() {
   // mano: antes había que volver a la portada y ya se había perdido.
   const [showReport, setShowReport] = useState(false);
   const reportBtnRef = useRef(null);
+  // Link para compartir e impresión.
+  const [autoCalcular, setAutoCalcular] = useState(false);
+  const [copiado, setCopiado] = useState("");
   // Al calcular, el foco va al título del recibo y una región viva lo anuncia:
   // quien usa lector de pantalla pulsaba Enter y no oía nada.
   const tituloReciboRef = useRef(null);
@@ -129,10 +133,14 @@ export default function CalculadoraDinamica() {
           // fracción; acá se muestra en %). Si no declara ninguna, queda vacía
           // y el recibo lo avisa: no se inventa un 3%.
           const artTipica = data.reglas_calculo?.art?.alicuota_tipica;
+          // Si la URL trae una simulación (un link compartido, un F5), se
+          // vuelve a cargar tal cual y se calcula sola.
+          const enLaUrl = entradasDesdeParams(data, typeof window !== "undefined" ? window.location.search : "");
           setValoresUsuario({
             ...valoresIniciales(data.inputs_requeridos),
             art_alicuota: artTipica != null ? +(Number(artTipica) * 100).toFixed(4) : "",
             art_suma_fija: 0,
+            ...enLaUrl.valores,
           });
 
           // 2. Traemos todos los períodos (escalas) cargados para este convenio
@@ -151,9 +159,11 @@ export default function CalculadoraDinamica() {
           periodos.sort((a, b) => b.id.localeCompare(a.id));
           setPeriodosDisponibles(periodos);
 
-          // Seleccionamos el último período por defecto
+          // Seleccionamos el último período por defecto, salvo que la URL traiga uno.
           if (periodos.length > 0) {
-            setPeriodoSeleccionado(periodos[0].id);
+            const pedido = enLaUrl.periodo && periodos.some((p) => p.id === enLaUrl.periodo) ? enLaUrl.periodo : periodos[0].id;
+            setPeriodoSeleccionado(pedido);
+            if (enLaUrl.periodo) setAutoCalcular(true);
           }
         }
       } catch (error) {
@@ -194,6 +204,29 @@ export default function CalculadoraDinamica() {
     })();
     return () => { vigente = false; };
   }, [periodoSeleccionado]);
+
+  useEffect(() => {
+    if (autoCalcular && convenio && periodoSeleccionado && tablaContribuciones !== undefined) {
+      setAutoCalcular(false);
+      formRef.current?.requestSubmit();
+    }
+  }, [autoCalcular, convenio, periodoSeleccionado, tablaContribuciones]);
+
+  const linkDeLaSimulacion = () => {
+    if (typeof window === "undefined" || !periodoUsado) return "";
+    return `${window.location.origin}${window.location.pathname}?${paramsDesdeEntradas(convenio, entradasUsadas || {}, periodoUsado)}`;
+  };
+
+  const copiarLink = async () => {
+    const link = linkDeLaSimulacion();
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiado("Link copiado. Pegalo donde quieras: abre esta misma simulación.");
+    } catch {
+      setCopiado(link);
+    }
+    setTimeout(() => setCopiado(""), 6000);
+  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -256,6 +289,10 @@ export default function CalculadoraDinamica() {
       setResultadoLiquidacion(reciboArmado);
       setEntradasUsadas({ ...valoresUsuario });
       setPeriodoUsado(periodoSeleccionado);
+      // La URL guarda la simulación: un F5 la vuelve a calcular, y se puede compartir.
+      if (typeof window !== "undefined") {
+        window.history.replaceState(null, "", `?${paramsDesdeEntradas(convenio, valoresUsuario, periodoSeleccionado)}`);
+      }
 
     } catch (error) {
       setErrorCalculo(error.message);
@@ -263,7 +300,20 @@ export default function CalculadoraDinamica() {
   };
 
   if (cargando) return <div className="p-10 text-center mt-20 text-gray-500 font-medium animate-pulse">Cargando las escalas del convenio…</div>;
-  if (!convenio) return <div className="p-10 text-center mt-20 text-red-500 font-bold">Convenio no encontrado.</div>;
+  if (!convenio) {
+    return (
+      <div className="max-w-xl mx-auto px-4 sm:px-6 py-16 text-center">
+        <h1 className="text-2xl font-bold text-slate-900">No encontramos ese convenio</h1>
+        <p className="mt-3 text-sm text-slate-600">
+          La dirección puede estar mal escrita, o el convenio todavía no está publicado. Los que sí están,
+          con sus escalas, figuran en la portada.
+        </p>
+        <a href="/" className="mt-6 inline-block rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">
+          Ver los convenios disponibles
+        </a>
+      </div>
+    );
+  }
 
   const inputBase =
     "border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 bg-white outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-400 transition-colors";
@@ -336,7 +386,7 @@ export default function CalculadoraDinamica() {
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-6 items-start">
 
           {/* PANEL IZQUIERDO: Formulario */}
-          <form ref={formRef} onSubmit={simularLiquidacion} noValidate className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-clip">
+          <form ref={formRef} onSubmit={simularLiquidacion} noValidate className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-clip print:hidden">
 
             <div className="bg-emerald-50/60 border-b border-emerald-100 px-5 py-4">
               <label htmlFor="periodo" className="block text-xs font-bold uppercase tracking-wide text-emerald-900 mb-1.5">
@@ -373,6 +423,11 @@ export default function CalculadoraDinamica() {
                         </select>
                         {String(valoresUsuario[input.id] || "").length > 28 && (
                           <span className="sm:hidden text-[11px] text-slate-500 mt-1">Elegida: {valoresUsuario[input.id]}</span>
+                        )}
+                        {input.id === "zona" && (
+                          <span className="text-[11px] text-slate-500 mt-1">
+                            Depende de la localidad del establecimiento; lo fija la escala del convenio. Si no sabés, consultá tu recibo o al empleador.
+                          </span>
                         )}
                       </>
                     )}
@@ -546,7 +601,7 @@ export default function CalculadoraDinamica() {
               datos · lo que paga el empleador · haberes y deducciones · neto ·
               composición del costo laboral. */}
           {resultadoLiquidacion ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-6 print:shadow-none print:border-0 print:static">
 
               <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
                 <div>
@@ -936,17 +991,39 @@ export default function CalculadoraDinamica() {
                   </section>
                 )}
 
+                {/* Glosario corto: las palabras que las personas dijeron no entender. */}
+                <details className="rounded-xl border border-slate-200 p-3 text-[12px] text-slate-600 print:hidden">
+                  <summary className="cursor-pointer font-semibold text-slate-700">Qué quiere decir cada cosa</summary>
+                  <dl className="mt-2 space-y-1.5">
+                    <div><dt className="inline font-semibold">Remunerativo:</dt> <dd className="inline">lo que paga aportes (jubilación, PAMI, obra social) y cuenta para el aguinaldo, las vacaciones y una indemnización.</dd></div>
+                    <div><dt className="inline font-semibold">No remunerativo:</dt> <dd className="inline">sumas que el convenio paga aparte y no pagan jubilación ni PAMI. Las &quot;con incidencia&quot; sí pagan obra social y sindicales; las &quot;sin incidencia&quot; (comida, viáticos) no pagan nada y van derecho al neto.</dd></div>
+                    <div><dt className="inline font-semibold">SAC:</dt> <dd className="inline">el aguinaldo. Medio sueldo en junio y medio en diciembre, sobre la mejor remuneración del semestre.</dd></div>
+                    <div><dt className="inline font-semibold">Cuota sindical y aporte solidario:</dt> <dd className="inline">la cuota la pagan los afiliados al gremio; el solidario, por el convenio, quienes no están afiliados.</dd></div>
+                    <div><dt className="inline font-semibold">Régimen de contribuciones:</dt> <dd className="inline">el porcentaje que paga el empleador según su tamaño y actividad. La mayoría está en el de MiPyME y resto de actividades.</dd></div>
+                    <div><dt className="inline font-semibold">ART:</dt> <dd className="inline">el seguro de accidentes de trabajo. Cada empleador negocia su alícuota; acá va una típica de la actividad, y podés poner la tuya.</dd></div>
+                  </dl>
+                </details>
+
                 <p className="text-[11px] text-slate-500">
                   Simulación orientativa según escalas vigentes cargadas. No reemplaza el recibo oficial emitido por el empleador.
                 </p>
-                <button
-                  ref={reportBtnRef}
-                  type="button"
-                  onClick={() => setShowReport(true)}
-                  className="text-[12px] font-medium text-slate-600 underline underline-offset-2 hover:text-slate-900"
-                >
-                  ¿Algo no cuadra? Reportá un error o una sugerencia
-                </button>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 print:hidden">
+                  <button type="button" onClick={copiarLink} className="text-[12px] font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900">
+                    Copiar link de esta simulación
+                  </button>
+                  <button type="button" onClick={() => window.print()} className="text-[12px] font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900">
+                    Imprimir o guardar en PDF
+                  </button>
+                  <button
+                    ref={reportBtnRef}
+                    type="button"
+                    onClick={() => setShowReport(true)}
+                    className="text-[12px] font-medium text-slate-600 underline underline-offset-2 hover:text-slate-900"
+                  >
+                    ¿Algo no cuadra? Reportá un error o una sugerencia
+                  </button>
+                </div>
+                {copiado && <p role="status" className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2 [overflow-wrap:anywhere] print:hidden">{copiado}</p>}
               </div>
             </div>
           ) : (

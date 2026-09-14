@@ -13,5 +13,8 @@ import { permanentRedirect } from "next/navigation";
 export const runtime = "edge";
 
 export default function PanelEmpleadorRetirado() {
-  permanentRedirect("/");
+  // Con una marca en la URL, la portada explica a dónde fue lo que buscaban:
+  // redirigir en silencio dejaba a quien venía de un link viejo sin saber si
+  // la sección se mudó, se borró o escribió mal.
+  permanentRedirect("/?desde=empleador");
 }

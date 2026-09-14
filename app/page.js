@@ -155,6 +155,14 @@ export default function Home() {
 
   // Buscador. Aparece solo cuando hay muchos convenios; ver lib/directorio.js.
   const [consulta, setConsulta] = useState("");
+  // Quien llega desde /empleador (un link viejo) recibe una explicación en vez
+  // de una redirección muda.
+  const [vieneDelEmpleador, setVieneDelEmpleador] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("desde") === "empleador") {
+      setVieneDelEmpleador(true);
+    }
+  }, []);
 
   // Modal / extras
   const [showReport, setShowReport] = useState(false);
@@ -239,7 +247,18 @@ export default function Home() {
             liquidación estimada, con detalle de remunerativos, no
             remunerativos y descuentos.
           </p>
+          <p className="mt-2 max-w-2xl text-sm text-slate-700">
+            Sirve para el empleado y para el empleador: el mismo recibo muestra lo que paga la empresa
+            y el costo laboral total, como exige el recibo desde junio de 2026.
+          </p>
         </section>
+
+        {vieneDelEmpleador && (
+          <div role="status" className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-900">
+            <b>El panel del empleador ya no es una sección aparte.</b> Cada calculadora muestra, en el mismo recibo,
+            lo que paga el empleador y el costo laboral total. Elegí el convenio y calculá.
+          </div>
+        )}
 
         {/* DIRECTORIO: el producto principal de la portada. */}
         <section aria-labelledby="titulo-convenios" className="mb-8">
@@ -457,6 +476,10 @@ export default function Home() {
         <div className="w-full px-4 sm:px-6 py-4 text-xs text-slate-500 flex flex-wrap items-center gap-2">
           <span>© {new Date().getFullYear()} LiquidAR.ar.</span>
           <span className="text-slate-500">Versión {APP_VERSION}</span>
+          <span className="basis-full sm:basis-auto sm:ml-auto text-slate-500">
+            Herramienta independiente de simulación, hecha por un contador. Consultas y errores: el botón
+            &quot;Reportar error / sugerencia&quot;.
+          </span>
         </div>
       </footer>
     </div>

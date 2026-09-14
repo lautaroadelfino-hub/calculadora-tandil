@@ -1,13 +1,12 @@
 "use client";
 import { useEffect, useState } from "react";
 import { getNovedades } from "@/lib/novedades";
+import { fechaLarga } from "@/lib/fechas";
 
-// formateo fecha es-AR
-const DATE_FMT = new Intl.DateTimeFormat("es-AR", { dateStyle: "medium" });
-const fmtDate = (v) => {
-  const d = new Date(v);
-  return isNaN(d) ? "" : DATE_FMT.format(d);
-};
+// La fecha se arma en hora local (lib/fechas.js): con new Date("2026-09-13")
+// el navegador la tomaba en UTC y en Argentina salía el día anterior. La
+// portada mostraba 13/09 y acá "12 sept 2026" para la misma novedad.
+const fmtDate = (v) => fechaLarga(v);
 
 // colores por tag (según ejemplos: release, acuerdo, aviso)
 const TAG_STYLE = {

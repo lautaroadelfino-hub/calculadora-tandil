@@ -602,6 +602,9 @@ export default function ConveniosTab({ onConveniosChanged }) {
                   <select value={r.condicion} onChange={(e) => setRet(i, "condicion", e.target.value)} className={inp}>
                     {CONDICIONES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                   </select>
+                  <select value={r.rubro || "sindical"} onChange={(e) => setRet(i, "rubro", e.target.value)} className={inp} title="Rubro del costo laboral en el que cae">
+                    {RUBROS_DEL_COSTO_LABORAL.map((x) => <option key={x.id} value={x.id}>Rubro: {x.label}</option>)}
+                  </select>
                 </div>
               </div>
             ))}

@@ -7,7 +7,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-20 text-white shadow bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600">
+    <header className="sticky top-0 z-20 text-white shadow bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 print:hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         {/* Barra superior */}
         <div className="flex items-center gap-4 py-4 sm:py-5 min-h-[80px] sm:min-h-[96px]">
