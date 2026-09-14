@@ -59,5 +59,8 @@
       "viewport": "760x560"
     }
   },
-  "readmeHeader": ".design-sync/conventions.md"
+  "readmeHeader": ".design-sync/conventions.md",
+  "libOverrides": {
+    "dts.mjs": "jsdocFor: \\w sin bandera u borraba las letras acentuadas del índice del README"
+  }
 }

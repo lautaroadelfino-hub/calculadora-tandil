@@ -12,6 +12,8 @@
 - La primera sincronización se completó el 13/9/2026 por la vía incremental (proyecto nuevo y vacío): 83 archivos, 15 piezas con vista previa calificada `good`, `_ds_sync.json` subido al final como ancla. A partir de acá toda re-sincronización va por la vía atómica (proyecto pinneado en `config.json`).
 - Vía única de re-sync: `cp -r` de los scripts staged, `npm run build --prefix design` si cambió `design/src`, bajar `_ds_sync.json` del proyecto a `.design-sync/.cache/remote-sync.json` y correr el driver `resync.mjs --remote` desde la raíz; subir sólo si `upload.any` es true.
 
+- `.design-sync/overrides/dts.mjs` es un fork declarado en `cfg.libOverrides`: sólo reemplaza `jsdocFor`, porque el original limpia la descripción con `\w` sin la bandera `u` y borraba las letras acentuadas del índice del README ("Botn", "ttulo"), que es lo que la pestaña del sistema de diseño muestra como descripción de cada pieza. No importa `ts-morph` (usa `getKindName()`), así que no hace falta el symlink `.design-sync/node_modules`. Agregar el fork movió el contrato de calificación una sola vez (los 15 se recalificaron con la misma imagen); si un release del skill corrige el regex, borrar el fork y la entrada de config, y esperar otra recalificación completa.
+
 ## Known render warns
 
 - Ninguno pendiente: la validación final salió sin warns.
