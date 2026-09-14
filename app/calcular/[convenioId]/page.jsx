@@ -11,6 +11,7 @@ import { TIPOS_DE_LINEA } from "@/lib/vocabularioConvenios";
 import { regimenPredeterminado } from "@/lib/contribucionesForm";
 import { normalizarEntradas, etiquetaDeCampo } from "@/lib/validacionEntradas";
 import { explicarLinea } from "@/lib/explicarLinea";
+import ReportModal from "@/components/ReportModal";
 
 export const runtime = 'edge';
 
@@ -41,6 +42,8 @@ const money = (n) =>
 /** 0.1077 -> "10,77%" */
 const pct = (fraccion) =>
   (Number(fraccion || 0) * 100).toLocaleString("es-AR", { maximumFractionDigits: 2 }) + "%";
+
+const MESES_DEL_AÑO = 12;
 
 /** 36.5 -> "36,5" */
 const num = (n) => Number(n || 0).toLocaleString("es-AR", { maximumFractionDigits: 2 });
@@ -73,6 +76,22 @@ export default function CalculadoraDinamica() {
   const [errores, setErrores] = useState({});
   const [errorCalculo, setErrorCalculo] = useState(null);
   const formRef = useRef(null);
+  // En el celular, los bloques del empleador y de Ganancias arrancan plegados:
+  // son ocho campos con valores por defecto razonables que estaban entre la
+  // persona y el botón de calcular (tres pantallas de scroll). En escritorio
+  // quedan abiertos.
+  const [empleadorAbierto, setEmpleadorAbierto] = useState(true);
+  const [familiaAbierta, setFamiliaAbierta] = useState(true);
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 640) {
+      setEmpleadorAbierto(false);
+      setFamiliaAbierta(false);
+    }
+  }, []);
+  // El reporte de errores también se puede abrir desde acá, con el cálculo a
+  // mano: antes había que volver a la portada y ya se había perdido.
+  const [showReport, setShowReport] = useState(false);
+  const reportBtnRef = useRef(null);
   // De qué período salieron las tablas de Ganancias que se usaron. Si no
   // coincide con el mes liquidado hay que decirlo: la escala del impuesto
   // cambia por semestre, así que usar la de otro semestre da un número que
@@ -311,7 +330,7 @@ export default function CalculadoraDinamica() {
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-6 items-start">
 
           {/* PANEL IZQUIERDO: Formulario */}
-          <form ref={formRef} onSubmit={simularLiquidacion} noValidate className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <form ref={formRef} onSubmit={simularLiquidacion} noValidate className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-clip">
 
             <div className="bg-emerald-50/60 border-b border-emerald-100 px-5 py-4">
               <label htmlFor="periodo" className="block text-xs font-bold uppercase tracking-wide text-emerald-900 mb-1.5">
@@ -342,9 +361,14 @@ export default function CalculadoraDinamica() {
                         de la planilla), no alfabético: "de cuarta" antes que "de
                         primera" y 110 toneladas antes que 20 no ayudaban a nadie. */}
                     {input.tipo === "select" && (
-                      <select id={input.id} name={input.id} value={valoresUsuario[input.id] ?? ""} onChange={handleChange} className={claseCampo(input.id, "w-full")}>
-                        {input.opciones.map(op => <option key={op} value={op}>{op}</option>)}
-                      </select>
+                      <>
+                        <select id={input.id} name={input.id} value={valoresUsuario[input.id] ?? ""} onChange={handleChange} className={claseCampo(input.id, "w-full")}>
+                          {input.opciones.map(op => <option key={op} value={op}>{op}</option>)}
+                        </select>
+                        {String(valoresUsuario[input.id] || "").length > 28 && (
+                          <span className="sm:hidden text-[11px] text-slate-500 mt-1">Elegida: {valoresUsuario[input.id]}</span>
+                        )}
+                      </>
                     )}
                     {input.tipo === "number" && campoNumero(input.id)}
                     {input.tipo === "boolean" && (
@@ -387,8 +411,11 @@ export default function CalculadoraDinamica() {
               </div>
 
               {/* LO QUE PAGA EL EMPLEADOR (art. 140 inc. j) LCT) */}
-              <div className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-3">
-                <h2 className="text-xs font-bold uppercase tracking-wide text-indigo-700">Lo que paga el empleador</h2>
+              <details open={empleadorAbierto} onToggle={(e) => setEmpleadorAbierto(e.currentTarget.open)} className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-3">
+                <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
+                  <h2 className="text-xs font-bold uppercase tracking-wide text-indigo-700">Lo que paga el empleador</h2>
+                  <span className="text-[11px] text-indigo-700">{empleadorAbierto ? "Ocultar" : "Ver · ya tiene valores por defecto"}</span>
+                </summary>
                 <p className="text-[11px] text-slate-500 -mt-1">
                   Desde el 01/06/2026 el recibo muestra las contribuciones del empleador. Se calculan solas
                   con la tabla del mes; acá van los dos datos que dependen de cada empleador.
@@ -440,11 +467,14 @@ export default function CalculadoraDinamica() {
                   </label>
                   <div className="flex flex-col items-end">{campoNumero("art_suma_fija", "w-24 text-center")}{mensajeError("art_suma_fija")}</div>
                 </div>
-              </div>
+              </details>
 
               {/* SITUACIÓN FAMILIAR (afecta el Impuesto a las Ganancias) */}
-              <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
-                <h2 className="text-xs font-bold uppercase tracking-wide text-slate-400">Cargas de familia</h2>
+              <details open={familiaAbierta} onToggle={(e) => setFamiliaAbierta(e.currentTarget.open)} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
+                <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
+                  <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Cargas de familia</h2>
+                  <span className="text-[11px] text-slate-500">{familiaAbierta ? "Ocultar" : "Ver · sólo para Ganancias"}</span>
+                </summary>
                 <p className="text-[11px] text-slate-500 -mt-1">
                   Solo influyen si el sueldo llega al Impuesto a las Ganancias. Si corresponde, se calcula solo.
                 </p>
@@ -472,7 +502,7 @@ export default function CalculadoraDinamica() {
                   </label>
                   <div className="flex flex-col items-end">{campoNumero("hijos_incapacitados", "w-24 text-center")}{mensajeError("hijos_incapacitados")}</div>
                 </div>
-              </div>
+              </details>
 
               {(hayErrores || errorCalculo) && (
                 <div role="alert" className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
@@ -496,9 +526,13 @@ export default function CalculadoraDinamica() {
                 </div>
               )}
 
-              <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all text-base">
-                Calcular liquidación
-              </button>
+              {/* En el celular el botón queda pegado abajo mientras se completa el
+                  formulario: antes había que bajar tres pantallas para encontrarlo. */}
+              <div className="sticky bottom-2 sm:static z-10 -mx-1 px-1 py-1 sm:m-0 sm:p-0 rounded-xl bg-white/90 backdrop-blur">
+                <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all text-base">
+                  Calcular liquidación
+                </button>
+              </div>
             </div>
           </form>
 
@@ -535,6 +569,35 @@ export default function CalculadoraDinamica() {
 
               <div className={`p-5 space-y-5 ${desactualizado ? "opacity-50" : ""}`}>
 
+                {/* 0. Resumen: los dos números que cada uno vino a buscar, arriba de
+                    todo. El empleado tardaba tres pantallas en llegar al neto y el
+                    primer número grande era el costo del empleador; el empleador,
+                    al revés, no encontraba destacado el costo total. El detalle
+                    sigue abajo, en el orden que manda el Decreto 407/2026. */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="rounded-xl bg-emerald-600 text-white px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100">Neto a cobrar</div>
+                    <div className="text-2xl font-black tabular-nums leading-tight">{money(resultadoLiquidacion.totales.neto)}</div>
+                    <div className="text-[11px] text-emerald-100">Lo que recibe el trabajador</div>
+                  </div>
+                  <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Bruto + no remunerativo</div>
+                    <div className="text-lg font-bold tabular-nums text-slate-800 leading-tight">
+                      {money(resultadoLiquidacion.totales.bruto + resultadoLiquidacion.totales.noRemunerativo)}
+                    </div>
+                    <div className="text-[11px] text-slate-500">Antes de los descuentos</div>
+                  </div>
+                  <div className="rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3">
+                    <div className="text-[11px] font-semibold uppercase tracking-wide text-indigo-700">Costo laboral total</div>
+                    <div className="text-lg font-bold tabular-nums text-indigo-900 leading-tight">{empleador ? money(empleador.costoLaboral) : "—"}</div>
+                    <div className="text-[11px] text-indigo-700">
+                      {empleador
+                        ? `Lo que paga el empleador por mes. Al año, unos ${money(empleador.costoLaboral * (entradasUsadas?.incluir_sac ? MESES_DEL_AÑO : MESES_DEL_AÑO + 1))} (${entradasUsadas?.incluir_sac ? "12 meses como este" : "12 meses más el aguinaldo"}).`
+                        : "Sin tabla de contribuciones para este período."}
+                    </div>
+                  </div>
+                </div>
+
                 {/* 1. Datos */}
                 <section className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-[12px] text-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                   <span><span className="font-semibold text-slate-500">Convenio:</span> {convenio.nombre} · CCT {convenio.cct}</span>
@@ -560,7 +623,7 @@ export default function CalculadoraDinamica() {
                   <h3 className="text-xs font-bold uppercase tracking-wide text-indigo-700 border-b border-slate-100 pb-1.5 mb-2">Contribuciones a cargo del empleador</h3>
                   {empleador ? (
                     <>
-                      <div className="overflow-x-auto">
+                      <div className="hidden sm:block overflow-x-auto">
                         <table className="w-full text-[12px]">
                           <thead>
                             <tr className="text-[10px] uppercase text-slate-400">
@@ -587,6 +650,22 @@ export default function CalculadoraDinamica() {
                           </tbody>
                         </table>
                       </div>
+                      {/* En angosto, la tabla de cuatro columnas escondía los importes
+                          fuera de pantalla: acá va como lista, concepto e importe juntos. */}
+                      <ul className="sm:hidden space-y-1.5">
+                        {contribuciones.map((l, i) => (
+                          <li key={i} className={`rounded-lg border border-slate-200 px-3 py-2 text-[12px] ${l.pendiente ? "text-amber-700" : "text-slate-700"}`}>
+                            <div className="flex justify-between gap-2">
+                              <span className="font-medium">{l.concepto}</span>
+                              <span className="tabular-nums whitespace-nowrap font-semibold">{money(l.monto)}</span>
+                            </div>
+                            <div className="text-[11px] text-slate-500">
+                              {l.unidad === "porcentaje" ? (l.alicuota != null ? pct(l.alicuota) : "sin dato") : "suma fija"}
+                              {l.base != null ? ` sobre ${money(l.base)} (${l.baseLabel})` : ""}
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
                       <div className="mt-2 rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2 space-y-1 text-sm">
                         <div className="flex justify-between text-indigo-900">
                           <span>Subtotal contribuciones</span>
@@ -848,9 +927,17 @@ export default function CalculadoraDinamica() {
                   </section>
                 )}
 
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-slate-500">
                   Simulación orientativa según escalas vigentes cargadas. No reemplaza el recibo oficial emitido por el empleador.
                 </p>
+                <button
+                  ref={reportBtnRef}
+                  type="button"
+                  onClick={() => setShowReport(true)}
+                  className="text-[12px] font-medium text-slate-600 underline underline-offset-2 hover:text-slate-900"
+                >
+                  ¿Algo no cuadra? Reportá un error o una sugerencia
+                </button>
               </div>
             </div>
           ) : (
@@ -864,6 +951,22 @@ export default function CalculadoraDinamica() {
           )}
 
         </div>
+
+        <ReportModal
+          open={showReport}
+          onClose={() => setShowReport(false)}
+          triggerRef={reportBtnRef}
+          context={{
+            titulo: `Calculadora ${convenio.nombre}`,
+            convenio: `${convenio.nombre} (CCT ${convenio.cct})`,
+            mes: periodoUsado || periodoSeleccionado,
+            categoria: entradasUsadas?.categoria,
+            aniosAntiguedad: entradasUsadas?.antiguedad_años,
+            horas50: entradasUsadas?.horas_extras_50,
+            horas100: entradasUsadas?.horas_extras_100,
+            r: resultadoLiquidacion ? { neto: resultadoLiquidacion.totales.neto, bruto: resultadoLiquidacion.totales.bruto } : undefined,
+          }}
+        />
       </div>
     </div>
   );

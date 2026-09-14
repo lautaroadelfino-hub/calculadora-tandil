@@ -1,5 +1,35 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+
+// Lo que se manda como contexto, con nombre legible. Sólo lo que tiene valor:
+// antes la vista previa mostraba "{}" en la portada, que es jerga y encima
+// contradecía el texto de arriba ("incluimos contexto técnico").
+const NOMBRES_DEL_CONTEXTO = {
+  titulo: "Pantalla",
+  sector: "Sector",
+  convenio: "Convenio",
+  subRegimen: "Subrégimen",
+  mes: "Período",
+  categoria: "Categoría",
+  regimen: "Régimen",
+  aniosAntiguedad: "Antigüedad (años)",
+  funcion: "Función",
+  horas50: "Horas extras al 50%",
+  horas100: "Horas extras al 100%",
+  descuentosExtras: "Descuentos extra",
+  noRemunerativo: "No remunerativo",
+  r: "Resultado",
+};
+function contextoLegible(context) {
+  const filas = [];
+  for (const [clave, nombre] of Object.entries(NOMBRES_DEL_CONTEXTO)) {
+    const valor = context?.[clave];
+    if (valor === undefined || valor === null || valor === "") continue;
+    filas.push([nombre, typeof valor === "object" ? JSON.stringify(valor) : String(valor)]);
+  }
+  return filas;
+}
 
 export default function ReportModal({ open, onClose, triggerRef, context }) {
   const [email, setEmail] = useState("");
@@ -84,26 +114,8 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
       const payload = {
         email: email || undefined,
         descripcion,
-        contexto: JSON.stringify(
-          {
-            sector: context?.sector,
-            convenio: context?.convenio,
-            subRegimen: context?.subRegimen,
-            mes: context?.mes,
-            categoria: context?.categoria,
-            regimen: context?.regimen,
-            aniosAntiguedad: context?.aniosAntiguedad,
-            titulo: context?.titulo,
-            funcion: context?.funcion,
-            horas50: context?.horas50,
-            horas100: context?.horas100,
-            descuentosExtras: context?.descuentosExtras,
-            noRemunerativo: context?.noRemunerativo,
-            resultado: context?.r,
-          },
-          null,
-          2
-        ),
+        pagina: typeof window !== "undefined" ? window.location.href : undefined,
+        contexto: contextoLegible(context).map(([k, v]) => `${k}: ${v}`).join("\n") || "(sin contexto)",
       };
 
       const res = await fetch("https://formspree.io/f/manaynzy", {
@@ -136,8 +148,14 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
   };
 
   if (!open) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
+  const filas = contextoLegible(context);
+
+  // Se dibuja en document.body, fuera de <main>: adentro quedaba atrapado en el
+  // contexto de apilamiento de la página y la barra verde de arriba se le
+  // ponía encima, tapando el título y la ✕ (lo vio la persona del celular).
+  return createPortal(
     <div
       ref={backdropRef}
       onMouseDown={onBackdropClick}
@@ -146,7 +164,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
       aria-labelledby="report-title"
       aria-describedby="report-desc"
       data-flotante=""
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
     >
       <div
         ref={panelRef}
@@ -159,7 +177,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
               Reportar error / sugerencia
             </h2>
             <p id="report-desc" className="text-sm text-slate-500 mt-1">
-              Contanos qué no funcionó o qué te gustaría mejorar. Incluimos contexto técnico para ayudarte más rápido.
+              Contanos qué no funcionó o qué te gustaría mejorar.{filas.length > 0 ? " Va junto con los datos de la cuenta que tenés en pantalla." : ""}
             </p>
           </div>
           <button
@@ -192,39 +210,29 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               className="mt-1 w-full rounded-lg border px-3 py-2 outline-none border-slate-200 focus:ring-2 focus:ring-blue-500 min-h-[120px]"
-              placeholder="Ej: El presentismo de SISP en 2025-10 categoría 8 no coincide..."
+              placeholder="Ej: la antigüedad de Vendedor B con 5 años no coincide con mi recibo de agosto 2026, o me falta el convenio de..."
               required
             />
           </label>
 
-          {/* Contexto como vista previa (solo lectura) */}
-          <details className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-            <summary className="cursor-pointer select-none font-medium text-slate-700">
-              Ver contexto técnico que se enviará
-            </summary>
-            <pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs">
-{JSON.stringify(
-  {
-    sector: context?.sector,
-    convenio: context?.convenio,
-    subRegimen: context?.subRegimen,
-    mes: context?.mes,
-    categoria: context?.categoria,
-    regimen: context?.regimen,
-    aniosAntiguedad: context?.aniosAntiguedad,
-    titulo: context?.titulo,
-    funcion: context?.funcion,
-    horas50: context?.horas50,
-    horas100: context?.horas100,
-    descuentosExtras: context?.descuentosExtras,
-    noRemunerativo: context?.noRemunerativo,
-    resultado: context?.r,
-  },
-  null,
-  2
-)}
-            </pre>
-          </details>
+          {/* Lo que viaja con el reporte, legible. Si no hay nada, se dice. */}
+          {filas.length > 0 ? (
+            <details className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+              <summary className="cursor-pointer select-none font-medium text-slate-700">
+                Ver los datos que se envían con el reporte
+              </summary>
+              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+                {filas.map(([k, v]) => (
+                  <React.Fragment key={k}>
+                    <dt className="font-medium text-slate-500">{k}</dt>
+                    <dd className="text-slate-700 [overflow-wrap:anywhere]">{v}</dd>
+                  </React.Fragment>
+                ))}
+              </dl>
+            </details>
+          ) : (
+            <p className="text-xs text-slate-500">Desde esta pantalla no se envía información técnica: sólo tu mensaje y, si lo ponés, tu email.</p>
+          )}
 
           {msg && (
             <p
@@ -255,6 +263,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

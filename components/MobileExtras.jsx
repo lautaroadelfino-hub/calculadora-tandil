@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import SideRailLeft from "./SideRailLeft";
 // Acá había un `import SideRailRight from "./AppShell"`. El archivo
 // SideRailRight.jsx se borró en noviembre de 2025 y alguien reapuntó el
@@ -18,9 +19,12 @@ export default function MobileExtras({ open, onClose, onReport }) {
   }, [open, onClose]);
 
   if (!open) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
-    <div data-flotante="" className="fixed inset-0 z-50 xl:hidden">
+  // En document.body, como el modal de reporte: adentro de <main> la barra de
+  // arriba se le ponía encima.
+  return createPortal(
+    <div data-flotante="" className="fixed inset-0 z-[60] xl:hidden">
       {/* backdrop */}
       <button
         aria-label="Cerrar"
@@ -60,6 +64,7 @@ export default function MobileExtras({ open, onClose, onReport }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
