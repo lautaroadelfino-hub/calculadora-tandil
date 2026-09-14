@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -9,6 +9,7 @@ import { valoresIniciales } from "@/lib/inputsIniciales";
 import { elegirPeriodo, nombreDePeriodo } from "@/lib/periodos";
 import { TIPOS_DE_LINEA } from "@/lib/vocabularioConvenios";
 import { regimenPredeterminado } from "@/lib/contribucionesForm";
+import { normalizarEntradas, etiquetaDeCampo } from "@/lib/validacionEntradas";
 
 export const runtime = 'edge';
 
@@ -55,6 +56,13 @@ export default function CalculadoraDinamica() {
   // Con qué datos se armó el recibo que está en pantalla. Se guardan aparte
   // porque la persona puede seguir tocando el formulario después de calcular.
   const [entradasUsadas, setEntradasUsadas] = useState(null);
+  const [periodoUsado, setPeriodoUsado] = useState("");
+  // Errores de carga, por campo, y el error del cálculo si lo hubo. Antes eran
+  // alert(): cuadros que congelaban la página y no decían qué campo era; y el
+  // navegador frenaba solo, sin mensaje, un 36,5 en horas semanales.
+  const [errores, setErrores] = useState({});
+  const [errorCalculo, setErrorCalculo] = useState(null);
+  const formRef = useRef(null);
   // De qué período salieron las tablas de Ganancias que se usaron. Si no
   // coincide con el mes liquidado hay que decirlo: la escala del impuesto
   // cambia por semestre, así que usar la de otro semestre da un número que
@@ -154,19 +162,30 @@ export default function CalculadoraDinamica() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setValoresUsuario(prev => ({
-      ...prev,
-      // Un número borrado queda vacío, no cero: para la ART, vacío significa
-      // "no la sé" (el recibo lo avisa) y cero significa cero.
-      [name]: type === "checkbox" ? checked : (type === "number" ? (value === "" ? "" : Number(value)) : value)
-    }));
+    // Los numéricos se guardan tal como se escriben ("36,5") y se convierten
+    // al calcular, con normalizarEntradas: así coma y punto valen igual y un
+    // valor inválido se explica en vez de dejar el botón mudo. Un número
+    // borrado queda vacío: para la ART, vacío significa "no la sé".
+    setValoresUsuario((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+    setErrores((prev) => {
+      if (!prev[name]) return prev;
+      const sinEste = { ...prev };
+      delete sinEste[name];
+      return sinEste;
+    });
   };
 
   const simularLiquidacion = async (e) => {
     e.preventDefault();
+    setErrorCalculo(null);
 
-    if (!periodoSeleccionado) {
-      alert("Por favor, seleccioná un período de liquidación.");
+    // Primero se revisa lo cargado. Si algo no sirve, se dice cuál campo y por
+    // qué, y el foco va al primero: nunca más un botón que no hace nada.
+    const revision = normalizarEntradas(convenio, valoresUsuario, periodoSeleccionado);
+    setErrores(revision.errores);
+    if (revision.hayErrores) {
+      const primero = Object.keys(revision.errores)[0];
+      document.getElementById(primero)?.focus();
       return;
     }
 
@@ -176,7 +195,7 @@ export default function CalculadoraDinamica() {
       const escalaSnap = await getDoc(escalaRef);
 
       if (!escalaSnap.exists()) {
-        alert("No se encontraron los montos para este mes.");
+        setErrorCalculo(`No están cargados los importes de ${nombreDePeriodo(periodoSeleccionado)} para este convenio. Elegí otro período.`);
         return;
       }
 
@@ -193,7 +212,7 @@ export default function CalculadoraDinamica() {
       }
 
       // Enviamos las reglas, los montos y lo que cargó el usuario a nuestro Motor ciego
-      const reciboArmado = procesarRecibo(convenio, escalaSnap.data(), valoresUsuario, paramsGanancias, {
+      const reciboArmado = procesarRecibo(convenio, escalaSnap.data(), revision.valores, paramsGanancias, {
         periodo: periodoSeleccionado,
         // null y no undefined: la pantalla la buscó. Si no hay, el motor avisa.
         tablaContribuciones: tablaContribuciones === undefined ? null : tablaContribuciones,
@@ -201,13 +220,14 @@ export default function CalculadoraDinamica() {
       });
       setResultadoLiquidacion(reciboArmado);
       setEntradasUsadas({ ...valoresUsuario });
+      setPeriodoUsado(periodoSeleccionado);
 
     } catch (error) {
-      alert(error.message);
+      setErrorCalculo(error.message);
     }
   };
 
-  if (cargando) return <div className="p-10 text-center mt-20 text-gray-500 font-medium animate-pulse">Conectando con la base de datos...</div>;
+  if (cargando) return <div className="p-10 text-center mt-20 text-gray-500 font-medium animate-pulse">Cargando las escalas del convenio…</div>;
   if (!convenio) return <div className="p-10 text-center mt-20 text-red-500 font-bold">Convenio no encontrado.</div>;
 
   const inputBase =
@@ -225,8 +245,39 @@ export default function CalculadoraDinamica() {
   const desconocidas = lineas.filter((l) => !TIPOS_DE_LINEA.includes(l.tipo));
   const empleador = resultadoLiquidacion?.costoEmpleador || null;
   const metodo = resultadoLiquidacion?.metodo || null;
-  const periodoNombre = periodosDisponibles.find((p) => p.id === periodoSeleccionado)?.nombre || "";
   const artTipicaDelConvenio = convenio.reglas_calculo?.art?.alicuota_tipica;
+  // El recibo dice el período CON EL QUE SE CALCULÓ, no el que está elegido
+  // ahora en el desplegable: antes el título cambiaba de mes y los importes no.
+  const periodoUsadoNombre = periodosDisponibles.find((p) => p.id === periodoUsado)?.nombre || nombreDePeriodo(periodoUsado);
+  // ¿La persona tocó algo después de calcular? Entonces el recibo en pantalla
+  // ya no corresponde a lo que dice el formulario, y hay que decirlo.
+  const desactualizado =
+    Boolean(resultadoLiquidacion) &&
+    (periodoUsado !== periodoSeleccionado ||
+      Object.keys({ ...(entradasUsadas || {}), ...valoresUsuario }).some(
+        (k) => String(entradasUsadas?.[k] ?? "") !== String(valoresUsuario[k] ?? "")
+      ));
+  const hayErrores = Object.keys(errores).length > 0;
+  const claseCampo = (id, extra = "") =>
+    `${inputBase} ${extra} ${errores[id] ? "border-rose-400 bg-rose-50 focus:border-rose-500 focus:ring-rose-100" : ""}`;
+  const mensajeError = (id) =>
+    errores[id] ? <span id={`${id}-error`} className="text-[11px] text-rose-700 mt-1">{errores[id]}</span> : null;
+  // Un campo numérico es un campo de texto con teclado decimal: acepta "36,5"
+  // y "36.5", y no deja que el navegador frene el envío sin explicar por qué.
+  const campoNumero = (id, extra = "w-full") => (
+    <input
+      id={id}
+      type="text"
+      inputMode="decimal"
+      autoComplete="off"
+      name={id}
+      value={valoresUsuario[id] ?? ""}
+      onChange={handleChange}
+      aria-invalid={errores[id] ? "true" : undefined}
+      aria-describedby={errores[id] ? `${id}-error` : undefined}
+      className={claseCampo(id, extra)}
+    />
+  );
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-slate-100 via-slate-50 to-white">
@@ -245,21 +296,23 @@ export default function CalculadoraDinamica() {
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-6 items-start">
 
           {/* PANEL IZQUIERDO: Formulario */}
-          <form onSubmit={simularLiquidacion} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <form ref={formRef} onSubmit={simularLiquidacion} noValidate className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
 
             <div className="bg-emerald-50/60 border-b border-emerald-100 px-5 py-4">
-              <label className="block text-xs font-bold uppercase tracking-wide text-emerald-900 mb-1.5">
+              <label htmlFor="periodo" className="block text-xs font-bold uppercase tracking-wide text-emerald-900 mb-1.5">
                 Período a liquidar
               </label>
               <select
+                id="periodo"
                 value={periodoSeleccionado}
-                onChange={(e) => setPeriodoSeleccionado(e.target.value)}
-                className={`${inputBase} w-full font-semibold`}
+                onChange={(e) => { setPeriodoSeleccionado(e.target.value); setErrores((prev) => { const { periodo, ...resto } = prev; return resto; }); }}
+                className={claseCampo("periodo", "w-full font-semibold")}
               >
                 {periodosDisponibles.map(per => (
                   <option key={per.id} value={per.id}>{per.nombre}</option>
                 ))}
               </select>
+              {mensajeError("periodo")}
             </div>
 
             <div className="p-5 space-y-4">
@@ -268,22 +321,24 @@ export default function CalculadoraDinamica() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {convenio.inputs_requeridos.map((input) => (
                   <div key={input.id} className={`flex flex-col ${input.tipo === "select" ? "sm:col-span-2" : ""}`}>
-                    <label className="text-sm font-medium text-slate-700 mb-1.5">{input.label}</label>
+                    <label htmlFor={input.id} className="text-sm font-medium text-slate-700 mb-1.5">{input.label}</label>
 
+                    {/* Las opciones van en el orden en que las cargó el convenio (el
+                        de la planilla), no alfabético: "de cuarta" antes que "de
+                        primera" y 110 toneladas antes que 20 no ayudaban a nadie. */}
                     {input.tipo === "select" && (
-                      <select name={input.id} value={valoresUsuario[input.id] ?? ""} onChange={handleChange} className={`${inputBase} w-full`}>
-                        {[...input.opciones].sort((a, b) => a.localeCompare(b)).map(op => <option key={op} value={op}>{op}</option>)}
+                      <select id={input.id} name={input.id} value={valoresUsuario[input.id] ?? ""} onChange={handleChange} className={claseCampo(input.id, "w-full")}>
+                        {input.opciones.map(op => <option key={op} value={op}>{op}</option>)}
                       </select>
                     )}
-                    {input.tipo === "number" && (
-                      <input type="number" name={input.id} min="0" value={valoresUsuario[input.id] ?? ""} onChange={handleChange} className={`${inputBase} w-full`} />
-                    )}
+                    {input.tipo === "number" && campoNumero(input.id)}
                     {input.tipo === "boolean" && (
-                      <label className="flex items-center gap-2.5 cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 hover:border-emerald-300 transition-colors">
-                        <input type="checkbox" name={input.id} checked={valoresUsuario[input.id] ?? false} onChange={handleChange} className="h-4 w-4 accent-emerald-600 cursor-pointer" />
-                        <span className="text-sm text-slate-700">Sí, aplicar</span>
-                      </label>
+                      <span className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 hover:border-emerald-300 transition-colors">
+                        <input id={input.id} type="checkbox" name={input.id} checked={valoresUsuario[input.id] ?? false} onChange={handleChange} className="h-4 w-4 accent-emerald-600 cursor-pointer" />
+                        <label htmlFor={input.id} className="text-sm text-slate-700 cursor-pointer">Sí, aplicar</label>
+                      </span>
                     )}
+                    {mensajeError(input.id)}
                   </div>
                 ))}
               </div>
@@ -306,16 +361,12 @@ export default function CalculadoraDinamica() {
                   </span>
                 </label>
 
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-slate-700">Días de vacaciones (plus vacacional)</label>
-                  <input
-                    type="number"
-                    name="dias_vacaciones"
-                    min="0"
-                    value={valoresUsuario.dias_vacaciones ?? 0}
-                    onChange={handleChange}
-                    className={`${inputBase} w-24 text-center`}
-                  />
+                <div className="flex items-start justify-between gap-3">
+                  <label htmlFor="dias_vacaciones" className="text-sm text-slate-700 pt-2">
+                    Días de vacaciones (plus vacacional)
+                    <span className="block text-[11px] text-slate-500">Si este mes no se tomó vacaciones, dejá 0.</span>
+                  </label>
+                  <div className="flex flex-col items-end">{campoNumero("dias_vacaciones", "w-24 text-center")}{mensajeError("dias_vacaciones")}</div>
                 </div>
 
               </div>
@@ -330,14 +381,15 @@ export default function CalculadoraDinamica() {
 
                 {tablaContribuciones === null && (
                   <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
-                    No hay tabla de contribuciones cargada para {nombreDePeriodo(periodoSeleccionado)}: el recibo
-                    va a salir sin la sección del empleador. Se carga en /admin → Contribuciones.
+                    Para {nombreDePeriodo(periodoSeleccionado)} todavía no hay tabla de contribuciones cargada:
+                    el recibo va a salir sin la sección del empleador.
                   </p>
                 )}
 
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-sm text-slate-700">Régimen de contribuciones</label>
+                  <label htmlFor="regimen_contribuciones" className="text-sm text-slate-700">Régimen de contribuciones</label>
                   <select
+                    id="regimen_contribuciones"
                     name="regimen_contribuciones"
                     value={valoresUsuario.regimen_contribuciones ?? ""}
                     onChange={handleChange}
@@ -353,8 +405,8 @@ export default function CalculadoraDinamica() {
                   <span className="text-[11px] text-slate-400">Si no sabés, dejá el que está: es el de la mayoría de los empleadores.</span>
                 </div>
 
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-slate-700">
+                <div className="flex items-start justify-between gap-3">
+                  <label htmlFor="art_alicuota" className="text-sm text-slate-700">
                     Alícuota de ART
                     <span className="block text-[11px] text-slate-400">
                       La de tu póliza, en %.{" "}
@@ -363,30 +415,15 @@ export default function CalculadoraDinamica() {
                         : "El convenio no tiene una típica cargada."}
                     </span>
                   </label>
-                  <input
-                    type="number"
-                    name="art_alicuota"
-                    min="0"
-                    step="0.01"
-                    value={valoresUsuario.art_alicuota ?? ""}
-                    onChange={handleChange}
-                    className={`${inputBase} w-24 text-center`}
-                  />
+                  <div className="flex flex-col items-end">{campoNumero("art_alicuota", "w-24 text-center")}{mensajeError("art_alicuota")}</div>
                 </div>
 
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-slate-700">
+                <div className="flex items-start justify-between gap-3">
+                  <label htmlFor="art_suma_fija" className="text-sm text-slate-700">
                     Cuota fija de la ART
                     <span className="block text-[11px] text-slate-400">Por trabajador y por mes, si tu póliza la tiene.</span>
                   </label>
-                  <input
-                    type="number"
-                    name="art_suma_fija"
-                    min="0"
-                    value={valoresUsuario.art_suma_fija ?? 0}
-                    onChange={handleChange}
-                    className={`${inputBase} w-24 text-center`}
-                  />
+                  <div className="flex flex-col items-end">{campoNumero("art_suma_fija", "w-24 text-center")}{mensajeError("art_suma_fija")}</div>
                 </div>
               </div>
 
@@ -407,34 +444,42 @@ export default function CalculadoraDinamica() {
                   />
                   Cónyuge / conviviente a cargo
                 </label>
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-slate-700">Hijos a cargo</label>
-                  <input
-                    type="number"
-                    name="hijos"
-                    min="0"
-                    value={valoresUsuario.hijos ?? 0}
-                    onChange={handleChange}
-                    className={`${inputBase} w-24 text-center`}
-                  />
+                <div className="flex items-start justify-between gap-3">
+                  <label htmlFor="hijos" className="text-sm text-slate-700 pt-2">Hijos a cargo</label>
+                  <div className="flex flex-col items-end">{campoNumero("hijos", "w-24 text-center")}{mensajeError("hijos")}</div>
                 </div>
                 {/* El motor ya deducía los hijos con discapacidad (valen el doble en
                     Ganancias), pero la pantalla nunca los pedía: siempre valían 0. */}
-                <div className="flex items-center justify-between gap-3">
-                  <label className="text-sm text-slate-700">
+                <div className="flex items-start justify-between gap-3">
+                  <label htmlFor="hijos_incapacitados" className="text-sm text-slate-700">
                     Hijos con discapacidad
                     <span className="block text-[11px] text-slate-400">Deducen el doble</span>
                   </label>
-                  <input
-                    type="number"
-                    name="hijos_incapacitados"
-                    min="0"
-                    value={valoresUsuario.hijos_incapacitados ?? 0}
-                    onChange={handleChange}
-                    className={`${inputBase} w-24 text-center`}
-                  />
+                  <div className="flex flex-col items-end">{campoNumero("hijos_incapacitados", "w-24 text-center")}{mensajeError("hijos_incapacitados")}</div>
                 </div>
               </div>
+
+              {(hayErrores || errorCalculo) && (
+                <div role="alert" className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+                  {errorCalculo ? (
+                    <p>{errorCalculo}</p>
+                  ) : (
+                    <>
+                      <p className="font-semibold">Revisá estos datos antes de calcular:</p>
+                      <ul className="list-disc pl-4 mt-1 space-y-0.5 text-[13px]">
+                        {Object.entries(errores).map(([id, mensaje]) => (
+                          <li key={id}>
+                            <button type="button" onClick={() => document.getElementById(id)?.focus()} className="font-medium underline underline-offset-2">
+                              {etiquetaDeCampo(convenio, id)}
+                            </button>
+                            : {mensaje}
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
+                </div>
+              )}
 
               <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all text-base">
                 Calcular liquidación
@@ -451,17 +496,34 @@ export default function CalculadoraDinamica() {
               <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="font-bold">Simulación de recibo</h2>
-                  <p className="text-xs text-slate-300 mt-0.5">{convenio.nombre} · {periodoNombre}</p>
+                  <p className="text-xs text-slate-300 mt-0.5">{convenio.nombre} · {periodoUsadoNombre}</p>
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-white/10 rounded-full px-3 py-1">Estimado</span>
               </div>
 
-              <div className="p-5 space-y-5">
+              {/* Si se tocó el formulario después de calcular, el recibo de abajo
+                  es de los datos anteriores. Antes quedaba igual, sin ninguna
+                  marca, y se leía como si correspondiera a lo que decían los
+                  campos: el error más fácil de cometer en toda la pantalla. */}
+              {desactualizado && (
+                <div role="status" className="bg-amber-50 border-b border-amber-300 px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-sm text-amber-900">
+                  <span><b>Cambiaste datos.</b> Este recibo es de los datos anteriores.</span>
+                  <button
+                    type="button"
+                    onClick={() => formRef.current?.requestSubmit()}
+                    className="rounded-lg bg-amber-600 text-white px-3 py-1.5 text-sm font-semibold hover:bg-amber-700"
+                  >
+                    Recalcular
+                  </button>
+                </div>
+              )}
+
+              <div className={`p-5 space-y-5 ${desactualizado ? "opacity-50" : ""}`}>
 
                 {/* 1. Datos */}
                 <section className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-[12px] text-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                   <span><span className="font-semibold text-slate-500">Convenio:</span> {convenio.nombre} · CCT {convenio.cct}</span>
-                  <span><span className="font-semibold text-slate-500">Período:</span> {periodoNombre || nombreDePeriodo(metodo?.periodo)}</span>
+                  <span><span className="font-semibold text-slate-500">Período:</span> {periodoUsadoNombre}</span>
                   <span>
                     <span className="font-semibold text-slate-500">Categoría:</span> {entradasUsadas?.categoria}
                     {entradasUsadas?.zona ? ` · ${entradasUsadas.zona}` : ""}
@@ -541,8 +603,8 @@ export default function CalculadoraDinamica() {
                     </>
                   ) : (
                     <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
-                      Desde el 01/06/2026 el recibo tiene que mostrar las contribuciones del empleador, y para{" "}
-                      {nombreDePeriodo(metodo?.periodo)} no hay tabla cargada. Se carga en /admin → Contribuciones.
+                      Para {nombreDePeriodo(metodo?.periodo)} todavía no hay tabla de contribuciones cargada, así que
+                      este recibo no muestra la sección del empleador.
                     </p>
                   )}
                 </section>
@@ -663,10 +725,10 @@ export default function CalculadoraDinamica() {
 
                 {resultadoLiquidacion.ganancias?.aplica &&
                   periodoGanancias &&
-                  periodoGanancias !== periodoSeleccionado && (
+                  periodoGanancias !== periodoUsado && (
                     <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
                       <b>Ojo:</b> todavía no están cargadas las tablas de Ganancias de{" "}
-                      {nombreDePeriodo(periodoSeleccionado)}. Se usaron las de{" "}
+                      {nombreDePeriodo(periodoUsado)}. Se usaron las de{" "}
                       {nombreDePeriodo(periodoGanancias)}, que pueden ser de otro semestre y dar
                       un impuesto distinto al que corresponde.
                     </p>

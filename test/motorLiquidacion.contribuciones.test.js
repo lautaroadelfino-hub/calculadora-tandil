@@ -100,12 +100,12 @@ describe("cuando no hay tabla", () => {
     expect(r.avisos).toEqual([]);
   });
 
-  it("si la pantalla la buscó y no hay (null), avisa qué cargar y no inventa", () => {
+  it("si la pantalla la buscó y no hay (null), avisa que falta la tabla y no inventa", () => {
     const r = procesarRecibo(comercioConArt, escala, entradas(), null, opciones({ tablaContribuciones: null }));
     expect(contribuciones(r)).toEqual([]);
     expect(r.costoEmpleador).toBeNull();
     expect(r.totales.contribuciones).toBe(0);
-    expect(r.avisos.join(" ")).toMatch(/admin → Contribuciones/);
+    expect(r.avisos.join(" ")).toMatch(/todavía no hay tabla de contribuciones/);
     expect(money(r.totales.neto)).toBe(1166249.7);
   });
 });
