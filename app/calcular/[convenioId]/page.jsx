@@ -92,6 +92,12 @@ export default function CalculadoraDinamica() {
   // mano: antes había que volver a la portada y ya se había perdido.
   const [showReport, setShowReport] = useState(false);
   const reportBtnRef = useRef(null);
+  // Al calcular, el foco va al título del recibo y una región viva lo anuncia:
+  // quien usa lector de pantalla pulsaba Enter y no oía nada.
+  const tituloReciboRef = useRef(null);
+  useEffect(() => {
+    if (resultadoLiquidacion) tituloReciboRef.current?.focus?.();
+  }, [resultadoLiquidacion]);
   // De qué período salieron las tablas de Ganancias que se usaron. Si no
   // coincide con el mes liquidado hay que decirlo: la escala del impuesto
   // cambia por semestre, así que usar la de otro semestre da un número que
@@ -260,7 +266,7 @@ export default function CalculadoraDinamica() {
   if (!convenio) return <div className="p-10 text-center mt-20 text-red-500 font-bold">Convenio no encontrado.</div>;
 
   const inputBase =
-    "border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 bg-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors";
+    "border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 bg-white outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-400 transition-colors";
 
   // Agrupamos las líneas del recibo para mostrarlas como un recibo real.
   const lineas = resultadoLiquidacion?.detalle || [];
@@ -350,7 +356,7 @@ export default function CalculadoraDinamica() {
             </div>
 
             <div className="p-5 space-y-4">
-              <h2 className="text-xs font-bold uppercase tracking-wide text-slate-400">Datos del puesto</h2>
+              <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Datos del puesto</h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {convenio.inputs_requeridos.map((input) => (
@@ -384,7 +390,7 @@ export default function CalculadoraDinamica() {
 
               {/* OPCIONES DE SIMULACIÓN */}
               <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
-                <h2 className="text-xs font-bold uppercase tracking-wide text-slate-400">Opciones de simulación</h2>
+                <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Opciones de simulación</h2>
 
                 <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer">
                   <input
@@ -396,7 +402,7 @@ export default function CalculadoraDinamica() {
                   />
                   <span>
                     Incluir SAC (medio aguinaldo)
-                    <span className="block text-[11px] text-slate-400">También sube las contribuciones del empleador.</span>
+                    <span className="block text-[11px] text-slate-500">También sube las contribuciones del empleador.</span>
                   </span>
                 </label>
 
@@ -444,13 +450,13 @@ export default function CalculadoraDinamica() {
                         <option key={id} value={id}>{r.label}{r.predeterminado ? " · el más común" : ""}</option>
                       ))}
                   </select>
-                  <span className="text-[11px] text-slate-400">Si no sabés, dejá el que está: es el de la mayoría de los empleadores.</span>
+                  <span className="text-[11px] text-slate-500">Si no sabés, dejá el que está: es el de la mayoría de los empleadores.</span>
                 </div>
 
                 <div className="flex items-start justify-between gap-3">
                   <label htmlFor="art_alicuota" className="text-sm text-slate-700">
                     Alícuota de ART
-                    <span className="block text-[11px] text-slate-400">
+                    <span className="block text-[11px] text-slate-500">
                       La de tu póliza, en %.{" "}
                       {artTipicaDelConvenio != null
                         ? `La típica de esta actividad es ${pct(artTipicaDelConvenio)}.`
@@ -463,7 +469,7 @@ export default function CalculadoraDinamica() {
                 <div className="flex items-start justify-between gap-3">
                   <label htmlFor="art_suma_fija" className="text-sm text-slate-700">
                     Cuota fija de la ART
-                    <span className="block text-[11px] text-slate-400">Por trabajador y por mes, si tu póliza la tiene.</span>
+                    <span className="block text-[11px] text-slate-500">Por trabajador y por mes, si tu póliza la tiene.</span>
                   </label>
                   <div className="flex flex-col items-end">{campoNumero("art_suma_fija", "w-24 text-center")}{mensajeError("art_suma_fija")}</div>
                 </div>
@@ -498,7 +504,7 @@ export default function CalculadoraDinamica() {
                 <div className="flex items-start justify-between gap-3">
                   <label htmlFor="hijos_incapacitados" className="text-sm text-slate-700">
                     Hijos con discapacidad
-                    <span className="block text-[11px] text-slate-400">Deducen el doble</span>
+                    <span className="block text-[11px] text-slate-500">Deducen el doble</span>
                   </label>
                   <div className="flex flex-col items-end">{campoNumero("hijos_incapacitados", "w-24 text-center")}{mensajeError("hijos_incapacitados")}</div>
                 </div>
@@ -528,7 +534,7 @@ export default function CalculadoraDinamica() {
 
               {/* En el celular el botón queda pegado abajo mientras se completa el
                   formulario: antes había que bajar tres pantallas para encontrarlo. */}
-              <div className="sticky bottom-2 sm:static z-10 -mx-1 px-1 py-1 sm:m-0 sm:p-0 rounded-xl bg-white/90 backdrop-blur">
+              <div data-flotante="" className="sticky bottom-2 sm:static z-10 -mx-1 px-1 py-1 sm:m-0 sm:p-0 rounded-xl bg-white/90 backdrop-blur">
                 <button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md hover:shadow-lg transition-all text-base">
                   Calcular liquidación
                 </button>
@@ -544,8 +550,11 @@ export default function CalculadoraDinamica() {
 
               <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-bold">Simulación de recibo</h2>
+                  <h2 ref={tituloReciboRef} tabIndex={-1} className="font-bold outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded">Simulación de recibo</h2>
                   <p className="text-xs text-slate-300 mt-0.5">{convenio.nombre} · {periodoUsadoNombre}</p>
+                  <p role="status" aria-live="polite" className="sr-only">
+                    Recibo calculado para {periodoUsadoNombre}. Neto a cobrar {money(resultadoLiquidacion.totales.neto)}.
+                  </p>
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-wider bg-white/10 rounded-full px-3 py-1">Estimado</span>
               </div>
@@ -613,7 +622,7 @@ export default function CalculadoraDinamica() {
                   {empleador && (
                     <span><span className="font-semibold text-slate-500">Régimen:</span> {empleador.regimen.label}</span>
                   )}
-                  <span className="sm:col-span-2 text-[11px] text-slate-400">
+                  <span className="sm:col-span-2 text-[11px] text-slate-500">
                     Un recibo real lleva además CUIT del empleador, CUIL, fecha de ingreso, y fecha y lugar de pago de las cargas sociales.
                   </span>
                 </section>
@@ -626,11 +635,11 @@ export default function CalculadoraDinamica() {
                       <div className="hidden sm:block overflow-x-auto">
                         <table className="w-full text-[12px]">
                           <thead>
-                            <tr className="text-[10px] uppercase text-slate-400">
-                              <th className="text-left font-semibold pb-1">Concepto</th>
-                              <th className="text-right font-semibold pb-1">Base de cálculo</th>
-                              <th className="text-right font-semibold pb-1">Unidad</th>
-                              <th className="text-right font-semibold pb-1">Importe</th>
+                            <tr className="text-[10px] uppercase text-slate-500">
+                              <th scope="col" className="text-left font-semibold pb-1">Concepto</th>
+                              <th scope="col" className="text-right font-semibold pb-1">Base de cálculo</th>
+                              <th scope="col" className="text-right font-semibold pb-1">Unidad</th>
+                              <th scope="col" className="text-right font-semibold pb-1">Importe</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -639,7 +648,7 @@ export default function CalculadoraDinamica() {
                                 <td className="py-0.5 pr-2 align-top">{l.concepto}</td>
                                 <td className="py-0.5 text-right tabular-nums whitespace-nowrap text-slate-500 align-top">
                                   {l.base != null ? money(l.base) : "—"}
-                                  <span className="block text-[10px] text-slate-400">{l.baseLabel}</span>
+                                  <span className="block text-[10px] text-slate-500">{l.baseLabel}</span>
                                 </td>
                                 <td className="py-0.5 pl-2 text-right whitespace-nowrap text-slate-500 align-top">
                                   {l.unidad === "porcentaje" ? (l.alicuota != null ? pct(l.alicuota) : "sin dato") : "suma fija"}
@@ -680,7 +689,7 @@ export default function CalculadoraDinamica() {
                           <span className="tabular-nums">{money(empleador.costoLaboral)}</span>
                         </div>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-1.5">
+                      <p className="text-[11px] text-slate-500 mt-1.5">
                         {empleador.detraccion
                           ? `Detracción Ley 27.541 aplicada: ${money(empleador.detraccion.prorrateada)}` +
                             (empleador.detraccion.prorrateaPorJornada && metodo.jornadaDelPuesto !== metodo.jornadaCompletaSemanal ? " (prorrateada por la jornada)" : "") +
@@ -705,7 +714,7 @@ export default function CalculadoraDinamica() {
 
                 {/* 3. Haberes y deducciones */}
                 <section>
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400 border-b border-slate-100 pb-1.5 mb-2">Haberes remunerativos</h3>
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 border-b border-slate-100 pb-1.5 mb-2">Haberes remunerativos</h3>
                   <div className="space-y-1.5">
                     {remunerativos.map((l, i) => (
                       <div key={i} className="flex justify-between gap-3 text-sm">
@@ -793,7 +802,7 @@ export default function CalculadoraDinamica() {
                 {/* 5. Composición del costo laboral: los siete rubros del decreto */}
                 {empleador && (
                   <section>
-                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400 border-b border-slate-100 pb-1.5 mb-2">Composición de las cargas sociales</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 border-b border-slate-100 pb-1.5 mb-2">Composición de las cargas sociales</h3>
                     {/* Los porcentajes son sobre el total de las cargas, no sobre el
                         costo laboral: antes el título decía "costo laboral" y el
                         contador leyó que la seguridad social era el 51% del costo.
@@ -872,7 +881,7 @@ export default function CalculadoraDinamica() {
                 {/* 6. Con qué supuestos se hizo la cuenta */}
                 {metodo && (
                   <section className="rounded-xl border border-slate-200 p-3">
-                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400 mb-1.5">Cómo se hizo esta cuenta</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Cómo se hizo esta cuenta</h3>
                     <ul className="text-[11px] text-slate-600 space-y-0.5 list-disc pl-4">
                       <li>
                         Jornada completa del convenio: {metodo.jornadaCompletaSemanal} hs semanales

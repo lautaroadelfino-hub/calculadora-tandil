@@ -114,7 +114,7 @@ export default function SideRailLeft({ enPreparacion = [] }) {
       {enPreparacion.map((c) => (
         <li key={c.id} className="text-sm leading-5">
           {c.nombre}
-          {c.cct ? <span className="text-slate-400"> · CCT {c.cct}</span> : null}
+          {c.cct ? <span className="text-slate-500"> · CCT {c.cct}</span> : null}
         </li>
       ))}
       {herramientasEnCamino().map((h) => (

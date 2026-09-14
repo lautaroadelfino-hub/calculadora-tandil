@@ -220,7 +220,9 @@ export default function Home() {
       {/* El layout ya pone un gutter lateral (px-4 = 16 px en móvil), así que
           acá alcanza con px-4: en una pantalla de 400 px quedan 32 px de
           margen por lado y nada se sale hacia el costado. */}
-      <main className="w-full px-4 sm:px-6 py-6 sm:py-8 min-h-[100dvh]">
+      {/* <div>, no <main>: el <main> lo pone el layout. Dos "principal" anidados
+          confundían al lector de pantalla y al salto al contenido. */}
+      <div className="w-full px-4 sm:px-6 py-6 sm:py-8 min-h-[100dvh]">
 
         {/* HERO COMPACTO: el mensaje sigue entero, pero en una franja al ancho
             completo y baja, para que el directorio empiece arriba de todo. */}
@@ -272,7 +274,7 @@ export default function Home() {
                   onChange={(e) => setConsulta(e.target.value)}
                   placeholder="Buscar: camioneros, comercio, 40/89..."
                   autoComplete="off"
-                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-900 shadow-sm outline-none placeholder:text-slate-500 focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 />
               </div>
             ) : null}
@@ -327,7 +329,7 @@ export default function Home() {
                     <h3 className="text-[13px] font-semibold uppercase tracking-wide text-slate-500">
                       {grupo.label}
                     </h3>
-                    <span className="text-xs text-slate-400">{grupo.convenios.length}</span>
+                    <span className="text-xs text-slate-500">{grupo.convenios.length}</span>
                   </div>
                   <div className={GRILLA}>
                     {grupo.convenios.map((conv) => (
@@ -444,7 +446,7 @@ export default function Home() {
           triggerRef={reportBtnRef}
           context={{ pagina: "Home Principal", convenio: consulta.trim() || undefined }}
         />
-      </main>
+      </div>
 
       <MobileExtras
         open={showExtras}
@@ -454,7 +456,7 @@ export default function Home() {
       <footer className="border-t border-slate-200 mt-10">
         <div className="w-full px-4 sm:px-6 py-4 text-xs text-slate-500 flex flex-wrap items-center gap-2">
           <span>© {new Date().getFullYear()} LiquidAR.ar.</span>
-          <span className="text-slate-400">Versión {APP_VERSION}</span>
+          <span className="text-slate-500">Versión {APP_VERSION}</span>
         </div>
       </footer>
     </div>

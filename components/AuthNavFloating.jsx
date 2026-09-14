@@ -52,13 +52,15 @@ export default function AuthNavFloating() {
 
   if (loading) return null;
 
-  // Oculto por defecto: sin pointer-events y con opacidad 0
+  // Cerrada, no se dibuja. Antes quedaba con opacidad 0 y pointer-events none,
+  // pero sus botones seguían en el orden de tabulación: las dos primeras
+  // paradas del Tab en todo el sitio eran un "Admin" y un "Salir" invisibles
+  // (lo encontraron cuatro de las seis personas de la auditoría del 13/9/2026).
+  // Se abre igual con Ctrl/⌘ + Alt + L o con ?admin=1.
+  if (!open) return null;
+
   return (
-    <div
-      className={`fixed bottom-3 right-3 z-[9999] transition-all duration-200
-        ${open ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-2 pointer-events-none"}`}
-      aria-hidden={!open}
-    >
+    <div className="fixed bottom-3 right-3 z-[9999] transition-all duration-200">
       <div className="rounded-2xl bg-gray-900/90 text-white ring-1 ring-white/10 shadow-xl p-2 flex gap-2">
         {user ? (
           <>

@@ -49,8 +49,12 @@ export default function Header() {
         </div>
 
         {/* Panel móvil desplegable */}
+        {/* Plegado queda inerte: con max-height 0 los links seguían recibiendo
+            el foco y el Tab "desaparecía" dos veces. */}
         <div
           id="mobile-menu"
+          inert={!open}
+          aria-hidden={!open}
           className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${open ? "max-h-40" : "max-h-0"}`}
         >
           <nav className="flex flex-col gap-1 pb-4">

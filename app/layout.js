@@ -67,6 +67,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="es" className={inter.variable}>
       <body className="font-sans antialiased bg-pattern min-h-screen overflow-x-hidden">
+        {/* Primera parada del tabulador: saltar la barra e ir al contenido. */}
+        <a
+          href="#contenido"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[70] focus:rounded-lg focus:bg-white focus:px-3 focus:py-2 focus:text-slate-900 focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          Saltar al contenido
+        </a>
         {/* 👇 Envuelto en Suspense para que no rompa el /404 */}
         <Suspense fallback={null}>
           <AuthNavFloating />
@@ -74,7 +81,7 @@ export default function RootLayout({ children }) {
 
         <Header />
         <div className="relative z-0 w-full px-4 sm:px-6 lg:px-8 pt-6 pb-8 pt-[var(--h-header)]">
-          <main className="space-y-6">{children}</main>
+          <main id="contenido" className="space-y-6">{children}</main>
         </div>
       </body>
     </html>
