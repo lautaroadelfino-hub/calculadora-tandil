@@ -1,0 +1,63 @@
+{
+  "projectId": "0e366a46-9e0d-49f2-9012-3561ae58930b",
+  "shape": "package",
+  "pkg": "liquidar-ui",
+  "globalName": "LiquidARUI",
+  "buildCmd": "npm run build --prefix design",
+  "srcDir": "src",
+  "cssEntry": "dist/styles.css",
+  "tokensGlob": "src/tokens.css",
+  "runtimeFontPrefixes": [
+    "Inter"
+  ],
+  "overrides": {
+    "Aviso": {
+      "cardMode": "column"
+    },
+    "BandaResumen": {
+      "cardMode": "column"
+    },
+    "Boton": {
+      "cardMode": "column"
+    },
+    "Campo": {
+      "cardMode": "column"
+    },
+    "CampoNumero": {
+      "cardMode": "column"
+    },
+    "Casilla": {
+      "cardMode": "column"
+    },
+    "ComposicionCargas": {
+      "cardMode": "column"
+    },
+    "EncabezadoRecibo": {
+      "cardMode": "column"
+    },
+    "LineaRecibo": {
+      "cardMode": "column"
+    },
+    "Plegable": {
+      "cardMode": "column"
+    },
+    "SeccionRecibo": {
+      "cardMode": "column"
+    },
+    "TablaEmpleador": {
+      "cardMode": "column"
+    },
+    "TarjetaConvenio": {
+      "cardMode": "column"
+    },
+    "Chip": {
+      "cardMode": "column"
+    },
+    "Modal": {
+      "cardMode": "single",
+      "primaryStory": "ReportarError",
+      "viewport": "760x560"
+    }
+  },
+  "readmeHeader": ".design-sync/conventions.md"
+}

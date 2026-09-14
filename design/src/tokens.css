@@ -1,0 +1,28 @@
+/* design/src/tokens.css
+   Los nombres con los que LiquidAR habla de sus colores. Cada uno apunta a un
+   color de la paleta de Tailwind que la app ya usa; no hay colores inventados. */
+:root {
+  /* Marca: el verde de las acciones, del neto y de los acentos. */
+  --liquidar-verde: #059669;          /* emerald-600 */
+  --liquidar-verde-oscuro: #047857;   /* emerald-700 */
+  --liquidar-verde-suave: #ecfdf5;    /* emerald-50 */
+  /* El empleador: todo lo que paga la empresa va en índigo. */
+  --liquidar-empleador: #4338ca;      /* indigo-700 */
+  --liquidar-empleador-suave: #eef2ff;/* indigo-50 */
+  /* Lo no remunerativo: celeste. */
+  --liquidar-no-remunerativo: #075985;/* sky-800 */
+  /* Descuentos y errores: rosa. */
+  --liquidar-descuento: #e11d48;      /* rose-600 */
+  --liquidar-error: #be123c;          /* rose-700 */
+  /* Avisos: ámbar. */
+  --liquidar-atencion: #78350f;       /* amber-900 */
+  --liquidar-atencion-suave: #fffbeb; /* amber-50 */
+  /* Texto y superficies: la escala slate. */
+  --liquidar-texto: #0f172a;          /* slate-900 */
+  --liquidar-texto-secundario: #64748b; /* slate-500 */
+  --liquidar-borde: #e2e8f0;          /* slate-200 */
+  --liquidar-fondo: #f8fafc;          /* slate-50 */
+  /* Formas. */
+  --liquidar-radio: 0.75rem;          /* rounded-xl */
+  --liquidar-radio-grande: 1rem;      /* rounded-2xl */
+}
