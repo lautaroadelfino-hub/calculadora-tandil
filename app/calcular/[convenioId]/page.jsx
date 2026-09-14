@@ -10,6 +10,7 @@ import { elegirPeriodo, nombreDePeriodo } from "@/lib/periodos";
 import { TIPOS_DE_LINEA } from "@/lib/vocabularioConvenios";
 import { regimenPredeterminado } from "@/lib/contribucionesForm";
 import { normalizarEntradas, etiquetaDeCampo } from "@/lib/validacionEntradas";
+import { explicarLinea } from "@/lib/explicarLinea";
 
 export const runtime = 'edge';
 
@@ -40,6 +41,15 @@ const money = (n) =>
 /** 0.1077 -> "10,77%" */
 const pct = (fraccion) =>
   (Number(fraccion || 0) * 100).toLocaleString("es-AR", { maximumFractionDigits: 2 }) + "%";
+
+/** 36.5 -> "36,5" */
+const num = (n) => Number(n || 0).toLocaleString("es-AR", { maximumFractionDigits: 2 });
+
+/** La frase de "de dónde sale" debajo de una línea del recibo, si la línea trae la cuenta. */
+const Explicacion = ({ linea }) => {
+  const texto = explicarLinea(linea);
+  return texto ? <span className="block text-[11px] text-slate-500 font-normal">{texto}</span> : null;
+};
 
 export default function CalculadoraDinamica() {
   const { convenioId } = useParams();
@@ -258,6 +268,11 @@ export default function CalculadoraDinamica() {
         (k) => String(entradasUsadas?.[k] ?? "") !== String(valoresUsuario[k] ?? "")
       ));
   const hayErrores = Object.keys(errores).length > 0;
+  // Lo que quedó marcado en el formulario y suma plata (asistencia perfecta,
+  // larga distancia): se lista entre los supuestos para que no pase callado.
+  const supuestos = (convenio.inputs_requeridos || [])
+    .filter((i) => i.tipo === "boolean" && (i.origen === "adicional" || i.origen === "por_unidad") && entradasUsadas?.[i.id])
+    .map((i) => i.label.replace(/[¿?]/g, "").trim());
   const claseCampo = (id, extra = "") =>
     `${inputBase} ${extra} ${errores[id] ? "border-rose-400 bg-rose-50 focus:border-rose-500 focus:ring-rose-100" : ""}`;
   const mensajeError = (id) =>
@@ -530,7 +545,7 @@ export default function CalculadoraDinamica() {
                   </span>
                   <span><span className="font-semibold text-slate-500">Antigüedad:</span> {Number(entradasUsadas?.antiguedad_años) || 0} años</span>
                   {metodo && (
-                    <span><span className="font-semibold text-slate-500">Jornada:</span> {metodo.jornadaDelPuesto} hs de {metodo.jornadaCompletaSemanal} semanales</span>
+                    <span><span className="font-semibold text-slate-500">Jornada:</span> {num(metodo.jornadaDelPuesto)} hs de {num(metodo.jornadaCompletaSemanal)} semanales</span>
                   )}
                   {empleador && (
                     <span><span className="font-semibold text-slate-500">Régimen:</span> {empleador.regimen.label}</span>
@@ -615,7 +630,7 @@ export default function CalculadoraDinamica() {
                   <div className="space-y-1.5">
                     {remunerativos.map((l, i) => (
                       <div key={i} className="flex justify-between gap-3 text-sm">
-                        <span className="text-slate-700">{l.concepto}</span>
+                        <span className="text-slate-700 min-w-0">{l.concepto}<Explicacion linea={l} /></span>
                         <span className="text-slate-900 tabular-nums whitespace-nowrap">{money(l.monto)}</span>
                       </div>
                     ))}
@@ -628,7 +643,11 @@ export default function CalculadoraDinamica() {
                     <div className="space-y-1.5">
                       {noRemunerativos.map((l, i) => (
                         <div key={i} className="flex justify-between gap-3 text-sm">
-                          <span className="text-sky-800">{l.concepto}</span>
+                          <span className="text-sky-800 min-w-0">
+                            {l.concepto}
+                            {l.sinIncidencia && <span className="ml-1 text-[10px] uppercase tracking-wide text-sky-600">sin incidencia</span>}
+                            <Explicacion linea={l} />
+                          </span>
                           <span className="text-sky-800 tabular-nums whitespace-nowrap">{money(l.monto)}</span>
                         </div>
                       ))}
@@ -641,11 +660,25 @@ export default function CalculadoraDinamica() {
                   <div className="space-y-1.5">
                     {retenciones.map((l, i) => (
                       <div key={i} className="flex justify-between gap-3 text-sm">
-                        <span className="text-slate-600">{l.concepto}</span>
+                        <span className="text-slate-600 min-w-0">{l.concepto}<Explicacion linea={l} /></span>
                         <span className="text-rose-600 tabular-nums whitespace-nowrap">− {money(l.monto)}</span>
                       </div>
                     ))}
                   </div>
+                  {/* Ganancias siempre dice algo: que corresponde (arriba, como
+                      línea), que no corresponde y por qué, o que no se calculó.
+                      El silencio dejaba al contador sin saber cuál de las tres. */}
+                  {resultadoLiquidacion.ganancias && !resultadoLiquidacion.ganancias.aplica && (
+                    <p className="text-[11px] text-slate-500 mt-2">
+                      Impuesto a las Ganancias:{" "}
+                      {resultadoLiquidacion.ganancias.motivo
+                        ? `no se calculó (${resultadoLiquidacion.ganancias.motivo.toLowerCase()}).`
+                        : `no corresponde este mes. Ganancia neta ${money(resultadoLiquidacion.ganancias.gananciaNeta)} contra deducciones personales de ${money(resultadoLiquidacion.ganancias.deduccionesPersonales)}.`}
+                    </p>
+                  )}
+                  {!resultadoLiquidacion.ganancias && (
+                    <p className="text-[11px] text-slate-500 mt-2">Impuesto a las Ganancias: no se calculó porque no hay tabla cargada para este período.</p>
+                  )}
                 </section>
 
                 {desconocidas.length > 0 && (
@@ -681,36 +714,47 @@ export default function CalculadoraDinamica() {
                 {/* 5. Composición del costo laboral: los siete rubros del decreto */}
                 {empleador && (
                   <section>
-                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400 border-b border-slate-100 pb-1.5 mb-2">Composición del costo laboral</h3>
+                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-400 border-b border-slate-100 pb-1.5 mb-2">Composición de las cargas sociales</h3>
+                    {/* Los porcentajes son sobre el total de las cargas, no sobre el
+                        costo laboral: antes el título decía "costo laboral" y el
+                        contador leyó que la seguridad social era el 51% del costo.
+                        Al lado va el peso real sobre el costo. Los rubros en cero
+                        no se dibujan: un guion no informa nada. */}
+                    <p className="text-[11px] text-slate-500 mb-2">
+                      Lo que pagan el empleador y el trabajador, por rubro del Decreto 407/2026. El primer porcentaje es sobre
+                      el total de las cargas; el segundo, sobre el costo laboral total.
+                    </p>
                     <div className="space-y-2">
-                      {Object.entries(empleador.rubros).map(([id, r]) => {
-                        const parteEmpleador = r.total > 0 ? (r.empleador / r.total) * 100 : 0;
+                      {Object.entries(empleador.rubros).filter(([, r]) => r.total > 0).map(([id, r]) => {
+                        const parteEmpleador = (r.empleador / r.total) * 100;
+                        const etiqueta = id === "art" && contribuciones.some((l) => /FFEP/.test(l.concepto)) ? `${r.label} + FFEP` : r.label;
                         return (
                           <div key={id} className="text-[12px]">
                             <div className="flex justify-between gap-2 text-slate-700">
-                              <span>{r.label}</span>
+                              <span>{etiqueta}</span>
                               <span className="tabular-nums whitespace-nowrap">
-                                {r.total > 0
-                                  ? `${money(r.total)} · ${r.porcentaje.toLocaleString("es-AR", { maximumFractionDigits: 1 })}%`
-                                  : "—"}
+                                {money(r.total)} · {num(r.porcentaje)}% de las cargas
+                                {r.porcentajeDelCosto != null ? ` · ${num(r.porcentajeDelCosto)}% del costo` : ""}
                               </span>
                             </div>
-                            {r.total > 0 && (
-                              <>
-                                <div className="h-1.5 w-full rounded-full bg-rose-200 overflow-hidden mt-0.5">
-                                  <div className="h-full bg-indigo-500" style={{ width: `${parteEmpleador}%` }} />
-                                </div>
-                                <div className="flex justify-between text-[10px] text-slate-400">
-                                  <span>Empleador {money(r.empleador)}</span>
-                                  <span>Trabajador {money(r.trabajador)}</span>
-                                </div>
-                              </>
-                            )}
+                            <div className="h-1.5 w-full rounded-full bg-rose-200 overflow-hidden mt-0.5">
+                              <div className="h-full bg-indigo-500" style={{ width: `${parteEmpleador}%` }} />
+                            </div>
+                            <div className="flex justify-between text-[10px] text-slate-500">
+                              <span>Empleador {money(r.empleador)}</span>
+                              <span>Trabajador {money(r.trabajador)}</span>
+                            </div>
                           </div>
                         );
                       })}
+                      <div className="flex justify-between gap-2 text-[12px] font-semibold text-slate-800 border-t border-slate-200 pt-1.5">
+                        <span>Total de cargas (empleador + trabajador)</span>
+                        <span className="tabular-nums whitespace-nowrap">
+                          {money(empleador.totalCargas)} · {num((empleador.totalCargas / empleador.costoLaboral) * 100)}% del costo laboral total
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-2">
+                    <p className="text-[11px] text-slate-500 mt-2">
                       El Impuesto a las Ganancias no integra el costo laboral: es un impuesto del trabajador que el empleador sólo retiene.
                     </p>
                   </section>
@@ -753,11 +797,39 @@ export default function CalculadoraDinamica() {
                     <ul className="text-[11px] text-slate-600 space-y-0.5 list-disc pl-4">
                       <li>
                         Jornada completa del convenio: {metodo.jornadaCompletaSemanal} hs semanales
-                        {metodo.laDeclaraElConvenio ? " (la declara el convenio)" : " (valor por defecto)"}; el puesto: {metodo.jornadaDelPuesto} hs.
+                        {metodo.laDeclaraElConvenio ? " (la declara el convenio)" : " (valor por defecto)"}; el puesto: {num(metodo.jornadaDelPuesto)} hs.
                         {metodo.divisorHorasMensuales ? ` Valor hora sobre ${metodo.divisorHorasMensuales} hs mensuales.` : ""}
                       </li>
-                      <li>Las sumas no remunerativas {metodo.noRemunerativoGeneraAdicionales ? "generan" : "no generan"} antigüedad, presentismo y adicionales.</li>
-                      {periodoGanancias && <li>Ganancias: tabla de {nombreDePeriodo(periodoGanancias)}.</li>}
+                      {metodo.antiguedad && (
+                        <li>
+                          Antigüedad: {metodo.antiguedad.modo === "tramos"
+                            ? `por tramos del convenio (${(metodo.antiguedad.tramos || []).map((t) => `desde ${num(t.desde_años)} años: ${pct(t.porcentaje)}`).join("; ")}); con ${num(metodo.antiguedad.años)} años corresponde ${pct(metodo.antiguedad.porcentajeTotal)}`
+                            : `${pct(metodo.antiguedad.porAño)} por año`}
+                          , sobre {metodo.antiguedadSobre === "basico_mas_adicionales" ? "el básico más los adicionales remunerativos (los viáticos no)" : "el básico"}.
+                        </li>
+                      )}
+                      {metodo.valorHora != null && (
+                        <li>
+                          Valor hora: (básico + antigüedad + presentismo + adicionales fijos) / {num(metodo.horasMensualesDelPuesto)} hs = {money(metodo.valorHora)}.
+                          Los conceptos variables (kilómetros, SAC, vacaciones) no entran en el valor hora.
+                        </li>
+                      )}
+                      {metodo.noRemunerativoConIncidencia > 0 && (
+                        <li>
+                          Las sumas no remunerativas de la escala {metodo.noRemunerativoGeneraAdicionales ? "generan" : "no generan"} antigüedad,
+                          presentismo y adicionales, y pagan obra social, sindicales y contribuciones.
+                        </li>
+                      )}
+                      {metodo.noRemunerativoSinIncidencia > 0 && (
+                        <li>
+                          Sin incidencia ({lineas.filter((l) => l.sinIncidencia).map((l) => l.concepto.replace(/\s*\([^)]*\)\s*$/, "")).join(", ")}): no generan
+                          antigüedad ni adicionales, y no pagan aportes ni contribuciones. Van derecho al neto.
+                        </li>
+                      )}
+                      {supuestos.length > 0 && <li>Marcado en el formulario: {supuestos.join("; ")}. Si no corresponde, destildalo y recalculá.</li>}
+                      {periodoGanancias && (
+                        <li>Ganancias: tabla cargada para {nombreDePeriodo(periodoGanancias)}{periodoGanancias !== periodoUsado ? " (las tablas cambian por semestre)" : ""}.</li>
+                      )}
                       {empleador && (
                         <>
                           <li>Contribuciones: tabla de {nombreDePeriodo(empleador.periodoTabla)}, régimen "{empleador.regimen.label}".</li>
