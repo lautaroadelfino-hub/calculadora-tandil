@@ -18,6 +18,12 @@ algo de acá no se entiende, está mal escrito: avisá.
    desde `/admin`.
 3. **Publicar es pushear.** Todo lo que llega a la rama `main` se despliega solo
    a liquidar.ar. Por eso conviene trabajar en otra rama y mirar la preview.
+4. **La portada y las calculadoras se arman en el servidor.** Cloudflare lee
+   Firestore por su API REST (`lib/firestoreRest.js`) y manda el HTML con las
+   tarjetas o el formulario ya puestos; el navegador no descarga el SDK de
+   Firebase (sólo lo usa `/admin`). Esas lecturas se guardan en el edge un
+   minuto: **un cambio hecho en `/admin` puede tardar hasta un minuto en verse
+   en el sitio.** No es un error.
 
 ---
 
@@ -206,6 +212,12 @@ mandale esa hoja primero.
   de reglas tiene preparada la versión con lista de administradores, pero hay
   que poner el UID antes de activarla: si se aplica con la lista vacía, te
   quedás afuera de tu propio panel.
+- **Las visitas se miden con Cloudflare Web Analytics** (sin cookies, sin
+  aviso de consentimiento). Se enciende con la variable
+  `NEXT_PUBLIC_CF_BEACON_TOKEN` en el proyecto de Cloudflare Pages (Settings →
+  Variables) y un redeploy; el token sale de "Analytics & Logs → Web Analytics
+  → Add a site → liquidar.ar". Sin la variable, el sitio no manda nada y no
+  pasa nada.
 - **La copia de seguridad más barata** es la pestaña Convenios → "Descargar
   copia de seguridad", más `node scripts/capturarFixtures.mjs <id-del-convenio>`,
   que baja el convenio y todas sus escalas a `test/fixtures/`. Eso además hace

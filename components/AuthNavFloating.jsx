@@ -2,8 +2,7 @@
 "use client";
 import React from "react";
 import { useSearchParams } from "next/navigation";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { haySesionMarcada, borrarMarcaDeSesion } from "@/lib/sesion";
 
 export default function AuthNavFloating() {
   const [user, setUser] = React.useState(null);
@@ -13,13 +12,24 @@ export default function AuthNavFloating() {
   const params = useSearchParams();
 
   // Sesión de Firebase (la misma que usa /admin y /login)
+  // Firebase Auth se carga sólo en el navegador donde alguien entró a /admin
+  // (ver lib/sesion.js): el resto de los visitantes no baja el SDK.
   React.useEffect(() => {
-    if (!auth) { setLoading(false); return; }
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u || null);
-      setLoading(false);
-    });
-    return () => unsubscribe();
+    if (!haySesionMarcada()) { setLoading(false); return; }
+    let desuscribir = () => {};
+    let vigente = true;
+    Promise.all([import("@/lib/firebase"), import("firebase/auth")])
+      .then(([{ auth }, { onAuthStateChanged }]) => {
+        if (!vigente) return;
+        if (!auth) { setLoading(false); return; }
+        desuscribir = onAuthStateChanged(auth, (u) => {
+          setUser(u || null);
+          setLoading(false);
+          if (!u) borrarMarcaDeSesion();
+        });
+      })
+      .catch(() => { if (vigente) setLoading(false); });
+    return () => { vigente = false; desuscribir(); };
   }, []);
 
   // Abrir con query secreta (?admin=1 o ?panel=auth)
@@ -42,10 +52,12 @@ export default function AuthNavFloating() {
     if (signingOut) return;
     setSigningOut(true);
     try {
+      const [{ auth }, { signOut }] = await Promise.all([import("@/lib/firebase"), import("firebase/auth")]);
       await signOut(auth);
     } catch (_) {
       // ignore
     } finally {
+      borrarMarcaDeSesion();
       if (typeof window !== "undefined") window.location.replace("/");
     }
   }, [signingOut]);

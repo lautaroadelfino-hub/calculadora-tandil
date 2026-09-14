@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { Suspense } from "react";              // 👈 agrega esto
 import AuthNavFloating from "../components/AuthNavFloating";
 import Header from "../components/Header";
+import Analitica from "../components/Analitica";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
@@ -83,6 +84,7 @@ export default function RootLayout({ children }) {
         <div className="relative z-0 w-full px-4 sm:px-6 lg:px-8 pt-6 pb-8 pt-[var(--h-header)]">
           <main id="contenido" className="space-y-6">{children}</main>
         </div>
+        <Analitica />
       </body>
     </html>
   );

@@ -8,7 +8,7 @@ import SideRailLeft from "./SideRailLeft";
 // props que se le pasaban se ignoraban y, sin children, renderizaba una
 // grilla vacía. Resultado: en el celular, este panel no mostraba nada.
 
-export default function MobileExtras({ open, onClose, onReport }) {
+export default function MobileExtras({ open, onClose, onReport, novedades = null, enPreparacion = [] }) {
   const panelRef = useRef(null);
 
   // Cerrar con Esc
@@ -43,7 +43,7 @@ export default function MobileExtras({ open, onClose, onReport }) {
 
         {/* Reutilizamos el contenido de los rails */}
         <div className="space-y-4">
-          <SideRailLeft />
+          <SideRailLeft enPreparacion={enPreparacion} novedades={novedades} />
           {onReport && (
             <button
               type="button"

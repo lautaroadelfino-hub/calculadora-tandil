@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
+import { marcarSesion, borrarMarcaDeSesion } from "@/lib/sesion";
 
 import EscalasTab from "@/components/admin/EscalasTab";
 import ConveniosTab from "@/components/admin/ConveniosTab";
@@ -34,9 +35,11 @@ export default function AdminPage() {
     if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        marcarSesion();
         setAccesoPermitido(true);
         cargarConveniosActivos();
       } else {
+        borrarMarcaDeSesion();
         router.push("/login");
       }
       setVerificando(false);
@@ -70,6 +73,7 @@ export default function AdminPage() {
   const cerrarSesion = async () => {
     try {
       await signOut(auth);
+      borrarMarcaDeSesion();
       router.push("/");
     } catch (error) {
       console.error(error);

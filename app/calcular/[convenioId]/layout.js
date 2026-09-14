@@ -1,9 +1,13 @@
 // app/calcular/[convenioId]/layout.js
-// Un layout de servidor sólo para el título de la pestaña: la página es un
-// componente de cliente y no puede exportar metadata. El nombre del convenio se
-// lee por la API REST pública de Firestore (las reglas permiten leer
-// convenios sin sesión) y se cachea una hora.
-import { convenioDesdeRest, metadataDeConvenio } from "@/lib/metadataConvenio";
+// Decide, ANTES de empezar a mandar la página, si el convenio existe: el 404
+// de un id inventado tiene que ser un 404 de verdad (código HTTP), y una vez
+// que el servidor empezó a transmitir la página (loading.js la envuelve en
+// una frontera de Suspense) el código ya no se puede cambiar. Acá también va
+// la metadata, que usa la misma lectura. Si Firestore no responde, no se
+// decide nada: la página muestra su aviso y ofrece recargar.
+import { notFound } from "next/navigation";
+import { convenioCacheado, esIdDeConvenio } from "@/lib/datosCalculadora";
+import { metadataDeConvenio } from "@/lib/metadataConvenio";
 
 export const runtime = "edge";
 
@@ -11,16 +15,23 @@ export async function generateMetadata({ params }) {
   const { convenioId } = await params;
   let convenio = null;
   try {
-    const proyecto = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-    const url = `https://firestore.googleapis.com/v1/projects/${proyecto}/databases/(default)/documents/convenios/${encodeURIComponent(convenioId)}`;
-    const r = await fetch(url, { next: { revalidate: 3600 } });
-    if (r.ok) convenio = convenioDesdeRest(await r.json());
+    if (esIdDeConvenio(convenioId)) convenio = await convenioCacheado(convenioId);
   } catch {
-    // Sin red o sin documento: queda "Calculadora", que es verdad igual.
+    // Sin red: queda "Calculadora", que es verdad igual.
   }
   return metadataDeConvenio(convenio, convenioId);
 }
 
-export default function LayoutCalculadora({ children }) {
+export default async function LayoutCalculadora({ params, children }) {
+  const { convenioId } = await params;
+  if (!esIdDeConvenio(convenioId)) notFound();
+  try {
+    const convenio = await convenioCacheado(convenioId);
+    if (!convenio) notFound();
+  } catch (error) {
+    // notFound() se implementa lanzando: hay que dejarlo pasar. Lo demás es
+    // Firestore que no respondió, y de eso se encarga la página.
+    if (error && typeof error.digest === "string" && error.digest.startsWith("NEXT_")) throw error;
+  }
   return children;
 }

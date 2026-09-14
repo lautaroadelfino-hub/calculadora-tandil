@@ -1,7 +1,6 @@
 // components/SideRailLeft.jsx
 "use client";
 import React from "react";
-import { getNovedades } from "@/lib/novedades";
 import { herramientasEnCamino } from "@/lib/herramientas";
 import { fechaCorta } from "@/lib/fechas";
 
@@ -14,19 +13,25 @@ const FALLBACK = [];
  * @param enPreparacion  Convenios cargados pero todavía inactivos. Aparecen
  *   solos en "Próximas actualizaciones": cuando el dueño los activa, pasan a
  *   ser tarjetas de la portada sin que nadie edite una línea de código.
+ * @param novedades  Las novedades ya leídas en el servidor (la portada las
+ *   pasa). Si no vienen, se piden desde el navegador; el SDK de Firebase se
+ *   carga recién en ese caso, para que las páginas que ya traen los datos no
+ *   lo descarguen.
  */
-export default function SideRailLeft({ enPreparacion = [] }) {
-  const [news, setNews] = React.useState(FALLBACK);
-  const [loading, setLoading] = React.useState(true);
+export default function SideRailLeft({ enPreparacion = [], novedades = null }) {
+  const [news, setNews] = React.useState(novedades || FALLBACK);
+  const [loading, setLoading] = React.useState(!novedades);
 
   React.useEffect(() => {
+    if (novedades) { setNews(novedades); setLoading(false); return; }
     let ignore = false;
-    getNovedades({ limit: 24 })
+    import("@/lib/novedades")
+      .then(({ getNovedades }) => getNovedades({ limit: 24 }))
       .then((data) => { if (!ignore) setNews(data); })
       .catch(() => { if (!ignore) setNews(FALLBACK); })
       .finally(() => { if (!ignore) setLoading(false); });
     return () => { ignore = true; };
-  }, []);
+  }, [novedades]);
 
   const byDateDesc = news || [];
   const latest = byDateDesc.slice(0, 6);

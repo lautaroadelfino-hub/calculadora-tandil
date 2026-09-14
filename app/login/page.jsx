@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { marcarSesion } from "@/lib/sesion";
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -20,6 +21,7 @@ export default function Login() {
     try {
       // 1. Le pasamos el mail y la contraseña directamente a los servidores de Firebase
       await signInWithEmailAndPassword(auth, email, password);
+      marcarSesion();
       
       // 2. Si las credenciales son correctas, Firebase guarda la sesión y te manda al panel
       router.push('/admin'); 
