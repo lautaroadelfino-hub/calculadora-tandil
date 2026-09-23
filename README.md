@@ -2,7 +2,10 @@
 
 Calculadora de sueldos por convenio colectivo argentino. Cada recibo muestra
 también el costo laboral total para el empleador, como exige el art. 140
-inc. j) de la LCT desde junio de 2026. En producción: **https://liquidar.ar**
+inc. j) de la LCT desde junio de 2026, y se dibuja con el modelo del Anexo III
+del Decreto 407/2026 (la copia está en `docs/decreto-407-2026-anexo-III.pdf`;
+las casillas que la simulación no conoce, como empresa, CUIT, nombre o legajo,
+quedan en blanco). En producción: **https://liquidar.ar**
 
 Este README es el manual del dueño, no documentación para programadores. Si
 algo de acá no se entiende, está mal escrito: avisá.

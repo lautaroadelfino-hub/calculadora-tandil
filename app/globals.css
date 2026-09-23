@@ -280,3 +280,17 @@ main > * { isolation: isolate; }
 
 html { scrollbar-gutter: stable both-edges; } /* evita saltitos al aparecer la barra */
 
+
+/* ===== Impresión del recibo oficial =====
+   Las franjas grises y los colores de la torta del recibo (Anexo III del
+   Decreto 407/2026) tienen que salir en el papel: sin esto, el navegador
+   imprime los fondos en blanco y las franjas de totales desaparecen. */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  table, figure {
+    break-inside: avoid;
+  }
+}

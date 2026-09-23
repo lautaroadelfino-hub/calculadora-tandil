@@ -14,6 +14,8 @@
 
 - `.design-sync/overrides/dts.mjs` es un fork declarado en `cfg.libOverrides`: sólo reemplaza `jsdocFor`, porque el original limpia la descripción con `\w` sin la bandera `u` y borraba las letras acentuadas del índice del README ("Botn", "ttulo"), que es lo que la pestaña del sistema de diseño muestra como descripción de cada pieza. No importa `ts-morph` (usa `getKindName()`), así que no hace falta el symlink `.design-sync/node_modules`. Agregar el fork movió el contrato de calificación una sola vez (los 15 se recalificaron con la misma imagen); si un release del skill corrige el regex, borrar el fork y la entrada de config, y esperar otra recalificación completa.
 
+- 23/9/2026: el recibo de la app pasó al formato del Anexo III del Decreto 407/2026 (`components/calculadora/ReciboOficial.jsx`, celdas en `lib/reciboOficial.js`). `TablaEmpleador`, `ComposicionCargas`, `SeccionRecibo` y `LineaRecibo` de `design/src` **ya no reflejan lo que muestra la app**; la pieza nueva se lleva a `design/src` en una re-sincronización aparte. `BandaResumen` y `EncabezadoRecibo` siguen vigentes.
+
 ## Known render warns
 
 - Ninguno pendiente: la validación final salió sin warns.

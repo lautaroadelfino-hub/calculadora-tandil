@@ -13,11 +13,10 @@ import { useEffect, useRef, useState } from "react";
 import { leerDocumento } from "@/lib/firestoreRest";
 import { procesarRecibo } from "@/lib/motorLiquidacion";
 import { nombreDePeriodo, periodoDeTabla } from "@/lib/periodos";
-import { TIPOS_DE_LINEA } from "@/lib/vocabularioConvenios";
 import { regimenPredeterminado } from "@/lib/contribucionesForm";
 import { normalizarEntradas, etiquetaDeCampo } from "@/lib/validacionEntradas";
-import { explicarLinea } from "@/lib/explicarLinea";
 import ReportModal from "@/components/ReportModal";
+import ReciboOficial from "@/components/calculadora/ReciboOficial";
 import { paramsDesdeEntradas } from "@/lib/permalink";
 
 const money = (n) =>
@@ -31,12 +30,6 @@ const MESES_DEL_AÑO = 12;
 
 /** 36.5 -> "36,5" */
 const num = (n) => Number(n || 0).toLocaleString("es-AR", { maximumFractionDigits: 2 });
-
-/** La frase de "de dónde sale" debajo de una línea del recibo, si la línea trae la cuenta. */
-const Explicacion = ({ linea }) => {
-  const texto = explicarLinea(linea);
-  return texto ? <span className="block text-[11px] text-slate-500 font-normal">{texto}</span> : null;
-};
 
 export default function CalculadoraConvenio({ convenioId, inicial }) {
 
@@ -254,16 +247,8 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
   const inputBase =
     "border border-slate-300 rounded-lg px-3 py-2.5 text-sm text-slate-800 bg-white outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-400 transition-colors";
 
-  // Agrupamos las líneas del recibo para mostrarlas como un recibo real.
+  // Las líneas del recibo; el formato oficial las dibuja ReciboOficial.
   const lineas = resultadoLiquidacion?.detalle || [];
-  const porTipo = (tipo) => lineas.filter((l) => l.tipo === tipo);
-  const remunerativos = porTipo("remunerativo");
-  const noRemunerativos = porTipo("no_remunerativo");
-  const retenciones = porTipo("retencion");
-  const contribuciones = porTipo("contribucion");
-  // Lo que el motor produjo y esta pantalla no sabe dibujar. Antes se filtraba
-  // por tres tipos sin `else` y una línea de otro tipo desaparecía en silencio.
-  const desconocidas = lineas.filter((l) => !TIPOS_DE_LINEA.includes(l.tipo));
   const empleador = resultadoLiquidacion?.costoEmpleador || null;
   const metodo = resultadoLiquidacion?.metodo || null;
   const artTipicaDelConvenio = convenio.reglas_calculo?.art?.alicuota_tipica;
@@ -533,9 +518,9 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
             </div>
           </form>
 
-          {/* PANEL DERECHO: El Recibo, en el orden que manda el Decreto 407/2026:
-              datos · lo que paga el empleador · haberes y deducciones · neto ·
-              composición del costo laboral. */}
+          {/* PANEL DERECHO: El Recibo, con el modelo del Anexo III del Decreto
+              407/2026: datos · lo que paga el empleador · haberes y deducciones ·
+              neto · composición del costo laboral. */}
           {resultadoLiquidacion ? (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-6 print:shadow-none print:border-0 print:static">
 
@@ -598,245 +583,48 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                   </div>
                 </div>
 
-                {/* 1. Datos */}
-                <section className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-[12px] text-slate-600 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
-                  <span><span className="font-semibold text-slate-500">Convenio:</span> {convenio.nombre} · CCT {convenio.cct}</span>
-                  <span><span className="font-semibold text-slate-500">Período:</span> {periodoUsadoNombre}</span>
-                  <span>
-                    <span className="font-semibold text-slate-500">Categoría:</span> {entradasUsadas?.categoria}
-                    {entradasUsadas?.zona ? ` · ${entradasUsadas.zona}` : ""}
-                  </span>
-                  <span><span className="font-semibold text-slate-500">Antigüedad:</span> {Number(entradasUsadas?.antiguedad_años) || 0} años</span>
-                  {metodo && (
-                    <span><span className="font-semibold text-slate-500">Jornada:</span> {num(metodo.jornadaDelPuesto)} hs de {num(metodo.jornadaCompletaSemanal)} semanales</span>
-                  )}
-                  {empleador && (
-                    <span><span className="font-semibold text-slate-500">Régimen:</span> {empleador.regimen.label}</span>
-                  )}
-                  <span className="sm:col-span-2 text-[11px] text-slate-500">
-                    Un recibo real lleva además CUIT del empleador, CUIL, fecha de ingreso, y fecha y lugar de pago de las cargas sociales.
-                  </span>
-                </section>
+                {/* 1 a 5. El recibo, con el formato del Anexo III del Decreto
+                    407/2026 (docs/decreto-407-2026-anexo-III.pdf): casillas,
+                    costo total empleador, bruto, haberes y aportes, neto,
+                    detalle de la composición salarial y torta. Las celdas las
+                    arma lib/reciboOficial.js. */}
+                <p className="text-[11px] text-slate-500">
+                  Las casillas en blanco (empresa, CUIT, nombre, legajo, CUIL, fecha de ingreso, lugar y fecha de pago) son
+                  datos que la simulación no tiene.
+                </p>
+                <ReciboOficial resultado={resultadoLiquidacion} entradas={entradasUsadas} periodoId={periodoUsado} />
 
-                {/* 2. Lo que paga el empleador: antes del bruto, que es el punto de la norma */}
-                <section>
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-indigo-700 border-b border-slate-100 pb-1.5 mb-2">Contribuciones a cargo del empleador</h3>
-                  {empleador ? (
-                    <>
-                      <div className="hidden sm:block overflow-x-auto">
-                        <table className="w-full text-[12px]">
-                          <thead>
-                            <tr className="text-[10px] uppercase text-slate-500">
-                              <th scope="col" className="text-left font-semibold pb-1">Concepto</th>
-                              <th scope="col" className="text-right font-semibold pb-1">Base de cálculo</th>
-                              <th scope="col" className="text-right font-semibold pb-1">Unidad</th>
-                              <th scope="col" className="text-right font-semibold pb-1">Importe</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {contribuciones.map((l, i) => (
-                              <tr key={i} className={l.pendiente ? "text-amber-700" : "text-slate-700"}>
-                                <td className="py-0.5 pr-2 align-top">{l.concepto}</td>
-                                <td className="py-0.5 text-right tabular-nums whitespace-nowrap text-slate-500 align-top">
-                                  {l.base != null ? money(l.base) : "—"}
-                                  <span className="block text-[10px] text-slate-500">{l.baseLabel}</span>
-                                </td>
-                                <td className="py-0.5 pl-2 text-right whitespace-nowrap text-slate-500 align-top">
-                                  {l.unidad === "porcentaje" ? (l.alicuota != null ? pct(l.alicuota) : "sin dato") : "suma fija"}
-                                </td>
-                                <td className="py-0.5 pl-2 text-right tabular-nums whitespace-nowrap align-top">{money(l.monto)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                      {/* En angosto, la tabla de cuatro columnas escondía los importes
-                          fuera de pantalla: acá va como lista, concepto e importe juntos. */}
-                      <ul className="sm:hidden space-y-1.5">
-                        {contribuciones.map((l, i) => (
-                          <li key={i} className={`rounded-lg border border-slate-200 px-3 py-2 text-[12px] ${l.pendiente ? "text-amber-700" : "text-slate-700"}`}>
-                            <div className="flex justify-between gap-2">
-                              <span className="font-medium">{l.concepto}</span>
-                              <span className="tabular-nums whitespace-nowrap font-semibold">{money(l.monto)}</span>
-                            </div>
-                            <div className="text-[11px] text-slate-500">
-                              {l.unidad === "porcentaje" ? (l.alicuota != null ? pct(l.alicuota) : "sin dato") : "suma fija"}
-                              {l.base != null ? ` sobre ${money(l.base)} (${l.baseLabel})` : ""}
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                      <div className="mt-2 rounded-lg bg-indigo-50 border border-indigo-100 px-3 py-2 space-y-1 text-sm">
-                        <div className="flex justify-between text-indigo-900">
-                          <span>Subtotal contribuciones</span>
-                          <span className="tabular-nums">{money(empleador.totalContribuciones)}</span>
-                        </div>
-                        <div className="flex justify-between text-slate-600 text-[12px]">
-                          <span>Remuneración bruta + no remunerativo</span>
-                          <span className="tabular-nums">{money(resultadoLiquidacion.totales.bruto + resultadoLiquidacion.totales.noRemunerativo)}</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-indigo-900 border-t border-indigo-200 pt-1">
-                          <span>Costo laboral total</span>
-                          <span className="tabular-nums">{money(empleador.costoLaboral)}</span>
-                        </div>
-                      </div>
-                      <p className="text-[11px] text-slate-500 mt-1.5">
-                        {empleador.detraccion
-                          ? `Detracción Ley 27.541 aplicada: ${money(empleador.detraccion.prorrateada)}` +
-                            (empleador.detraccion.prorrateaPorJornada && metodo.jornadaDelPuesto !== metodo.jornadaCompletaSemanal ? " (prorrateada por la jornada)" : "") +
-                            ". "
-                          : ""}
-                        La ART es estimada: cada empleador negocia su alícuota.
-                      </p>
-                      {empleador.periodoTabla && empleador.periodoTabla !== metodo.periodo && (
-                        <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2 mt-2">
-                          <b>Ojo:</b> no hay tabla de contribuciones de {nombreDePeriodo(metodo.periodo)}. Se usó la de{" "}
-                          {nombreDePeriodo(empleador.periodoTabla)}, que puede tener otras bases o alícuotas.
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
-                      Para {nombreDePeriodo(metodo?.periodo)} todavía no hay tabla de contribuciones cargada, así que
-                      este recibo no muestra la sección del empleador.
-                    </p>
-                  )}
-                </section>
-
-                {/* 3. Haberes y deducciones */}
-                <section>
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 border-b border-slate-100 pb-1.5 mb-2">Haberes remunerativos</h3>
-                  <div className="space-y-1.5">
-                    {remunerativos.map((l, i) => (
-                      <div key={i} className="flex justify-between gap-3 text-sm">
-                        <span className="text-slate-700 min-w-0">{l.concepto}<Explicacion linea={l} /></span>
-                        <span className="text-slate-900 tabular-nums whitespace-nowrap">{money(l.monto)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-
-                {noRemunerativos.length > 0 && (
-                  <section>
-                    <h3 className="text-xs font-bold uppercase tracking-wide text-sky-600 border-b border-slate-100 pb-1.5 mb-2">Haberes no remunerativos</h3>
-                    <div className="space-y-1.5">
-                      {noRemunerativos.map((l, i) => (
-                        <div key={i} className="flex justify-between gap-3 text-sm">
-                          <span className="text-sky-800 min-w-0">
-                            {l.concepto}
-                            {l.sinIncidencia && <span className="ml-1 text-[10px] uppercase tracking-wide text-sky-600">sin incidencia</span>}
-                            <Explicacion linea={l} />
-                          </span>
-                          <span className="text-sky-800 tabular-nums whitespace-nowrap">{money(l.monto)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
+                {/* Notas al pie del recibo. Ganancias siempre dice algo: que
+                    corresponde (arriba, como línea), que no corresponde y por
+                    qué, o que no se calculó. El silencio dejaba al contador
+                    sin saber cuál de las tres. */}
+                {resultadoLiquidacion.ganancias && !resultadoLiquidacion.ganancias.aplica && (
+                  <p className="text-[11px] text-slate-500">
+                    Impuesto a las Ganancias:{" "}
+                    {resultadoLiquidacion.ganancias.motivo
+                      ? `no se calculó (${resultadoLiquidacion.ganancias.motivo.toLowerCase()}).`
+                      : `no corresponde este mes. Ganancia neta ${money(resultadoLiquidacion.ganancias.gananciaNeta)} contra deducciones personales de ${money(resultadoLiquidacion.ganancias.deduccionesPersonales)}.`}
+                  </p>
                 )}
-
-                <section>
-                  <h3 className="text-xs font-bold uppercase tracking-wide text-rose-500 border-b border-slate-100 pb-1.5 mb-2">Descuentos y retenciones</h3>
-                  <div className="space-y-1.5">
-                    {retenciones.map((l, i) => (
-                      <div key={i} className="flex justify-between gap-3 text-sm">
-                        <span className="text-slate-600 min-w-0">{l.concepto}<Explicacion linea={l} /></span>
-                        <span className="text-rose-600 tabular-nums whitespace-nowrap">− {money(l.monto)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Ganancias siempre dice algo: que corresponde (arriba, como
-                      línea), que no corresponde y por qué, o que no se calculó.
-                      El silencio dejaba al contador sin saber cuál de las tres. */}
-                  {resultadoLiquidacion.ganancias && !resultadoLiquidacion.ganancias.aplica && (
-                    <p className="text-[11px] text-slate-500 mt-2">
-                      Impuesto a las Ganancias:{" "}
-                      {resultadoLiquidacion.ganancias.motivo
-                        ? `no se calculó (${resultadoLiquidacion.ganancias.motivo.toLowerCase()}).`
-                        : `no corresponde este mes. Ganancia neta ${money(resultadoLiquidacion.ganancias.gananciaNeta)} contra deducciones personales de ${money(resultadoLiquidacion.ganancias.deduccionesPersonales)}.`}
-                    </p>
-                  )}
-                  {!resultadoLiquidacion.ganancias && (
-                    <p className="text-[11px] text-slate-500 mt-2">Impuesto a las Ganancias: no se calculó porque no hay tabla cargada para este período.</p>
-                  )}
-                </section>
-
-                {desconocidas.length > 0 && (
-                  <div className="text-[11px] text-rose-800 bg-rose-50 border border-rose-300 rounded-lg px-2.5 py-2">
-                    El recibo tiene {desconocidas.length} línea(s) de un tipo que esta pantalla no sabe mostrar:{" "}
-                    {desconocidas.map((l) => `${l.concepto} (${l.tipo})`).join(", ")}. No están sumadas en ninguna sección de arriba.
-                  </div>
+                {!resultadoLiquidacion.ganancias && (
+                  <p className="text-[11px] text-slate-500">Impuesto a las Ganancias: no se calculó porque no hay tabla cargada para este período.</p>
                 )}
-
-                {/* 4. Totales y neto */}
-                <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-1.5">
-                  <div className="flex justify-between text-sm text-slate-600">
-                    <span>Total remunerativo</span>
-                    <span className="tabular-nums">{money(resultadoLiquidacion.totales.bruto)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-sky-700">
-                    <span>Total no remunerativo</span>
-                    <span className="tabular-nums">+ {money(resultadoLiquidacion.totales.noRemunerativo)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-rose-600">
-                    <span>Total retenciones</span>
-                    <span className="tabular-nums">− {money(resultadoLiquidacion.totales.retenciones)}</span>
-                  </div>
-                </div>
-
-                <div className="rounded-xl bg-emerald-600 text-white px-5 py-4 flex items-center justify-between gap-3">
-                  <span className="font-bold">Neto a cobrar</span>
-                  <span className="text-2xl sm:text-3xl font-black tabular-nums whitespace-nowrap">
-                    {money(resultadoLiquidacion.totales.neto)}
-                  </span>
-                </div>
-
-                {/* 5. Composición del costo laboral: los siete rubros del decreto */}
                 {empleador && (
-                  <section>
-                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 border-b border-slate-100 pb-1.5 mb-2">Composición de las cargas sociales</h3>
-                    {/* Los porcentajes son sobre el total de las cargas, no sobre el
-                        costo laboral: antes el título decía "costo laboral" y el
-                        contador leyó que la seguridad social era el 51% del costo.
-                        Al lado va el peso real sobre el costo. Los rubros en cero
-                        no se dibujan: un guion no informa nada. */}
-                    <p className="text-[11px] text-slate-500 mb-2">
-                      Lo que pagan el empleador y el trabajador, por rubro del Decreto 407/2026. El primer porcentaje es sobre
-                      el total de las cargas; el segundo, sobre el costo laboral total.
-                    </p>
-                    <div className="space-y-2">
-                      {Object.entries(empleador.rubros).filter(([, r]) => r.total > 0).map(([id, r]) => {
-                        const parteEmpleador = (r.empleador / r.total) * 100;
-                        const etiqueta = id === "art" && contribuciones.some((l) => /FFEP/.test(l.concepto)) ? `${r.label} + FFEP` : r.label;
-                        return (
-                          <div key={id} className="text-[12px]">
-                            <div className="flex justify-between gap-2 text-slate-700">
-                              <span>{etiqueta}</span>
-                              <span className="tabular-nums whitespace-nowrap">
-                                {money(r.total)} · {num(r.porcentaje)}% de las cargas
-                                {r.porcentajeDelCosto != null ? ` · ${num(r.porcentajeDelCosto)}% del costo` : ""}
-                              </span>
-                            </div>
-                            <div className="h-1.5 w-full rounded-full bg-rose-200 overflow-hidden mt-0.5">
-                              <div className="h-full bg-indigo-500" style={{ width: `${parteEmpleador}%` }} />
-                            </div>
-                            <div className="flex justify-between text-[10px] text-slate-500">
-                              <span>Empleador {money(r.empleador)}</span>
-                              <span>Trabajador {money(r.trabajador)}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      <div className="flex justify-between gap-2 text-[12px] font-semibold text-slate-800 border-t border-slate-200 pt-1.5">
-                        <span>Total de cargas (empleador + trabajador)</span>
-                        <span className="tabular-nums whitespace-nowrap">
-                          {money(empleador.totalCargas)} · {num((empleador.totalCargas / empleador.costoLaboral) * 100)}% del costo laboral total
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-2">
-                      El Impuesto a las Ganancias no integra el costo laboral: es un impuesto del trabajador que el empleador sólo retiene.
-                    </p>
-                  </section>
+                  <p className="text-[11px] text-slate-500">
+                    {empleador.detraccion
+                      ? `Detracción Ley 27.541 aplicada: ${money(empleador.detraccion.prorrateada)}` +
+                        (empleador.detraccion.prorrateaPorJornada && metodo.jornadaDelPuesto !== metodo.jornadaCompletaSemanal ? " (prorrateada por la jornada)" : "") +
+                        ". "
+                      : ""}
+                    La ART es estimada: cada empleador negocia su alícuota. El Impuesto a las Ganancias no integra el costo laboral:
+                    es un impuesto del trabajador que el empleador sólo retiene.
+                  </p>
+                )}
+                {empleador && empleador.periodoTabla && empleador.periodoTabla !== metodo.periodo && (
+                  <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
+                    <b>Ojo:</b> no hay tabla de contribuciones de {nombreDePeriodo(metodo.periodo)}. Se usó la de{" "}
+                    {nombreDePeriodo(empleador.periodoTabla)}, que puede tener otras bases o alícuotas.
+                  </p>
                 )}
 
                 {resultadoLiquidacion.ganancias?.aplica && (
