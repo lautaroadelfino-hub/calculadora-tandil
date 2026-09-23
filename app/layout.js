@@ -81,7 +81,7 @@ export default function RootLayout({ children }) {
         </Suspense>
 
         <Header />
-        <div className="relative z-0 w-full px-4 sm:px-6 lg:px-8 pt-6 pb-8 pt-[var(--h-header)]">
+        <div className="relative z-0 w-full px-4 sm:px-6 lg:px-8 pt-6 pb-8 pt-[var(--h-header)] print:p-0">
           <main id="contenido" className="space-y-6">{children}</main>
         </div>
         <Analitica />

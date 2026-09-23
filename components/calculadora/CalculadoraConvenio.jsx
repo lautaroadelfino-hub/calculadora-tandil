@@ -299,7 +299,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
       <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-0 sm:px-6 py-6 sm:py-8 mb-16">
 
         {/* ENCABEZADO DEL CONVENIO */}
-        <header className="mb-6">
+        <header className="mb-6 print:hidden">
           <p className="inline-flex items-center gap-2 rounded-full bg-emerald-100/70 px-3 py-1 text-[11px] font-semibold text-emerald-900 uppercase tracking-wide">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Calculadora de sueldos
@@ -531,7 +531,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
           {resultadoLiquidacion ? (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-6 print:shadow-none print:border-0 print:static">
 
-              <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3">
+              <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3 print:hidden">
                 <div>
                   <h2 ref={tituloReciboRef} tabIndex={-1} className="font-bold outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded">Simulación de recibo</h2>
                   <p className="text-xs text-slate-300 mt-0.5">{convenio.nombre} · {periodoUsadoNombre}</p>
@@ -559,7 +559,9 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                 </div>
               )}
 
-              <div className={`p-5 space-y-5 ${desactualizado ? "opacity-50" : ""}`}>
+              {/* Al imprimir queda sólo el recibo oficial y la leyenda de simulación:
+                  lo demás es de pantalla, y con todo junto salían tres hojas. */}
+              <div className={`p-5 space-y-5 print:p-0 print:space-y-1 ${desactualizado ? "opacity-50" : ""}`}>
 
                 {/* 0. Resumen: los dos números que cada uno vino a buscar, arriba de
                     todo. El empleado tardaba tres pantallas en llegar al neto y el
@@ -570,7 +572,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                     tarjeta del recibo (consulta de contenedor), no de la
                     pantalla: en una columna de 470 px se apilaban mal y el neto
                     se cortaba. El importe del neto crece recién cuando entra. */}
-                <div className="@container">
+                <div className="@container print:hidden">
                 <div className="grid grid-cols-1 @lg:grid-cols-3 gap-2">
                   <div className="rounded-xl bg-emerald-600 text-white px-4 py-3">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100">Neto a cobrar</div>
@@ -601,18 +603,14 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                     costo total empleador, bruto, haberes y aportes, neto,
                     detalle de la composición salarial y torta. Las celdas las
                     arma lib/reciboOficial.js. */}
-                <p className="text-[11px] text-slate-500">
-                  Las casillas en blanco (empresa, CUIT, nombre, legajo, CUIL, fecha de ingreso, lugar y fecha de pago) son
-                  datos que la simulación no tiene.
-                </p>
-                <ReciboOficial resultado={resultadoLiquidacion} entradas={entradasUsadas} periodoId={periodoUsado} />
+                <ReciboOficial resultado={resultadoLiquidacion} convenio={convenio} entradas={entradasUsadas} periodoId={periodoUsado} />
 
                 {/* Notas al pie del recibo. Ganancias siempre dice algo: que
                     corresponde (arriba, como línea), que no corresponde y por
                     qué, o que no se calculó. El silencio dejaba al contador
                     sin saber cuál de las tres. */}
                 {resultadoLiquidacion.ganancias && !resultadoLiquidacion.ganancias.aplica && (
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 print:hidden">
                     Impuesto a las Ganancias:{" "}
                     {resultadoLiquidacion.ganancias.motivo
                       ? `no se calculó (${resultadoLiquidacion.ganancias.motivo.toLowerCase()}).`
@@ -620,21 +618,20 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                   </p>
                 )}
                 {!resultadoLiquidacion.ganancias && (
-                  <p className="text-[11px] text-slate-500">Impuesto a las Ganancias: no se calculó porque no hay tabla cargada para este período.</p>
+                  <p className="text-[11px] text-slate-500 print:hidden">Impuesto a las Ganancias: no se calculó porque no hay tabla cargada para este período.</p>
                 )}
                 {empleador && (
-                  <p className="text-[11px] text-slate-500">
+                  <p className="text-[11px] text-slate-500 print:hidden">
                     {empleador.detraccion
                       ? `Detracción Ley 27.541 aplicada: ${money(empleador.detraccion.prorrateada)}` +
                         (empleador.detraccion.prorrateaPorJornada && metodo.jornadaDelPuesto !== metodo.jornadaCompletaSemanal ? " (prorrateada por la jornada)" : "") +
                         ". "
                       : ""}
-                    La ART es estimada: cada empleador negocia su alícuota. El Impuesto a las Ganancias no integra el costo laboral:
-                    es un impuesto del trabajador que el empleador sólo retiene.
+                    La ART es estimada: cada empleador negocia su alícuota.
                   </p>
                 )}
                 {empleador && empleador.periodoTabla && empleador.periodoTabla !== metodo.periodo && (
-                  <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
+                  <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2 print:hidden">
                     <b>Ojo:</b> no hay tabla de contribuciones de {nombreDePeriodo(metodo.periodo)}. Se usó la de{" "}
                     {nombreDePeriodo(empleador.periodoTabla)}, que puede tener otras bases o alícuotas.
                   </p>
@@ -661,7 +658,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                     silencio: escribías 20 años de antigüedad en un convenio que no
                     tiene esa regla, el neto no se movía y no había ni un aviso. */}
                 {resultadoLiquidacion.avisos?.length > 0 && (
-                  <div className="space-y-1">
+                  <div className="space-y-1 print:hidden">
                     {resultadoLiquidacion.avisos.map((aviso, i) => (
                       <p key={i} className="text-[11px] text-slate-700 bg-slate-100 border border-slate-300 rounded-lg px-2.5 py-2">
                         {aviso}
@@ -672,7 +669,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
 
                 {/* 6. Con qué supuestos se hizo la cuenta */}
                 {metodo && (
-                  <section className="rounded-xl border border-slate-200 p-3">
+                  <section className="rounded-xl border border-slate-200 p-3 print:hidden">
                     <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Cómo se hizo esta cuenta</h3>
                     <ul className="text-[11px] text-slate-600 space-y-0.5 list-disc pl-4">
                       <li>
@@ -741,7 +738,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                   </dl>
                 </details>
 
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-slate-500 print:text-[9px]">
                   Simulación orientativa según escalas vigentes cargadas. No reemplaza el recibo oficial emitido por el empleador.
                 </p>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 print:hidden">

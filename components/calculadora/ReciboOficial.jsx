@@ -110,7 +110,8 @@ function Tabla({ filas, titulo, vacio }) {
               <td className={`${CELDA} text-right tabular-nums sm:whitespace-nowrap`}>{celdas.unidad}</td>
               <td className={`${CELDA} ${SOLO_ANCHO} text-right tabular-nums`}>
                 <span className="whitespace-nowrap">{celdas.base}</span>
-                {celdas.baseNota && <span className="block text-[9px] leading-tight text-slate-500 whitespace-normal">{celdas.baseNota}</span>}
+                {/* La nota de la base no se imprime: duplicaba la altura de cada fila y el recibo no entraba en una hoja. */}
+                {celdas.baseNota && <span className="block print:hidden text-[9px] leading-tight text-slate-500 whitespace-normal">{celdas.baseNota}</span>}
               </td>
               <td className={`${CELDA} text-right tabular-nums whitespace-nowrap`}>{money(linea.monto)}</td>
             </tr>
@@ -209,7 +210,7 @@ function Torta({ porciones, total }) {
   );
 }
 
-export default function ReciboOficial({ resultado, entradas, periodoId }) {
+export default function ReciboOficial({ resultado, convenio, entradas, periodoId }) {
   const cabecera = encabezado(resultado, entradas, periodoId);
   const empleador = resultado.costoEmpleador;
   const totales = resultado.totales;
@@ -219,13 +220,14 @@ export default function ReciboOficial({ resultado, entradas, periodoId }) {
   const mesSinTabla = nombreDePeriodo(resultado.metodo && resultado.metodo.periodo);
 
   return (
-    <div className="overflow-x-auto print:overflow-visible">
+    <div className="overflow-x-auto print:overflow-visible recibo-impresion">
       <div className="sm:min-w-[480px] print:min-w-0 bg-white text-slate-900 border border-slate-900">
 
-        {/* Empresa: tres renglones, como el modelo. Nada de esto lo sabe la simulación. */}
+        {/* Empresa: tres renglones, como el modelo. El segundo lleva el convenio;
+            empresa y CUIT no los sabe la simulación y quedan en blanco. */}
         <div className="px-1.5 py-1 text-[12px] leading-5">
           <div>EMPRESA <SinCompletar /></div>
-          <div aria-hidden="true">&nbsp;</div>
+          <div>{convenio ? `${convenio.nombre} · CCT ${convenio.cct}` : "\u00a0"}</div>
           <div>C.U.I.T. EMPRESA : <SinCompletar /></div>
         </div>
 
@@ -316,11 +318,6 @@ export default function ReciboOficial({ resultado, entradas, periodoId }) {
           </div>
         )}
       </div>
-
-      <p className="sm:hidden mt-1.5 text-[11px] text-slate-500">
-        En el celular no se muestran la columna Base ni las casillas vacías del encabezado (Q., apellido y nombre,
-        legajo, fecha de ingreso, CUIL). Girá el teléfono o abrilo en una pantalla más ancha para ver el recibo completo.
-      </p>
 
       {desconocidas.length > 0 && (
         <div className="mt-2 text-[11px] text-rose-800 bg-rose-50 border border-rose-300 rounded-lg px-2.5 py-2">
