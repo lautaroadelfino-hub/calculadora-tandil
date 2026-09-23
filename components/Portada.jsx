@@ -46,9 +46,12 @@ const APP_VERSION = "v1.5.0";
 // llenan exactamente una fila en un monitor de 1366 px y no queda un hueco al
 // costado. Cuando haya muchos pasa a 4 columnas en pantallas grandes, para que
 // entren más sin scrollear.
-const GRILLA_COMPACTA = "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3";
+// Desde 1280 px las columnas se arman con auto-fill: cada tarjeta mide entre
+// 300 px y lo que sobre, así que en un monitor de 2560 px tres convenios no se
+// estiran a 750 px cada uno (antes quedaban casi vacías).
+const GRILLA_COMPACTA = "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]";
 const GRILLA_AMPLIA =
-  "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-4";
+  "grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-3 xl:grid-cols-[repeat(auto-fill,minmax(300px,1fr))]";
 
 const plural = (n, singular, pluralTxt) => (n === 1 ? singular : pluralTxt);
 
@@ -200,12 +203,12 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-slate-100 via-slate-50 to-white overflow-x-hidden">
-      {/* El layout ya pone un gutter lateral (px-4 = 16 px en móvil), así que
-          acá alcanza con px-4: en una pantalla de 400 px quedan 32 px de
-          margen por lado y nada se sale hacia el costado. */}
+      {/* El layout ya pone el gutter lateral (16 px en el celular): acá no se
+          duplica, que en 360 px eran 64 px perdidos. En monitores grandes el
+          contenido se frena en 1600 px y se centra, como la calculadora. */}
       {/* <div>, no <main>: el <main> lo pone el layout. Dos "principal" anidados
           confundían al lector de pantalla y al salto al contenido. */}
-      <div className="w-full px-4 sm:px-6 py-6 sm:py-8 min-h-[100dvh]">
+      <div className="w-full max-w-[1600px] mx-auto px-0 sm:px-6 py-6 sm:py-8 min-h-[100dvh]">
 
         {/* HERO COMPACTO: el mensaje sigue entero, pero en una franja al ancho
             completo y baja, para que el directorio empiece arriba de todo. */}
@@ -450,7 +453,7 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
         enPreparacion={enPreparacion}
       />
       <footer className="border-t border-slate-200 mt-10">
-        <div className="w-full px-4 sm:px-6 py-4 text-xs text-slate-500 flex flex-wrap items-center gap-2">
+        <div className="w-full max-w-[1600px] mx-auto px-0 sm:px-6 py-4 text-xs text-slate-500 flex flex-wrap items-center gap-2">
           <span>© {new Date().getFullYear()} LiquidAR.ar.</span>
           <span className="text-slate-500">Versión {APP_VERSION}</span>
           <span className="basis-full sm:basis-auto sm:ml-auto text-slate-500">

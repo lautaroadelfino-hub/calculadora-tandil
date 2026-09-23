@@ -292,7 +292,11 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
 
   return (
     <div className="min-h-[100dvh] bg-gradient-to-br from-slate-100 via-slate-50 to-white">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 mb-16">
+      {/* El layout ya pone 16 px de margen por lado en el celular: acá no se
+          duplica. En escritorio el tope sube a 1280 px y en monitores grandes
+          a 1600: antes, con 1152 px, un monitor de 1920 usaba el 57 % del
+          ancho y uno de 2560 el 43 %. */}
+      <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-0 sm:px-6 py-6 sm:py-8 mb-16">
 
         {/* ENCABEZADO DEL CONVENIO */}
         <header className="mb-6">
@@ -304,7 +308,10 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
           <p className="text-sm text-slate-500 mt-1">Convenio Colectivo de Trabajo {convenio.cct}</p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] gap-6 items-start">
+        {/* Dos columnas desde 1024 px, con más lugar para el recibo (3/8 y 5/8;
+            5/12 y 7/12 desde 1280): el formulario no gana nada con más ancho y
+            el recibo oficial necesita 480 px para no desplazarse de costado. */}
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,3fr)_minmax(0,5fr)] xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-6 items-start">
 
           {/* PANEL IZQUIERDO: Formulario */}
           <form ref={formRef} onSubmit={simularLiquidacion} noValidate className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-clip print:hidden">
@@ -559,10 +566,15 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                     primer número grande era el costo del empleador; el empleador,
                     al revés, no encontraba destacado el costo total. El detalle
                     sigue abajo, en el orden que manda el Decreto 407/2026. */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {/* Las tres tarjetas se ponen en fila según el ancho de la
+                    tarjeta del recibo (consulta de contenedor), no de la
+                    pantalla: en una columna de 470 px se apilaban mal y el neto
+                    se cortaba. El importe del neto crece recién cuando entra. */}
+                <div className="@container">
+                <div className="grid grid-cols-1 @lg:grid-cols-3 gap-2">
                   <div className="rounded-xl bg-emerald-600 text-white px-4 py-3">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100">Neto a cobrar</div>
-                    <div className="text-2xl font-black tabular-nums leading-tight">{money(resultadoLiquidacion.totales.neto)}</div>
+                    <div className="text-xl @2xl:text-2xl font-black tabular-nums leading-tight">{money(resultadoLiquidacion.totales.neto)}</div>
                     <div className="text-[11px] text-emerald-100">Lo que recibe el trabajador</div>
                   </div>
                   <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3">
@@ -581,6 +593,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                         : "Sin tabla de contribuciones para este período."}
                     </div>
                   </div>
+                </div>
                 </div>
 
                 {/* 1 a 5. El recibo, con el formato del Anexo III del Decreto

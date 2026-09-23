@@ -8,7 +8,8 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-20 text-white shadow bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 print:hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      {/* El mismo tope que el contenido (1600 px), para que la marca y el menú queden alineados con él. */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
         {/* Barra superior */}
         <div className="flex items-center gap-4 py-4 sm:py-5 min-h-[80px] sm:min-h-[96px]">
           {/* Marca */}
