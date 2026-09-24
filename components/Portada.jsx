@@ -328,21 +328,6 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
             </div>
           )}
 
-          {/* Con tres convenios la lista es corta, y esta línea la cierra sin
-              que parezca que falta algo: se puede pedir el que no está. */}
-          {!cargando && !fallo && activos.length > 0 ? (
-            <p className="mt-4 text-[13px] text-slate-600">
-              ¿No está tu convenio?{" "}
-              <button
-                type="button"
-                onClick={() => setShowReport(true)}
-                className="font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900"
-              >
-                Pedinos que lo agreguemos
-              </button>
-              .
-            </p>
-          ) : null}
         </section>
 
         {/* Herramientas: salen de lib/herramientas.js. Antes la del Panel
