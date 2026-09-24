@@ -43,7 +43,7 @@ describe("lo que frena, y dice por qué", () => {
 
   it("horas semanales vacías o en cero: no se calcula jornada completa en silencio", () => {
     expect(normalizarEntradas(comercio, base(comercio, { carga_horaria: "" }), "2026-09").errores.carga_horaria).toMatch(/48 hs/);
-    expect(normalizarEntradas(comercio, base(comercio, { carga_horaria: 0 }), "2026-09").errores.carga_horaria).toMatch(/Con 0/);
+    expect(normalizarEntradas(comercio, base(comercio, { carga_horaria: 0 }), "2026-09").errores.carga_horaria).toMatch(/jornada completa: 48 hs/);
     expect(normalizarEntradas(camioneros, base(camioneros, { carga_horaria: "" }), "2026-08").errores.carga_horaria).toMatch(/44 hs/);
   });
 

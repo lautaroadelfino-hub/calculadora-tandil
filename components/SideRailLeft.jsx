@@ -39,7 +39,9 @@ export default function SideRailLeft({ enPreparacion = [], novedades = null }) {
 
   return (
     <aside className="space-y-4 xl:sticky xl:top-24">
-      {/* Últimas novedades */}
+      {/* Últimas novedades. Si no hay ninguna, la tarjeta no se dibuja: un
+          título con "no hay nada" debajo no informa. */}
+      {(loading || latest.length > 0) && (
       <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4">
         <h3 className="text-sm font-semibold text-slate-700">Últimas novedades</h3>
 
@@ -49,9 +51,7 @@ export default function SideRailLeft({ enPreparacion = [], novedades = null }) {
               <li key={i} className="h-6 rounded bg-slate-100 animate-pulse" />
             ))}
           </ul>
-        ) : latest.length === 0 ? (
-          <p className="mt-2 text-[13px] text-slate-500">No hay novedades por ahora.</p>
-        ) : (
+        ) : latest.length === 0 ? null : (
           <ul className="mt-3 space-y-2">
             {latest.map((n) => (
               <li key={n.id} className="flex items-start gap-2">
@@ -70,8 +70,10 @@ export default function SideRailLeft({ enPreparacion = [], novedades = null }) {
           </ul>
         )}
       </div>
+      )}
 
       {/* Acuerdos recientes */}
+      {(loading || acuerdos.length > 0) && (
       <div className="rounded-xl border border-slate-200 bg-white/80 backdrop-blur p-4">
         <h3 className="text-sm font-semibold text-slate-700">Acuerdos recientes</h3>
 
@@ -81,9 +83,7 @@ export default function SideRailLeft({ enPreparacion = [], novedades = null }) {
               <li key={i} className="h-6 rounded bg-slate-100 animate-pulse" />
             ))}
           </ul>
-        ) : acuerdos.length === 0 ? (
-          <p className="mt-2 text-[13px] text-slate-500">Aún no cargamos acuerdos.</p>
-        ) : (
+        ) : acuerdos.length === 0 ? null : (
           <ul className="mt-3 space-y-2">
             {acuerdos.map((n) => (
               <li key={n.id} className="flex items-start gap-2">
@@ -102,6 +102,7 @@ export default function SideRailLeft({ enPreparacion = [], novedades = null }) {
           </ul>
         )}
       </div>
+      )}
 
 {/* Próximas actualizaciones.
     Antes era una lista literal en el JSX: cuando el dueño cargaba un convenio

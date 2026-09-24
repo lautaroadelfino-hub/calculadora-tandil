@@ -286,7 +286,7 @@ export default function ReciboOficial({ resultado, convenio, entradas, periodoId
         <Tabla
           titulo="Contribuciones a cargo del empleador"
           filas={empleador ? filasEmpleador(resultado.detalle) : []}
-          vacio={`Para ${mesSinTabla} todavía no hay tabla de contribuciones cargada, así que este recibo no muestra la sección del empleador.`}
+          vacio={`Para ${mesSinTabla} no hay tabla de contribuciones cargada.`}
         />
         <Franja titulo="Sub total contribuciones empleador" importe={empleador ? money(empleador.totalContribuciones) : "—"} />
         <Franja titulo="Sueldo bruto" importe={money(totales.bruto + totales.noRemunerativo)} />
@@ -321,8 +321,8 @@ export default function ReciboOficial({ resultado, convenio, entradas, periodoId
 
       {desconocidas.length > 0 && (
         <div className="mt-2 text-[11px] text-rose-800 bg-rose-50 border border-rose-300 rounded-lg px-2.5 py-2">
-          El recibo tiene {desconocidas.length} línea(s) de un tipo que esta pantalla no sabe mostrar:{" "}
-          {desconocidas.map((l) => `${l.concepto} (${l.tipo})`).join(", ")}. No están sumadas en ninguna sección de arriba.
+          {desconocidas.length} línea(s) que no están sumadas en los totales:{" "}
+          {desconocidas.map((l) => `${l.concepto} (${l.tipo})`).join(", ")}.
         </div>
       )}
     </div>

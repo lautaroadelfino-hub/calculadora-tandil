@@ -186,7 +186,7 @@ describe("sin tabla, y cuando no entiende", () => {
     expect(r.lineas).toEqual([]);
     expect(r.total).toBe(0);
     expect(r.regimen).toBeNull();
-    expect(r.avisos.join(" ")).toMatch(/todavía no hay tabla de contribuciones/);
+    expect(r.avisos.join(" ")).toMatch(/Sin tabla de contribuciones/);
     // Y no manda al visitante a /admin: eso es del panel, no de la pantalla pública.
     expect(r.avisos.join(" ")).not.toMatch(/admin/);
   });

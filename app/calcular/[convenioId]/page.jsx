@@ -47,10 +47,6 @@ function SinDatos({ destino }) {
     <div className="max-w-xl mx-auto px-4 sm:px-6 py-16 text-center">
       <meta name="robots" content="noindex, nofollow" />
       <h1 className="text-2xl font-bold text-slate-900">No pudimos traer los datos del convenio</h1>
-      <p className="mt-3 text-sm text-slate-600">
-        Es un problema de conexión con la base de datos, no de tus datos. Probá recargar la página en unos
-        segundos.
-      </p>
       <a
         href={destino}
         className="mt-6 inline-block rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"

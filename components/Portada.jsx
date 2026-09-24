@@ -210,31 +210,18 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
           confundían al lector de pantalla y al salto al contenido. */}
       <div className="w-full max-w-[1600px] mx-auto px-0 sm:px-6 py-6 sm:py-8 min-h-[100dvh]">
 
-        {/* HERO COMPACTO: el mensaje sigue entero, pero en una franja al ancho
-            completo y baja, para que el directorio empiece arriba de todo. */}
+        {/* HERO: sólo el título. Los párrafos que explicaban qué hace la
+            herramienta y para quién sirve se sacaron a pedido del dueño
+            (24/9/2026): el directorio de abajo ya lo dice solo. */}
         <section className="mb-6 rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/40 px-5 py-6 sm:px-8 sm:py-7">
-          <p className="inline-flex items-center gap-2 rounded-full bg-emerald-100/70 px-3 py-1 text-[11px] font-medium text-emerald-900">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Calculadora de sueldos
-          </p>
-          <h1 className="mt-3 text-2xl sm:text-3xl font-bold text-slate-900">
-            Simulá tu recibo de sueldo en segundos.
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
+            Simulá tu recibo de sueldo
           </h1>
-          <p className="mt-2 max-w-2xl text-sm sm:text-base text-slate-700">
-            Elegí tu convenio, completá algunos datos básicos y obtené una
-            liquidación estimada, con detalle de remunerativos, no
-            remunerativos y descuentos.
-          </p>
-          <p className="mt-2 max-w-2xl text-sm text-slate-700">
-            Sirve para el empleado y para el empleador: el mismo recibo muestra lo que paga la empresa
-            y el costo laboral total, como exige el recibo desde junio de 2026.
-          </p>
         </section>
 
         {vieneDelEmpleador && (
           <div role="status" className="mb-6 rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-            <b>El panel del empleador ya no es una sección aparte.</b> Cada calculadora muestra, en el mismo recibo,
-            lo que paga el empleador y el costo laboral total. Elegí el convenio y calculá.
+            <b>El panel del empleador ahora está dentro de cada calculadora.</b> Elegí el convenio y calculá.
           </div>
         )}
 
@@ -252,7 +239,7 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
                   ? "No pudimos cargar el listado."
                   : buscando
                   ? `${visibles.length} de ${activos.length} ${plural(activos.length, "convenio", "convenios")} coinciden con tu búsqueda.`
-                  : `${activos.length} ${plural(activos.length, "convenio", "convenios")} con escalas cargadas.`}
+                  : ""}
               </p>
             </div>
 
@@ -281,20 +268,17 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
             <TarjetasCargando clases={GRILLA} />
           ) : fallo ? (
             <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-6 text-sm text-amber-900">
-              No pudimos cargar los convenios. Revisá tu conexión y volvé a
-              cargar la página; si sigue igual, contanos con el botón de abajo.
+              No pudimos cargar los convenios. Revisá tu conexión y volvé a cargar la página.
             </div>
           ) : activos.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 text-sm text-slate-600">
-              Todavía no hay convenios publicados. Los que están en preparación
-              figuran en &quot;Próximas actualizaciones&quot;.
+              Todavía no hay convenios publicados.
             </div>
           ) : visibles.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white/80 p-6 text-sm text-slate-600">
               <p className="[overflow-wrap:anywhere]">
                 No encontramos ningún convenio para{" "}
                 <span className="font-semibold text-slate-900">{consulta}</span>.
-                Probá con el número de CCT o con una sola palabra del nombre.
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -397,28 +381,18 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
             {/* Clases escritas a mano en vez de la utilidad .panel: .panel
                 incluye overflow-hidden, y acá adentro hay texto que tiene que
                 poder crecer sin que se le corte nada. */}
-            <section className="min-w-0 rounded-2xl border border-slate-200 bg-white/90 p-6 shadow backdrop-blur sm:p-8">
-              <h2 className="text-lg font-bold text-slate-800">Antes de liquidar</h2>
-              <p className="mt-2 max-w-2xl text-sm text-slate-600">
-                Cada tarjeta indica hasta qué mes están cargadas sus escalas
-                salariales, y el recibo avisa si alguna tabla que usó no es la
-                del período que estás liquidando.
-              </p>
-              <p className="mt-3 max-w-2xl text-sm text-slate-600">
-                ¿Falta tu convenio, o algún número no cuadra? Contanos: es la
-                vía por la que se priorizan los que vienen.
-              </p>
-              <div className="mt-5">
-                <button
-                  ref={reportBtnRef}
-                  type="button"
-                  onClick={() => setShowReport(true)}
-                  className="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900 transition-colors"
-                >
-                  Reportar error / sugerencia
-                </button>
-              </div>
-            </section>
+            {/* Sólo el botón: el título y los dos párrafos que lo rodeaban se
+                sacaron (24/9/2026), no decían nada que el botón no diga. */}
+            <div className="min-w-0">
+              <button
+                ref={reportBtnRef}
+                type="button"
+                onClick={() => setShowReport(true)}
+                className="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900 transition-colors"
+              >
+                Reportar error / sugerencia
+              </button>
+            </div>
           </div>
         </div>
 
@@ -456,10 +430,6 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
         <div className="w-full max-w-[1600px] mx-auto px-0 sm:px-6 py-4 text-xs text-slate-500 flex flex-wrap items-center gap-2">
           <span>© {new Date().getFullYear()} LiquidAR.ar.</span>
           <span className="text-slate-500">Versión {APP_VERSION}</span>
-          <span className="basis-full sm:basis-auto sm:ml-auto text-slate-500">
-            Herramienta independiente de simulación, hecha por un contador. Consultas y errores: el botón
-            &quot;Reportar error / sugerencia&quot;.
-          </span>
         </div>
       </footer>
     </div>

@@ -39,7 +39,6 @@ export default function MobileExtras({ open, onClose, onReport, novedades = null
         className="absolute inset-x-0 bottom-0 max-h-[85%] rounded-t-2xl bg-white shadow-2xl p-4 overflow-y-auto"
       >
         <div className="mx-auto h-1 w-12 rounded-full bg-slate-300 mb-3" />
-        <h3 className="text-base font-semibold text-slate-800 mb-2">Herramientas</h3>
 
         {/* Reutilizamos el contenido de los rails */}
         <div className="space-y-4">

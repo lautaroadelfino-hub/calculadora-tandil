@@ -26,7 +26,7 @@ const money = (n) =>
 const pct = (fraccion) =>
   (Number(fraccion || 0) * 100).toLocaleString("es-AR", { maximumFractionDigits: 2 }) + "%";
 
-const MESES_DEL_AÑO = 12;
+
 
 /** 36.5 -> "36,5" */
 const num = (n) => Number(n || 0).toLocaleString("es-AR", { maximumFractionDigits: 2 });
@@ -167,7 +167,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
     const link = linkDeLaSimulacion();
     try {
       await navigator.clipboard.writeText(link);
-      setCopiado("Link copiado. Pegalo donde quieras: abre esta misma simulación.");
+      setCopiado("Link copiado.");
     } catch {
       setCopiado(link);
     }
@@ -300,12 +300,8 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
 
         {/* ENCABEZADO DEL CONVENIO */}
         <header className="mb-6 print:hidden">
-          <p className="inline-flex items-center gap-2 rounded-full bg-emerald-100/70 px-3 py-1 text-[11px] font-semibold text-emerald-900 uppercase tracking-wide">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-            Calculadora de sueldos
-          </p>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mt-2">{convenio.nombre}</h1>
-          <p className="text-sm text-slate-500 mt-1">Convenio Colectivo de Trabajo {convenio.cct}</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{convenio.nombre}</h1>
+          <p className="text-sm text-slate-500 mt-1">CCT {convenio.cct}</p>
         </header>
 
         {/* Dos columnas desde 1024 px, con más lugar para el recibo (3/8 y 5/8;
@@ -353,9 +349,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                           <span className="sm:hidden text-[11px] text-slate-500 mt-1">Elegida: {valoresUsuario[input.id]}</span>
                         )}
                         {input.id === "zona" && (
-                          <span className="text-[11px] text-slate-500 mt-1">
-                            Depende de la localidad del establecimiento; lo fija la escala del convenio. Si no sabés, consultá tu recibo o al empleador.
-                          </span>
+                          <span className="text-[11px] text-slate-500 mt-1">Según la localidad del establecimiento.</span>
                         )}
                       </>
                     )}
@@ -383,17 +377,11 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                     onChange={handleChange}
                     className="h-4 w-4 accent-emerald-600"
                   />
-                  <span>
-                    Incluir SAC (medio aguinaldo)
-                    <span className="block text-[11px] text-slate-500">También sube las contribuciones del empleador.</span>
-                  </span>
+                  <span>Incluir SAC (medio aguinaldo)</span>
                 </label>
 
                 <div className="flex items-start justify-between gap-3">
-                  <label htmlFor="dias_vacaciones" className="text-sm text-slate-700 pt-2">
-                    Días de vacaciones (plus vacacional)
-                    <span className="block text-[11px] text-slate-500">Si este mes no se tomó vacaciones, dejá 0.</span>
-                  </label>
+                  <label htmlFor="dias_vacaciones" className="text-sm text-slate-700 pt-2">Días de vacaciones</label>
                   <div className="flex flex-col items-end">{campoNumero("dias_vacaciones", "w-24 text-center")}{mensajeError("dias_vacaciones")}</div>
                 </div>
 
@@ -403,17 +391,12 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
               <details open={empleadorAbierto} onToggle={(e) => setEmpleadorAbierto(e.currentTarget.open)} className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4 space-y-3">
                 <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
                   <h2 className="text-xs font-bold uppercase tracking-wide text-indigo-700">Lo que paga el empleador</h2>
-                  <span className="text-[11px] text-indigo-700">{empleadorAbierto ? "Ocultar" : "Ver · ya tiene valores por defecto"}</span>
+                  <span className="text-[11px] text-indigo-700">{empleadorAbierto ? "Ocultar" : "Ver"}</span>
                 </summary>
-                <p className="text-[11px] text-slate-500 -mt-1">
-                  Desde el 01/06/2026 el recibo muestra las contribuciones del empleador. Se calculan solas
-                  con la tabla del mes; acá van los dos datos que dependen de cada empleador.
-                </p>
 
                 {tablaContribuciones === null && (
                   <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
-                    Para {nombreDePeriodo(periodoSeleccionado)} todavía no hay tabla de contribuciones cargada:
-                    el recibo va a salir sin la sección del empleador.
+                    Sin tabla de contribuciones para {nombreDePeriodo(periodoSeleccionado)}: el recibo sale sin la sección del empleador.
                   </p>
                 )}
 
@@ -433,17 +416,13 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                         <option key={id} value={id}>{r.label}{r.predeterminado ? " · el más común" : ""}</option>
                       ))}
                   </select>
-                  <span className="text-[11px] text-slate-500">Si no sabés, dejá el que está: es el de la mayoría de los empleadores.</span>
                 </div>
 
                 <div className="flex items-start justify-between gap-3">
                   <label htmlFor="art_alicuota" className="text-sm text-slate-700">
                     Alícuota de ART
                     <span className="block text-[11px] text-slate-500">
-                      La de tu póliza, en %.{" "}
-                      {artTipicaDelConvenio != null
-                        ? `La típica de esta actividad es ${pct(artTipicaDelConvenio)}.`
-                        : "El convenio no tiene una típica cargada."}
+                      En %.{artTipicaDelConvenio != null ? ` Típica de la actividad: ${pct(artTipicaDelConvenio)}.` : ""}
                     </span>
                   </label>
                   <div className="flex flex-col items-end">{campoNumero("art_alicuota", "w-24 text-center")}{mensajeError("art_alicuota")}</div>
@@ -452,7 +431,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                 <div className="flex items-start justify-between gap-3">
                   <label htmlFor="art_suma_fija" className="text-sm text-slate-700">
                     Cuota fija de la ART
-                    <span className="block text-[11px] text-slate-500">Por trabajador y por mes, si tu póliza la tiene.</span>
+                    <span className="block text-[11px] text-slate-500">Por trabajador y por mes.</span>
                   </label>
                   <div className="flex flex-col items-end">{campoNumero("art_suma_fija", "w-24 text-center")}{mensajeError("art_suma_fija")}</div>
                 </div>
@@ -462,11 +441,8 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
               <details open={familiaAbierta} onToggle={(e) => setFamiliaAbierta(e.currentTarget.open)} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
                 <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
                   <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Cargas de familia</h2>
-                  <span className="text-[11px] text-slate-500">{familiaAbierta ? "Ocultar" : "Ver · sólo para Ganancias"}</span>
+                  <span className="text-[11px] text-slate-500">{familiaAbierta ? "Ocultar" : "Ver"}</span>
                 </summary>
-                <p className="text-[11px] text-slate-500 -mt-1">
-                  Solo influyen si el sueldo llega al Impuesto a las Ganancias. Si corresponde, se calcula solo.
-                </p>
 
                 <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer">
                   <input
@@ -485,10 +461,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                 {/* El motor ya deducía los hijos con discapacidad (valen el doble en
                     Ganancias), pero la pantalla nunca los pedía: siempre valían 0. */}
                 <div className="flex items-start justify-between gap-3">
-                  <label htmlFor="hijos_incapacitados" className="text-sm text-slate-700">
-                    Hijos con discapacidad
-                    <span className="block text-[11px] text-slate-500">Deducen el doble</span>
-                  </label>
+                  <label htmlFor="hijos_incapacitados" className="text-sm text-slate-700">Hijos con discapacidad</label>
                   <div className="flex flex-col items-end">{campoNumero("hijos_incapacitados", "w-24 text-center")}{mensajeError("hijos_incapacitados")}</div>
                 </div>
               </details>
@@ -539,7 +512,6 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                     Recibo calculado para {periodoUsadoNombre}. Neto a cobrar {money(resultadoLiquidacion.totales.neto)}.
                   </p>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wider bg-white/10 rounded-full px-3 py-1">Estimado</span>
               </div>
 
               {/* Si se tocó el formulario después de calcular, el recibo de abajo
@@ -577,23 +549,17 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                   <div className="rounded-xl bg-emerald-600 text-white px-4 py-3">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100">Neto a cobrar</div>
                     <div className="text-xl @2xl:text-2xl font-black tabular-nums leading-tight">{money(resultadoLiquidacion.totales.neto)}</div>
-                    <div className="text-[11px] text-emerald-100">Lo que recibe el trabajador</div>
                   </div>
                   <div className="rounded-xl bg-slate-100 border border-slate-200 px-4 py-3">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Bruto + no remunerativo</div>
                     <div className="text-lg font-bold tabular-nums text-slate-800 leading-tight">
                       {money(resultadoLiquidacion.totales.bruto + resultadoLiquidacion.totales.noRemunerativo)}
                     </div>
-                    <div className="text-[11px] text-slate-500">Antes de los descuentos</div>
                   </div>
                   <div className="rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-indigo-700">Costo laboral total</div>
                     <div className="text-lg font-bold tabular-nums text-indigo-900 leading-tight">{empleador ? money(empleador.costoLaboral) : "—"}</div>
-                    <div className="text-[11px] text-indigo-700">
-                      {empleador
-                        ? `Lo que paga el empleador por mes. Al año, unos ${money(empleador.costoLaboral * (entradasUsadas?.incluir_sac ? MESES_DEL_AÑO : MESES_DEL_AÑO + 1))} (${entradasUsadas?.incluir_sac ? "12 meses como este" : "12 meses más el aguinaldo"}).`
-                        : "Sin tabla de contribuciones para este período."}
-                    </div>
+                    {!empleador && <div className="text-[11px] text-indigo-700">Sin tabla de contribuciones.</div>}
                   </div>
                 </div>
                 </div>
@@ -614,21 +580,14 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                     Impuesto a las Ganancias:{" "}
                     {resultadoLiquidacion.ganancias.motivo
                       ? `no se calculó (${resultadoLiquidacion.ganancias.motivo.toLowerCase()}).`
-                      : `no corresponde este mes. Ganancia neta ${money(resultadoLiquidacion.ganancias.gananciaNeta)} contra deducciones personales de ${money(resultadoLiquidacion.ganancias.deduccionesPersonales)}.`}
+                      : "no corresponde este mes."}
                   </p>
                 )}
                 {!resultadoLiquidacion.ganancias && (
                   <p className="text-[11px] text-slate-500 print:hidden">Impuesto a las Ganancias: no se calculó porque no hay tabla cargada para este período.</p>
                 )}
-                {empleador && (
-                  <p className="text-[11px] text-slate-500 print:hidden">
-                    {empleador.detraccion
-                      ? `Detracción Ley 27.541 aplicada: ${money(empleador.detraccion.prorrateada)}` +
-                        (empleador.detraccion.prorrateaPorJornada && metodo.jornadaDelPuesto !== metodo.jornadaCompletaSemanal ? " (prorrateada por la jornada)" : "") +
-                        ". "
-                      : ""}
-                    La ART es estimada: cada empleador negocia su alícuota.
-                  </p>
+                {empleador?.detraccion && (
+                  <p className="text-[11px] text-slate-500 print:hidden">Detracción Ley 27.541: {money(empleador.detraccion.prorrateada)}.</p>
                 )}
                 {empleador && empleador.periodoTabla && empleador.periodoTabla !== metodo.periodo && (
                   <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2 print:hidden">
@@ -639,8 +598,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
 
                 {resultadoLiquidacion.ganancias?.aplica && (
                   <p className="text-[11px] text-amber-700">
-                    El Impuesto a las Ganancias es una <b>estimación mensual</b>, no reemplaza
-                    la liquidación anual acumulada de ARCA.
+                    El Impuesto a las Ganancias es una <b>estimación mensual</b>.
                   </p>
                 )}
 
@@ -648,10 +606,8 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                   periodoGanancias &&
                   periodoGanancias !== periodoUsado && (
                     <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
-                      <b>Ojo:</b> todavía no están cargadas las tablas de Ganancias de{" "}
-                      {nombreDePeriodo(periodoUsado)}. Se usaron las de{" "}
-                      {nombreDePeriodo(periodoGanancias)}, que pueden ser de otro semestre y dar
-                      un impuesto distinto al que corresponde.
+                      <b>Ojo:</b> no hay tablas de Ganancias de {nombreDePeriodo(periodoUsado)}. Se usaron las de{" "}
+                      {nombreDePeriodo(periodoGanancias)}, de otro semestre.
                     </p>
                   )}
                 {/* Lo que el usuario cargó y el recibo no usó. Antes pasaba en
@@ -667,11 +623,13 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                   </div>
                 )}
 
-                {/* 6. Con qué supuestos se hizo la cuenta */}
+                {/* 6. Con qué supuestos se hizo la cuenta. Plegado y cerrado
+                    (24/9/2026): la información queda para quien la busca, sin
+                    ocupar media pantalla debajo del recibo. */}
                 {metodo && (
-                  <section className="rounded-xl border border-slate-200 p-3 print:hidden">
-                    <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-1.5">Cómo se hizo esta cuenta</h3>
-                    <ul className="text-[11px] text-slate-600 space-y-0.5 list-disc pl-4">
+                  <details className="rounded-xl border border-slate-200 p-3 text-[12px] text-slate-600 print:hidden">
+                    <summary className="cursor-pointer font-semibold text-slate-700">Cómo se hizo esta cuenta</summary>
+                    <ul className="mt-2 text-[11px] text-slate-600 space-y-0.5 list-disc pl-4">
                       <li>
                         Jornada completa del convenio: {metodo.jornadaCompletaSemanal} hs semanales
                         {metodo.laDeclaraElConvenio ? " (la declara el convenio)" : " (valor por defecto)"}; el puesto: {num(metodo.jornadaDelPuesto)} hs.
@@ -703,7 +661,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                           antigüedad ni adicionales, y no pagan aportes ni contribuciones. Van derecho al neto.
                         </li>
                       )}
-                      {supuestos.length > 0 && <li>Marcado en el formulario: {supuestos.join("; ")}. Si no corresponde, destildalo y recalculá.</li>}
+                      {supuestos.length > 0 && <li>Marcado en el formulario: {supuestos.join("; ")}.</li>}
                       {periodoGanancias && (
                         <li>Ganancias: tabla cargada para {nombreDePeriodo(periodoGanancias)}{periodoGanancias !== periodoUsado ? " (las tablas cambian por semestre)" : ""}.</li>
                       )}
@@ -716,13 +674,10 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                               : `${pct(empleador.art.alicuota)} ${metodo.artLaInformoLaPersona ? "(la que informaste)" : "(la típica del convenio)"}`}, estimada.
                           </li>
                           <li>El SAC {empleador.sacIntegraBase ? "integra" : "no integra"} la base de contribuciones.</li>
-                          <li>
-                            Costo por hora: {empleador.costoPorHora != null ? money(empleador.costoPorHora) : "—"} · por día: {money(empleador.costoPorDia)} (costo laboral / 30).
-                          </li>
                         </>
                       )}
                     </ul>
-                  </section>
+                  </details>
                 )}
 
                 {/* Glosario corto: las palabras que las personas dijeron no entender. */}
@@ -739,11 +694,11 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                 </details>
 
                 <p className="text-[11px] text-slate-500 print:text-[9px]">
-                  Simulación orientativa según escalas vigentes cargadas. No reemplaza el recibo oficial emitido por el empleador.
+                  Simulación orientativa. No reemplaza el recibo oficial del empleador.
                 </p>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 print:hidden">
                   <button type="button" onClick={copiarLink} className="text-[12px] font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900">
-                    Copiar link de esta simulación
+                    Copiar link
                   </button>
                   <button type="button" onClick={() => window.print()} className="text-[12px] font-medium text-emerald-700 underline underline-offset-2 hover:text-emerald-900">
                     Imprimir o guardar en PDF
@@ -754,7 +709,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                     onClick={() => setShowReport(true)}
                     className="text-[12px] font-medium text-slate-600 underline underline-offset-2 hover:text-slate-900"
                   >
-                    ¿Algo no cuadra? Reportá un error o una sugerencia
+                    Reportar error / sugerencia
                   </button>
                 </div>
                 {copiado && <p role="status" className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2 [overflow-wrap:anywhere] print:hidden">{copiado}</p>}
@@ -764,9 +719,6 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
             <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-10 text-center lg:sticky lg:top-6">
               <div className="text-4xl mb-3">🧾</div>
               <h2 className="font-semibold text-slate-700">Tu recibo va a aparecer acá</h2>
-              <p className="text-sm text-slate-500 mt-1 max-w-xs mx-auto">
-                Completá los datos del puesto y tocá <b>Calcular liquidación</b> para ver el detalle completo.
-              </p>
             </div>
           )}
 

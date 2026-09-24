@@ -29,7 +29,7 @@ export default function Login() {
     } catch (error) {
       console.error("Error al iniciar sesión:", error);
       // Firebase devuelve distintos errores (mail no existe, contraseña mal, etc)
-      setMsg('Credenciales inválidas. Revisá tu email y contraseña.');
+      setMsg('Email o contraseña incorrectos.');
     }
   };
 

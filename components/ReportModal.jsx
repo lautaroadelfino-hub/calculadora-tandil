@@ -102,7 +102,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!descripcion.trim()) {
-      setMsg("Por favor, contanos brevemente el problema.");
+      setMsg("Contanos brevemente el problema.");
       textareaRef.current?.focus?.();
       return;
     }
@@ -132,7 +132,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
         throw new Error(data?.error || "No se pudo enviar el reporte.");
       }
 
-      setMsg("¡Gracias! Recibimos tu reporte correctamente.");
+      setMsg("¡Gracias! Recibimos tu reporte.");
       setDescripcion("");
       setEmail("");
 
@@ -177,7 +177,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
               Reportar error / sugerencia
             </h2>
             <p id="report-desc" className="text-sm text-slate-500 mt-1">
-              Contanos qué no funcionó o qué te gustaría mejorar.{filas.length > 0 ? " Va junto con los datos de la cuenta que tenés en pantalla." : ""}
+              Contanos qué no funcionó o qué te gustaría mejorar.
             </p>
           </div>
           <button
@@ -210,7 +210,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               className="mt-1 w-full rounded-lg border px-3 py-2 outline-none border-slate-200 focus:ring-2 focus:ring-blue-500 min-h-[120px]"
-              placeholder="Ej: la antigüedad de Vendedor B con 5 años no coincide con mi recibo de agosto 2026, o me falta el convenio de..."
+              placeholder="Ej: la antigüedad de Vendedor B con 5 años no coincide con mi recibo."
               required
             />
           </label>
@@ -219,7 +219,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
           {filas.length > 0 ? (
             <details className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
               <summary className="cursor-pointer select-none font-medium text-slate-700">
-                Ver los datos que se envían con el reporte
+                Datos que se envían
               </summary>
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
                 {filas.map(([k, v]) => (
@@ -230,9 +230,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
                 ))}
               </dl>
             </details>
-          ) : (
-            <p className="text-xs text-slate-500">Desde esta pantalla no se envía información técnica: sólo tu mensaje y, si lo ponés, tu email.</p>
-          )}
+          ) : null}
 
           {msg && (
             <p

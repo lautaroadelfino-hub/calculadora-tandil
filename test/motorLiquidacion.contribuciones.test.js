@@ -105,7 +105,7 @@ describe("cuando no hay tabla", () => {
     expect(contribuciones(r)).toEqual([]);
     expect(r.costoEmpleador).toBeNull();
     expect(r.totales.contribuciones).toBe(0);
-    expect(r.avisos.join(" ")).toMatch(/todavía no hay tabla de contribuciones/);
+    expect(r.avisos.join(" ")).toMatch(/Sin tabla de contribuciones/);
     expect(money(r.totales.neto)).toBe(1166249.7);
   });
 });
