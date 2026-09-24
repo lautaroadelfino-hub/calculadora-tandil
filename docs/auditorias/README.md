@@ -51,3 +51,8 @@ no reproducido, y por eso nada se arregla en la misma pasada.
 Primero se lee el informe. Después el dueño decide qué se arregla, y eso sale
 como un lote aparte, con sus tests. Así los arreglos no se hacen sobre falsos
 positivos ni contaminan la auditoría siguiente.
+
+## Informes
+
+- `2026-09-13-ux-en-frio.md` (y su crudo): seis personas simuladas recorren el sitio con el navegador.
+- `2026-09-23-auditoria-integral.md` (y su crudo): auditoría del código y los datos con agentes por subsistema y por lente, tres jueces por hallazgo y un plan por lotes. Se corrió con el workflow inline de Claude Code (no está en `.claude/workflows/`); el guion queda descrito en el propio informe.
