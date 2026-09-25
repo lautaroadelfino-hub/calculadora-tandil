@@ -186,7 +186,7 @@ export default function ContribucionesTab() {
         <div className="text-center border-2 border-dashed border-slate-200 rounded-xl p-10 bg-white">
           <div className="text-3xl mb-2">🏢</div>
           <p className="text-sm text-slate-500 max-w-sm mx-auto">
-            Tocá <b>"Cargar valores oficiales"</b> para empezar con la tabla vigente, o elegí un período ya cargado para editarlo.
+            Tocá <b>&quot;Cargar valores oficiales&quot;</b> para empezar con la tabla vigente, o elegí un período ya cargado para editarlo.
           </p>
         </div>
       ) : (
@@ -202,7 +202,7 @@ export default function ContribucionesTab() {
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-slate-700">Detracción por trabajador (Ley 27.541 art. 22)</h3>
               <p className="text-[11px] text-slate-500">
-                Se resta de la base antes de aplicar la alícuota, sólo en los conceptos marcados con "detracción".
+                Se resta de la base antes de aplicar la alícuota, sólo en los conceptos marcados con &quot;detracción&quot;.
                 Si no aplica, poné 0: no la dejes vacía.
               </p>
               <div className="relative">

@@ -47,3 +47,6 @@ next-env.d.ts
 /.design-sync/learnings/
 /.design-sync/node_modules
 /design/dist/
+
+# respaldos de Firestore (scripts/respaldar.mjs): viven en la máquina, no en el repo
+/respaldos/

@@ -200,7 +200,7 @@ export default function ConveniosTab({ onConveniosChanged }) {
         {convenios === null ? (
           <p className="text-sm text-gray-400 animate-pulse">Cargando…</p>
         ) : convenios.length === 0 ? (
-          <p className="text-sm text-gray-500">No hay convenios. Creá el primero con "+ Nuevo convenio".</p>
+          <p className="text-sm text-gray-500">No hay convenios. Creá el primero con &quot;+ Nuevo convenio&quot;.</p>
         ) : (
           <ul className="divide-y divide-gray-100 border border-slate-200 rounded-xl overflow-hidden">
             {convenios.map((c) => (

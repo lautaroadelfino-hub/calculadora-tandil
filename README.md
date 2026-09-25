@@ -141,12 +141,13 @@ social por la jornada (los dos se apagan desde la pestaña Contribuciones).
 ```bash
 npm install          # la primera vez
 npm run dev          # levanta http://localhost:3000
-npm test             # corre los tests (más de 380)
-npm run build        # verifica que compile, que es lo que decide el deploy
+npm test             # corre los tests (más de 570)
+npm run build        # corre los tests y después compila: es lo que hace Cloudflare al publicar
+npm run lint         # revisa el código
 ```
 
-También están `iniciar-calculadora.bat` y `probar-calculos.bat` para hacer lo
-mismo con doble clic.
+También están `iniciar-calculadora.bat`, `probar-calculos.bat` y
+`respaldar.bat` para hacer lo mismo con doble clic.
 
 Hace falta un archivo `.env.local` con tres claves de Firebase. Son públicas
 por diseño (se ven en el navegador de cualquiera que entre al sitio), pero no
@@ -200,9 +201,19 @@ mandale esa hoja primero.
 
 ## Cosas que conviene saber
 
-- **`npm run lint` está roto** y no es culpa de nadie: el plugin pide
-  `typescript`, que no está instalado porque el proyecto es JavaScript puro. No
-  afecta al deploy.
+- **Un push con los tests rotos no llega a producción.** `npm run build`, que
+  es lo que corre Cloudflare, ejecuta la suite antes de compilar: si algo
+  falla, no se publica y queda la versión anterior. La acción de GitHub
+  (`.github/workflows/tests.yml`) corre los tests, el lint y la compilación en
+  cada push y deja la marca verde o roja al lado del commit (y un mail, si en
+  tu cuenta de GitHub están prendidas las notificaciones de Actions). Para
+  publicar sin tests en una urgencia está `npm run build:sin-tests` (ver
+  `docs/continuidad.md`).
+- **Respaldo de la base:** doble clic en `respaldar.bat` (o
+  `node scripts/respaldar.mjs`) baja todas las colecciones a
+  `respaldos/AAAA-MM-DD-HHMM/`. Hacelo antes de cargar un mes. Para volver
+  atrás: `node scripts/restaurar.mjs <carpeta> <ruta> --aplicar` (ver
+  `docs/continuidad.md`).
 - **`firestore.rules` está en el repo pero NO se aplica solo.** Desde el
   13/9/2026 (10:56) la consola y el archivo dicen lo mismo: se lee sin registro
   sólo lo que la calculadora usa, y escribe únicamente la cuenta
@@ -211,17 +222,21 @@ mandale esa hoja primero.
   (Firestore Database → Reglas → Publicar) con la cuenta de Google dueña del
   proyecto, que es `info@liquidar.ar`. Y si cambiás el mail del administrador,
   cambialo en el archivo y en la consola antes de usar el panel.
-- **Hoy entra a `/admin` cualquier usuario autenticado de Firebase.** El archivo
-  de reglas tiene preparada la versión con lista de administradores, pero hay
-  que poner el UID antes de activarla: si se aplica con la lista vacía, te
-  quedás afuera de tu propio panel.
+- **A `/admin` entra cualquier usuario autenticado de Firebase, pero guardar
+  sólo puede `admin@csueldos.com`**, porque así lo dicen las reglas. Ese mail
+  vive en tres lugares: `firestore.rules`, la consola de Firebase y la variable
+  `ADMIN_EMAIL` de `.env.local` (que usa `scripts/restaurar.mjs`; si no está,
+  el script usa `admin@csueldos.com`). Ojo: `csueldos.com` no es un dominio
+  del proyecto. Si alguien lo registrara podría pedir un cambio de contraseña
+  de esa cuenta y recibir el mail. Conviene mover el usuario a un mail de
+  `liquidar.ar` (consola → Authentication → Users → editar) y actualizar los
+  tres lugares.
 - **Las visitas se miden con Cloudflare Web Analytics** (sin cookies, sin
   aviso de consentimiento). Se enciende con la variable
   `NEXT_PUBLIC_CF_BEACON_TOKEN` en el proyecto de Cloudflare Pages (Settings →
   Variables) y un redeploy; el token sale de "Analytics & Logs → Web Analytics
   → Add a site → liquidar.ar". Sin la variable, el sitio no manda nada y no
   pasa nada.
-- **La copia de seguridad más barata** es la pestaña Convenios → "Descargar
-  copia de seguridad", más `node scripts/capturarFixtures.mjs <id-del-convenio>`,
-  que baja el convenio y todas sus escalas a `test/fixtures/`. Eso además hace
-  que ese convenio quede cubierto por los tests automáticamente.
+- **`node scripts/capturarFixtures.mjs <id-del-convenio>`** baja el convenio y
+  todas sus escalas a `test/fixtures/`, y con eso ese convenio queda cubierto
+  por los tests. No es un respaldo: para eso está `respaldar.bat`.

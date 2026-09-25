@@ -1,0 +1,14 @@
+# Cabeceras de seguridad para los archivos estáticos (imágenes, iconos, CSS,
+# JS). El pipeline de Cloudflare Pages copia public/ al directorio publicado y
+# aplica este archivo a lo que sirve como archivo. NO alcanza a las páginas que
+# rinde la función del edge (/ y /calcular/…): esas cabeceras están en
+# next.config.mjs. Después de un deploy se verifica con:
+#   curl -I https://liquidar.ar/            (página, vía next.config.mjs)
+#   curl -I https://liquidar.ar/favicon.ico (archivo, vía este archivo)
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+  X-Frame-Options: SAMEORIGIN
+  Content-Security-Policy: frame-ancestors 'self'

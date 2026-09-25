@@ -8,7 +8,12 @@ echo.
 call npm test
 echo.
 echo ============================================
-echo  Si arriba dice "passed" (ej: "31 passed"), TODO EL CALCULO ESTA OK.
-echo  Si dice "failed", algo se rompio (avisame que numero).
+rem El veredicto lo da el codigo de salida de los tests, no una palabra del
+rem texto: "3 failed | 573 passed" tambien contiene "passed".
+if errorlevel 1 (
+  echo  ALGO SE ROMPIO: hay tests que fallan. Mira arriba cual, y avisame.
+) else (
+  echo  TODO EL CALCULO ESTA OK: la suite completa paso.
+)
 echo ============================================
 pause

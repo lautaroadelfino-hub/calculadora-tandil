@@ -667,7 +667,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                       )}
                       {empleador && (
                         <>
-                          <li>Contribuciones: tabla de {nombreDePeriodo(empleador.periodoTabla)}, régimen "{empleador.regimen.label}".</li>
+                          <li>Contribuciones: tabla de {nombreDePeriodo(empleador.periodoTabla)}, régimen &quot;{empleador.regimen.label}&quot;.</li>
                           <li>
                             ART: {empleador.art.pendiente
                               ? "sin alícuota informada"

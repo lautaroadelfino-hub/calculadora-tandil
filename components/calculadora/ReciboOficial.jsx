@@ -145,14 +145,18 @@ function Torta({ porciones, total }) {
   const R = 46;
   const cx = 50;
   const cy = 50;
-  let angulo = -Math.PI / 2;
-  const sectores = porciones.map((p) => {
-    const abre = angulo;
+  const punto = (a, r = R) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  // Cada porción arranca donde terminó la anterior, empezando arriba (-90°).
+  const inicios = porciones.reduce((acc, p, i) => {
+    acc.push(i === 0 ? -Math.PI / 2 : acc[i - 1] + (porciones[i - 1].monto / total) * 2 * Math.PI);
+    return acc;
+  }, []);
+  const sectores = porciones.map((p, i) => {
+    const abre = inicios[i];
     const barrido = (p.monto / total) * 2 * Math.PI;
-    angulo += barrido;
-    const punto = (a, r = R) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+    const cierra = abre + barrido;
     const [x1, y1] = punto(abre);
-    const [x2, y2] = punto(angulo);
+    const [x2, y2] = punto(cierra);
     const [lx, ly] = punto(abre + barrido / 2, R * 0.62);
     const completo = porciones.length === 1;
     const d = completo

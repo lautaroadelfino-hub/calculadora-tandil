@@ -399,7 +399,7 @@ export default function EscalasTab({ convenios }) {
 
         {categoriasActuales.length === 0 ? (
           <div className="text-gray-400 py-8 text-center border border-dashed rounded-xl bg-white text-sm">
-            Ingresá un ID de período y dale a "Buscar", o subí un CSV directamente.
+            Ingresá un ID de período y dale a &quot;Buscar&quot;, o subí un CSV directamente.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2 bg-gray-50 border rounded-lg">

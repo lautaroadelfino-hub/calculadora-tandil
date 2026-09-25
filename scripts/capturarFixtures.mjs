@@ -1,12 +1,24 @@
 // scripts/capturarFixtures.mjs
-// Uso interno (dev): baja de Firestore el convenio de Comercio y su escala
-// más reciente, y los guarda como fixtures JSON para los tests.
-// Ejecutar: node scripts/capturarFixtures.mjs
+// Uso interno (dev): baja de Firestore un convenio (por omisión Comercio) y
+// todas sus escalas, y los guarda como fixtures JSON para los tests. No es un
+// respaldo: para eso está scripts/respaldar.mjs.
+// Ejecutar: node scripts/capturarFixtures.mjs <id-del-convenio>
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+
+// Las claves salen de .env.local, como en respaldar.mjs.
+const raizDelRepo = join(dirname(fileURLToPath(import.meta.url)), "..");
+const envLocal = join(raizDelRepo, ".env.local");
+if (existsSync(envLocal)) {
+  if (typeof process.loadEnvFile === "function") process.loadEnvFile(envLocal);
+  else for (const linea of readFileSync(envLocal, "utf8").split(/\r?\n/)) {
+    const m = linea.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (m && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  }
+}
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,

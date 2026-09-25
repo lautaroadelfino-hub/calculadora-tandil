@@ -1,6 +1,7 @@
 // components/Header.jsx
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { LINKS_NAVEGACION } from "@/lib/herramientas";
 
 export default function Header() {
@@ -13,7 +14,7 @@ export default function Header() {
         {/* Barra superior */}
         <div className="flex items-center gap-4 py-4 sm:py-5 min-h-[80px] sm:min-h-[96px]">
           {/* Marca */}
-          <a href="/" className="flex items-center gap-4 shrink-0" aria-label="LiquidAR">
+          <Link href="/" className="flex items-center gap-4 shrink-0" aria-label="LiquidAR">
             <img
               src="/brand/icon-liquidar.svg"
               alt="LiquidAR"
@@ -22,7 +23,7 @@ export default function Header() {
             <span className="font-extrabold tracking-tight text-2xl md:text-3xl whitespace-nowrap">
               Liquid<span className="text-emerald-200">AR</span>
             </span>
-          </a>
+          </Link>
 
           {/* Botón menú (solo mobile) */}
           <button
@@ -44,7 +45,7 @@ export default function Header() {
               tocar las dos. */}
           <nav className="ml-auto hidden md:flex items-center gap-8">
             {LINKS_NAVEGACION.map((l) => (
-              <a key={l.href} href={l.href} className="hover:text-emerald-100 whitespace-nowrap">{l.texto}</a>
+              <Link key={l.href} href={l.href} className="hover:text-emerald-100 whitespace-nowrap">{l.texto}</Link>
             ))}
           </nav>
         </div>
@@ -60,14 +61,14 @@ export default function Header() {
         >
           <nav className="flex flex-col gap-1 pb-4">
             {LINKS_NAVEGACION.map((l) => (
-              <a
+              <Link
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
                 className="block rounded-xl px-3 py-3 bg-white/10 hover:bg-white/15 whitespace-nowrap"
               >
                 {l.texto}
-              </a>
+              </Link>
             ))}
           </nav>
         </div>
