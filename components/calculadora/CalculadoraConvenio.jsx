@@ -440,9 +440,23 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
               {/* SITUACIÓN FAMILIAR (afecta el Impuesto a las Ganancias) */}
               <details open={familiaAbierta} onToggle={(e) => setFamiliaAbierta(e.currentTarget.open)} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 space-y-3">
                 <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden flex items-center justify-between gap-2">
-                  <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Cargas de familia</h2>
+                  <h2 className="text-xs font-bold uppercase tracking-wide text-slate-500">Ganancias</h2>
                   <span className="text-[11px] text-slate-500">{familiaAbierta ? "Ocultar" : "Ver"}</span>
                 </summary>
+
+                <div className="flex items-center justify-between gap-3">
+                  <label htmlFor="ganancias_sac" className="text-sm text-slate-700">SAC</label>
+                  <select
+                    id="ganancias_sac"
+                    name="ganancias_sac"
+                    value={valoresUsuario.ganancias_sac || "doceava"}
+                    onChange={handleChange}
+                    className={`${inputBase} w-48`}
+                  >
+                    <option value="doceava">1/12 por mes</option>
+                    <option value="al_cobrar">Cuando se cobra</option>
+                  </select>
+                </div>
 
                 <label className="flex items-center gap-2.5 text-sm text-slate-700 cursor-pointer">
                   <input
@@ -686,7 +700,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
                   <dl className="mt-2 space-y-1.5">
                     <div><dt className="inline font-semibold">Remunerativo:</dt> <dd className="inline">lo que paga aportes (jubilación, PAMI, obra social) y cuenta para el aguinaldo, las vacaciones y una indemnización.</dd></div>
                     <div><dt className="inline font-semibold">No remunerativo:</dt> <dd className="inline">sumas que el convenio paga aparte y no pagan jubilación ni PAMI. Las &quot;con incidencia&quot; sí pagan obra social y sindicales; las &quot;sin incidencia&quot; (comida, viáticos) no pagan nada y van derecho al neto.</dd></div>
-                    <div><dt className="inline font-semibold">SAC:</dt> <dd className="inline">el aguinaldo. Medio sueldo en junio y medio en diciembre, sobre la mejor remuneración del semestre.</dd></div>
+                    <div><dt className="inline font-semibold">SAC:</dt> <dd className="inline">el aguinaldo. Medio sueldo del mes, en junio y en diciembre.</dd></div>
                     <div><dt className="inline font-semibold">Cuota sindical y aporte solidario:</dt> <dd className="inline">la cuota la pagan los afiliados al gremio; el solidario, por el convenio, quienes no están afiliados.</dd></div>
                     <div><dt className="inline font-semibold">Régimen de contribuciones:</dt> <dd className="inline">el porcentaje que paga el empleador según su tamaño y actividad. La mayoría está en el de MiPyME y resto de actividades.</dd></div>
                     <div><dt className="inline font-semibold">ART:</dt> <dd className="inline">el seguro de accidentes de trabajo. Cada empleador negocia su alícuota; acá va una típica de la actividad, y podés poner la tuya.</dd></div>

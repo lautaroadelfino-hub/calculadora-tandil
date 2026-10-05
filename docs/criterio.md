@@ -167,6 +167,47 @@ un dato que cambia por período clavado adentro del código.
 
 ---
 
+## Criterios normativos decididos por el dueño
+
+**Decreto 612/2026 (B.O. 20/7/2026), decidido el 5/10/2026.** Reglamenta el
+art. 9 de la Ley 14.250: lo que el convenio descuenta a favor del sindicato no
+pasa del 2%, y se calcula sobre el básico de convenio más las sumas
+remunerativas normales, habituales y de pago mensual (afuera horas extras, SAC,
+plus vacacional, premios y no remunerativos). En el motor esa base es
+`remunerativo_habitual`.
+
+- **Contribución solidaria** de Camioneros y Gastronómicos: `remunerativo_habitual`. Ya estaba así.
+- **Cuota de afiliado:** el decreto la deja afuera del tope; va sobre la base de cada convenio.
+- **Comercio (solidario 2% + FAECyS 0,5%):** sigue sobre remunerativo + no
+  remunerativo mientras rija la cautelar de la Justicia Federal de San Martín
+  que suspendió los arts. 131 y 133 de la Ley 27.802 para los convenios de
+  FAECyS (130/75, 547/08, 781/20). Si la cautelar cae, pasa a 2% sobre
+  `remunerativo_habitual`.
+- **Seguro de sepelio** (Camioneros 1,5%, Gastronómicos 1%): no se suma a la
+  solidaria para el tope del 2%; es un seguro, no un aporte al sindicato.
+- **Presentismo:** integra la base habitual. Es un adicional mensual del
+  convenio, no un premio en el sentido del decreto.
+
+Fuentes: DDAS, PASBBA Abogados, Raskovsky & Asociados e Ignacio Online (julio
+de 2026).
+
+**Topes del art. 9 en PAMI y obra social:** van, por el Decreto 1448/2008. Las
+contribuciones del empleador no se topean.
+
+**SAC, decidido el 5/10/2026:** la mitad del sueldo del mes simulado, no la
+mejor remuneración del semestre.
+
+**SAC en Ganancias, decidido el 5/10/2026:** la persona elige (RG 5531/2024):
+1/12 por mes, que es el default, o entero cuando se cobra. Los viáticos de
+Camioneros no entran en Ganancias.
+
+**Obra social, decidido el 5/10/2026.** El 3% del trabajador y el 6% del
+empleador van siempre sobre la jornada completa de la categoría (art. 92 ter
+inc. 4 LCT); la diferencia la paga el trabajador, y por eso la calculadora
+liquida desde 20 horas semanales.
+
+---
+
 ## Lo que todavía NO cumple este criterio
 
 Escrito acá a propósito: una regla con excepciones no anotadas se convierte en
