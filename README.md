@@ -107,10 +107,14 @@ Si un mes no tiene tabla, la calculadora usa la del mes anterior más cercano y
 lo avisa; si no hay ninguna anterior, el recibo sale **sin la sección del
 empleador** y lo dice en ámbar. Junio y julio de 2026 ya están cargados.
 
-Los tres criterios contables de esa pestaña (topes del art. 9 en los aportes,
-obra social del trabajador prorrateada por la jornada, SAC en la base patronal)
-arrancan **encendidos** por tu decisión del 13/9/2026. Se apagan desde ahí, sin
-tocar código.
+Los dos criterios contables de esa pestaña (topes del art. 9 en los aportes,
+SAC en la base patronal) arrancan **encendidos** por tu decisión del 13/9/2026.
+Se apagan desde ahí, sin tocar código.
+
+La obra social (3% del trabajador y 6% del empleador) va siempre sobre la
+jornada completa de la categoría (art. 92 ter inc. 4 LCT), por tu decisión del
+5/10/2026. No es un interruptor; por eso la calculadora acepta desde 20 horas
+semanales.
 
 ---
 

@@ -2,8 +2,8 @@
 // Los dos criterios contables del lado del TRABAJADOR que el dueño decidió el
 // 13/9/2026 y que viven en la tabla del período (para poder volver atrás desde
 // /admin, sin desplegar):
-//   - la obra social del trabajador se calcula sobre la remuneración de SU
-//     jornada, prorrateada, como jubilación y PAMI y como Nacional Sistema;
+//   - (reemplazado el 5/10/2026: la obra social va siempre sobre la jornada
+//     completa, y eso ya no es un interruptor de la tabla);
 //   - los topes mínimo y máximo del art. 9 (Ley 24.241) se aplican a los
 //     aportes (jubilación, PAMI, obra social).
 // Los dos canarios son de jornada completa y están dentro del rango del art. 9,
@@ -27,45 +27,53 @@ const conCriterios = (criterios) => ({ ...semilla, criterios_contables: { ...sem
 const linea = (r, texto) => r.detalle.find((l) => l.concepto.startsWith(texto));
 const { minima, maxima } = semilla.bases_art9;
 
-describe("la obra social del trabajador se prorratea por la jornada", () => {
-  const mediaJornada = entradas({ carga_horaria: 24 });
-  const prorrateada = procesarRecibo(convenioComercio, escala, mediaJornada, null, opciones());
-  const sinProrratear = procesarRecibo(convenioComercio, escala, mediaJornada, null, opciones({
-    tablaContribuciones: conCriterios({ obra_social_trabajador_prorratea_jornada: false }),
-  }));
+describe("la obra social va siempre sobre la jornada completa (art. 92 ter inc. 4 LCT)", () => {
+  // Decidido con el dueño el 5/10/2026: el 3% del trabajador y el 6% del
+  // empleador se calculan sobre la remuneración de jornada completa de la
+  // categoría. Lo fijo del mes se lleva a jornada completa; lo variable
+  // (horas extras, por unidad, SAC, vacaciones) va como se cobró.
+  const mediaJornada = procesarRecibo(convenioComercio, escala, entradas({ carga_horaria: 24 }), null, opciones());
+  const completa = procesarRecibo(convenioComercio, escala, entradas(), null, opciones());
+  const contribucion = (r) => r.detalle.find((l) => l.tipo === "contribucion" && l.rubro === "obra_social" && l.id === "obra_social");
 
-  it("encendido (el default): 3% de la remuneración de la jornada del puesto", () => {
-    const base = prorrateada.totales.bruto + prorrateada.totales.noRemunerativo;
-    expect(money(linea(prorrateada, "Obra Social (3%)").monto)).toBe(money(base * 0.03));
-    expect(prorrateada.metodo.obraSocialProrrateada).toBe(true);
+  it("media jornada: el 3% del trabajador es el mismo que en jornada completa", () => {
+    expect(money(linea(mediaJornada, "Obra Social (3%)").monto)).toBe(money(linea(completa, "Obra Social (3%)").monto));
+    expect(linea(mediaJornada, "Obra Social (3%)").detalle.baseLabel).toMatch(/de jornada completa/);
+    expect(linea(completa, "Obra Social (3%)").detalle.baseLabel).not.toMatch(/jornada completa/);
   });
 
-  it("apagado desde la tabla: sobre la remuneración de jornada completa, como antes", () => {
-    // Comercio no tiene sumas no remunerativas, así que la base "de jornada
-    // completa" es exactamente el doble de la de media jornada.
-    expect(money(linea(sinProrratear, "Obra Social (3%)").monto)).toBe(money(linea(prorrateada, "Obra Social (3%)").monto * 2));
-    expect(sinProrratear.metodo.obraSocialProrrateada).toBe(false);
+  it("media jornada: el 6% del empleador también", () => {
+    expect(money(contribucion(mediaJornada).monto)).toBe(money(contribucion(completa).monto));
+    expect(contribucion(mediaJornada).baseLabel).toMatch(/jornada completa/);
+    expect(contribucion(completa).baseLabel).not.toMatch(/jornada completa/);
   });
 
-  it("sólo cambia la obra social: jubilación, PAMI y bruto son iguales", () => {
-    expect(linea(sinProrratear, "Jubilación").monto).toBe(linea(prorrateada, "Jubilación").monto);
-    expect(linea(sinProrratear, "Ley 19.032 PAMI").monto).toBe(linea(prorrateada, "Ley 19.032 PAMI").monto);
-    expect(sinProrratear.totales.bruto).toBe(prorrateada.totales.bruto);
+  it("sólo cambia la obra social: jubilación, PAMI y bruto siguen la jornada", () => {
+    expect(money(mediaJornada.totales.bruto * 2)).toBe(money(completa.totales.bruto));
+    expect(money(linea(mediaJornada, "Jubilación").monto * 2)).toBe(money(linea(completa, "Jubilación").monto));
+    expect(money(linea(mediaJornada, "Ley 19.032 PAMI").monto * 2)).toBe(money(linea(completa, "Ley 19.032 PAMI").monto));
   });
 
-  it("también vale sin tabla: el default es el default", () => {
-    const sinTabla = procesarRecibo(convenioComercio, escala, mediaJornada);
-    expect(linea(sinTabla, "Obra Social (3%)").monto).toBe(linea(prorrateada, "Obra Social (3%)").monto);
-    expect(sinTabla.metodo.obraSocialProrrateada).toBe(true);
+  it("las horas extras van como se cobraron, sin llevarlas a jornada completa", () => {
+    const conExtras = procesarRecibo(convenioComercio, escala, entradas({ carga_horaria: 24, horas_extras_50: 10 }), null, opciones());
+    const extras = conExtras.totales.bruto - mediaJornada.totales.bruto;
+    expect(extras).toBeGreaterThan(0);
+    expect(money(linea(conExtras, "Obra Social (3%)").monto)).toBe(money(linea(completa, "Obra Social (3%)").monto + extras * 0.03));
+  });
+
+  it("vale también sin tabla, y el viejo interruptor de la tabla ya no la prorratea", () => {
+    const sinTabla = procesarRecibo(convenioComercio, escala, entradas({ carga_horaria: 24 }));
+    expect(linea(sinTabla, "Obra Social (3%)").monto).toBe(linea(mediaJornada, "Obra Social (3%)").monto);
+    const conInterruptorViejo = procesarRecibo(convenioComercio, escala, entradas({ carga_horaria: 24 }), null, opciones({
+      tablaContribuciones: conCriterios({ obra_social_trabajador_prorratea_jornada: true }),
+    }));
+    expect(linea(conInterruptorViejo, "Obra Social (3%)").monto).toBe(linea(mediaJornada, "Obra Social (3%)").monto);
+    expect(mediaJornada.metodo.obraSocialJornadaCompleta).toBe(true);
   });
 
   it("en jornada completa no cambia nada (por eso los canarios no se mueven)", () => {
-    const con = procesarRecibo(convenioComercio, escala, entradas(), null, opciones());
-    const off = procesarRecibo(convenioComercio, escala, entradas(), null, opciones({
-      tablaContribuciones: conCriterios({ obra_social_trabajador_prorratea_jornada: false }),
-    }));
-    expect(con.totales.neto).toBe(off.totales.neto);
-    expect(money(con.totales.neto)).toBe(1166249.7);
+    expect(money(completa.totales.neto)).toBe(1166249.7);
+    expect(money(linea(completa, "Obra Social (3%)").monto)).toBe(money((completa.totales.bruto + completa.totales.noRemunerativo) * 0.03));
   });
 });
 
@@ -75,7 +83,8 @@ describe("los topes del art. 9 (Ley 24.241) en los aportes del trabajador", () =
     expect(r.totales.bruto).toBeLessThan(minima);
     expect(money(linea(r, "Jubilación").monto)).toBe(money(minima * 0.11));
     expect(money(linea(r, "Ley 19.032 PAMI").monto)).toBe(money(minima * 0.03));
-    expect(money(linea(r, "Obra Social (3%)").monto)).toBe(money(minima * 0.03));
+    // La obra social no: va sobre la jornada completa, que ya supera la mínima.
+    expect(linea(r, "Obra Social (3%)").monto).toBeGreaterThan(minima * 0.03);
     expect(r.metodo.topeArt9).toEqual({ minima, maxima });
   });
 
@@ -112,7 +121,8 @@ describe("los topes del art. 9 (Ley 24.241) en los aportes del trabajador", () =
   });
 
   it("el neto sigue cerrando con los topes puestos", () => {
-    for (const horas of [2, 8, 24, 48]) {
+    // Desde 20 horas, el mínimo que acepta la calculadora (validacionEntradas.js).
+    for (const horas of [20, 24, 36, 48]) {
       const r = procesarRecibo(convenioComercio, escala, entradas({ carga_horaria: horas }), null, opciones());
       expect(r.totales.neto).toBeCloseTo(r.totales.bruto + r.totales.noRemunerativo - r.totales.retenciones, 6);
       expect(r.totales.neto).toBeGreaterThan(0);

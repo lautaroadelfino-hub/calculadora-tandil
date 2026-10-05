@@ -41,7 +41,6 @@
   ],
   "criterios_contables": {
     "tope_art9_en_aportes": true,
-    "obra_social_trabajador_prorratea_jornada": true,
     "sac_integra_base_contribuciones": true
   }
 }

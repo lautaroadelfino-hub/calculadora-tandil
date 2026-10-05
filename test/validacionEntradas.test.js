@@ -47,6 +47,12 @@ describe("lo que frena, y dice por qué", () => {
     expect(normalizarEntradas(camioneros, base(camioneros, { carga_horaria: "" }), "2026-08").errores.carga_horaria).toMatch(/44 hs/);
   });
 
+  it("menos de 20 horas semanales no se calcula (decidido con el dueño el 5/10/2026)", () => {
+    expect(normalizarEntradas(comercio, base(comercio, { carga_horaria: 19.5 }), "2026-09").errores.carga_horaria).toMatch(/desde 20 horas semanales/);
+    expect(normalizarEntradas(comercio, base(comercio, { carga_horaria: 4 }), "2026-09").errores.carga_horaria).toMatch(/desde 20 horas semanales/);
+    expect(normalizarEntradas(comercio, base(comercio, { carga_horaria: 20 }), "2026-09").errores.carga_horaria).toBeUndefined();
+  });
+
   it("texto en un campo numérico", () => {
     const r = normalizarEntradas(comercio, base(comercio, { antiguedad_años: "diez" }), "2026-09");
     expect(r.errores.antiguedad_años).toMatch(/no es un número/);
