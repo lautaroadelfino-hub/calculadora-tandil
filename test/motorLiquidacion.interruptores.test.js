@@ -79,12 +79,14 @@ describe("la obra social va siempre sobre la jornada completa (art. 92 ter inc. 
 
 describe("los topes del art. 9 (Ley 24.241) en los aportes del trabajador", () => {
   it("una jornada mínima queda por debajo de la base mínima: se aporta sobre la mínima", () => {
-    const r = procesarRecibo(convenioComercio, escala, entradas({ carga_horaria: 2 }), null, opciones());
+    // Desde 20 horas ningún sueldo cargado queda abajo de la mínima: se prueba
+    // con un básico inventado, bien bajo, en jornada completa.
+    const bajo = { ...escala, categorias: { ...escala.categorias, "Vendedor B": { basico: 100000, no_remunerativo: 0 } } };
+    const r = procesarRecibo(convenioComercio, bajo, entradas(), null, opciones());
     expect(r.totales.bruto).toBeLessThan(minima);
     expect(money(linea(r, "Jubilación").monto)).toBe(money(minima * 0.11));
     expect(money(linea(r, "Ley 19.032 PAMI").monto)).toBe(money(minima * 0.03));
-    // La obra social no: va sobre la jornada completa, que ya supera la mínima.
-    expect(linea(r, "Obra Social (3%)").monto).toBeGreaterThan(minima * 0.03);
+    expect(money(linea(r, "Obra Social (3%)").monto)).toBe(money(minima * 0.03));
     expect(r.metodo.topeArt9).toEqual({ minima, maxima });
   });
 
@@ -126,6 +128,30 @@ describe("los topes del art. 9 (Ley 24.241) en los aportes del trabajador", () =
       const r = procesarRecibo(convenioComercio, escala, entradas({ carga_horaria: horas }), null, opciones());
       expect(r.totales.neto).toBeCloseTo(r.totales.bruto + r.totales.noRemunerativo - r.totales.retenciones, 6);
       expect(r.totales.neto).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("el SAC tiene su propio tope: la mitad de la base máxima (decidido con el dueño el 5/10/2026)", () => {
+  // Un básico inventado de $6 millones: el mes y el SAC pasan sus topes.
+  const alto = { ...escala, categorias: { ...escala.categorias, "Vendedor B": { basico: 6000000, no_remunerativo: 0 } } };
+  const r = procesarRecibo(convenioComercio, alto, entradas({ incluir_sac: true }), null, opciones());
+  const sac = linea(r, "SAC").monto;
+
+  it("se topea el mes y, aparte, el SAC", () => {
+    expect(r.totales.bruto - sac).toBeGreaterThan(maxima);
+    expect(sac).toBeGreaterThan(maxima / 2);
+    expect(money(linea(r, "Jubilación").monto)).toBe(money(maxima * 1.5 * 0.11));
+    expect(money(linea(r, "Obra Social (3%)").monto)).toBe(money(maxima * 1.5 * 0.03));
+  });
+
+  it("un SAC chico entra entero, aunque el mes esté topeado", () => {
+    const chico = procesarRecibo(convenioComercio, escala, entradas({ horas_extras_50: 120, incluir_sac: true }), null, opciones());
+    const sacChico = linea(chico, "SAC").monto;
+    if (chico.totales.bruto - sacChico > maxima) {
+      expect(money(linea(chico, "Jubilación").monto)).toBe(money((maxima + Math.min(sacChico, maxima / 2)) * 0.11));
+    } else {
+      expect(money(linea(chico, "Jubilación").monto)).toBe(money(chico.totales.bruto * 0.11));
     }
   });
 });

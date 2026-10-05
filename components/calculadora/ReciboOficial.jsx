@@ -149,6 +149,7 @@ function Bloque({ bloque }) {
 
 /** La torta "Costo total empleador" del modelo, en SVG, con leyenda arriba y una tabla para el lector de pantalla. */
 function Torta({ porciones, total }) {
+  if (!(total > 0)) return null;
   const R = 46;
   const cx = 50;
   const cy = 50;

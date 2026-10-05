@@ -164,7 +164,9 @@ describe("el SAC en la base del empleador", () => {
     const sac = linea(integra, "SAC").monto;
     expect(integra.metodo.sacIntegraBaseContribuciones).toBe(true);
     expect(noIntegra.metodo.sacIntegraBaseContribuciones).toBe(false);
-    expect(money(linea(integra, "SIPA").monto - linea(noIntegra, "SIPA").monto)).toBe(money(sac * 0.1077));
+    // Con SAC en la base, la detracción además sube un 50% (Ley 27.541).
+    const detraccionExtra = integra.costoEmpleador.detraccion.prorrateada / 3;
+    expect(money(linea(integra, "SIPA").monto - linea(noIntegra, "SIPA").monto)).toBe(money((sac - detraccionExtra) * 0.1077));
   });
 
   it("el interruptor no toca al trabajador", () => {

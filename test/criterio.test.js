@@ -20,6 +20,7 @@ const MODULOS_DEL_MOTOR = [
   "lib/calculoGanancias.js",
   "lib/parametrosLaborales.js",
   "lib/vocabularioConvenios.js",
+  "lib/numeros.js",
 ];
 
 describe("Regla 3: la calculadora no lee archivos de data/", () => {

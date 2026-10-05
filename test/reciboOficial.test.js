@@ -149,6 +149,16 @@ describe("el detalle de la composición salarial", () => {
     expect(bloques.find((b) => b.id === "otros")).toBeUndefined();
   });
 
+  it("el SCVO cargado con otro id o en otro rubro no deja 'Otros' en negativo", () => {
+    const tabla = (cambio) => ({ ...semilla, universales: semilla.universales.map((u) => (u.id === "scvo" ? { ...u, ...cambio } : u)) });
+    for (const cambio of [{ id: "seguro_vida" }, { rubro: "seguridad_social" }]) {
+      const r = procesarRecibo(comercio, escalaJulio, entradasComercio, null, { ...opciones, tablaContribuciones: tabla(cambio) });
+      const { bloques } = bloquesComposicion(r);
+      for (const b of bloques) for (const p of b.partes) expect(p.monto).toBeGreaterThanOrEqual(0);
+      expect(centavos(bloques.reduce((acc, b) => acc + b.total, 0))).toBe(centavos(r.costoEmpleador.totalCargas));
+    }
+  });
+
   it("si un convenio paga cámaras o sepelio, aparecen como bloques adicionales", () => {
     const { bloques } = bloquesComposicion(rCamioneros);
     const r = rCamioneros.costoEmpleador.rubros;

@@ -208,6 +208,13 @@ pero no entran en el SAC, el plus vacacional ni la solidaria.
 Desde 20 horas, el básico más bajo cargado (Camioneros, $949.566 a 44 hs) da
 unos $431.000, el triple de la base mínima.
 
+**Tope del SAC, decidido el 5/10/2026:** el SAC se topea aparte, a la mitad de la base máxima.
+
+**Detracción de la Ley 27.541, decidido el 5/10/2026:** en el mes del SAC sube un 50%.
+
+**Valor de la hora extra, decidido el 5/10/2026:** básico + antigüedad +
+presentismo + adicionales remunerativos, sin los no remunerativos.
+
 **Obra social, decidido el 5/10/2026.** El 3% del trabajador y el 6% del
 empleador van siempre sobre la jornada completa de la categoría (art. 92 ter
 inc. 4 LCT); la diferencia la paga el trabajador, y por eso la calculadora
