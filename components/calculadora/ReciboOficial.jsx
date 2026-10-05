@@ -106,6 +106,13 @@ function Tabla({ filas, titulo, vacio }) {
                     no rem.{linea.sinIncidencia ? " · sin incidencia" : ""}
                   </span>
                 )}
+                {/* En el celular la columna Base no entra: va acá abajo, para
+                    que el recibo se pueda auditar igual. */}
+                {celdas.base && (
+                  <span className="block sm:hidden text-[9px] leading-tight text-slate-500 tabular-nums">
+                    Base {celdas.base}{celdas.baseNota ? ` · ${celdas.baseNota}` : ""}
+                  </span>
+                )}
               </td>
               <td className={`${CELDA} text-right tabular-nums sm:whitespace-nowrap`}>{celdas.unidad}</td>
               <td className={`${CELDA} ${SOLO_ANCHO} text-right tabular-nums`}>

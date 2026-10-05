@@ -31,12 +31,14 @@ describe("el link de una simulación", () => {
     const qs = paramsDesdeEntradas(camioneros, valores, "2026-08");
     expect(qs).toMatch(/^periodo=2026-08/);
     expect(qs).toContain("afiliado_sindicato=1");
-    expect(qs).not.toContain("larga_distancia");
+    // Destildada viaja como 0: si se omitiera, el otro la abriría con su default.
+    expect(qs).toContain("larga_distancia=0");
     expect(qs).not.toContain("horas_extras_50");
     const { valores: leidos, periodo } = entradasDesdeParams(camioneros, qs);
     expect(periodo).toBe("2026-08");
     expect(leidos.categoria).toBe("Peón");
     expect(leidos.afiliado_sindicato).toBe(true);
+    expect(leidos.larga_distancia).toBe(false);
     expect(leidos.incluir_sac).toBe(true);
     expect(leidos.antiguedad_años).toBe("5");
     expect(leidos.pernoctes).toBe("3");

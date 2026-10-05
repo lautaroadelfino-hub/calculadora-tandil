@@ -2,12 +2,12 @@
 // Pestaña "Escalas paritarias": buscar un período, editarlo vía CSV y publicar.
 // Lógica portada sin cambios desde la versión anterior de app/admin/page.jsx.
 import { useState, useEffect } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, collection, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { aNumero, formatearNumero } from "@/lib/numeros";
 import {
   parsearCsvEscala, generarCsvEscala, plantillaEjemplo, tieneZonas, leerClave,
-  validarPeriodo, revisarEscalaAntesDePublicar,
+  validarPeriodo, revisarEscalaAntesDePublicar, valoresQueNecesita,
 } from "@/lib/escalaCsv";
 import { slug } from "@/lib/texto";
 
@@ -28,6 +28,9 @@ export default function EscalasTab({ convenios }) {
   // Lo que ya estaba guardado en este periodo. Se usa para avisar que
   // publicar reemplaza el periodo entero y borra lo que no venga en el CSV.
   const [clavesPrevias, setClavesPrevias] = useState([]);
+  // El período anterior más cercano ({ periodo, ...documento }), para comparar
+  // importes antes de publicar y para precargar un mes nuevo.
+  const [escalaAnterior, setEscalaAnterior] = useState(null);
 
   useEffect(() => {
     if (convenios.length > 0 && !convenioSeleccionado) {
@@ -61,7 +64,23 @@ export default function EscalasTab({ convenios }) {
     setNombreSinIncidencia("");
     setValoresPeriodo([]);
     setClavesPrevias([]);
+    setEscalaAnterior(null);
   };
+
+  /** La escala más reciente anterior a `periodo` (o la más reciente de todas, si no hay ninguna anterior). */
+  const buscarEscalaAnterior = async (periodo) => {
+    const snap = await getDocs(collection(db, "convenios", convenioSeleccionado, "escalas"));
+    const ids = [];
+    snap.forEach((d) => ids.push(d.id));
+    const anteriores = ids.filter((id) => id < periodo).sort();
+    const elegido = anteriores.length ? anteriores[anteriores.length - 1] : ids.filter((id) => id !== periodo).sort().pop();
+    if (!elegido) return null;
+    let data = null;
+    snap.forEach((d) => { if (d.id === elegido) data = d.data(); });
+    return data ? { periodo: elegido, ...data } : null;
+  };
+
+  const aFilasDeValores = (valores) => Object.entries(valores || {}).map(([clave, valor]) => ({ clave, valor }));
 
   const buscarPeriodo = async () => {
     const problemaPeriodo = validarPeriodo(periodoID);
@@ -92,19 +111,58 @@ export default function EscalasTab({ convenios }) {
         });
         setSueldos(sueldosCargados);
         setClavesPrevias(catsEscala);
+        setEscalaAnterior(await buscarEscalaAnterior(periodoID));
         alert(`¡Período encontrado! Cargada la escala de: ${data.mes_vigencia}. Ya podés descargar el CSV para editarlo.`);
       } else {
+        // Mes nuevo: se precarga el anterior entero (categorías, importes,
+        // valores del período, nombre de la suma sin incidencia). Antes
+        // arrancaba vacío, y si no se volvían a tipear los valores del período
+        // el convenio quedaba sin recibo para todos (auditoría del 23/9/2026).
         setClavesPrevias([]);
-        setNombreSinIncidencia("");
-        setValoresPeriodo([]);
-        alert(
-          "No hay una escala cargada para " + periodoID + "." + String.fromCharCode(10, 10) +
-          "Descargá la plantilla CSV, completala con los sueldos del acuerdo y volvé a subirla."
-        );
+        const anterior = await buscarEscalaAnterior(periodoID);
+        setEscalaAnterior(anterior);
+        if (anterior) {
+          const catsAnterior = Object.keys(anterior.categorias || {});
+          const lista = Array.from(new Set([...categoriasActuales, ...catsAnterior])).sort((a, b) => a.localeCompare(b));
+          setCategoriasActuales(lista);
+          const sueldosBase = {};
+          lista.forEach((cat) => {
+            sueldosBase[cat] = {
+              basico: anterior.categorias?.[cat]?.basico || "",
+              no_remunerativo: anterior.categorias?.[cat]?.no_remunerativo || "",
+              no_remunerativo_sin_incidencia: anterior.categorias?.[cat]?.no_remunerativo_sin_incidencia || "",
+            };
+          });
+          setSueldos(sueldosBase);
+          setNombreSinIncidencia(anterior.nombre_sin_incidencia || "");
+          setValoresPeriodo(aFilasDeValores(anterior.valores_del_periodo));
+          alert(
+            "No hay una escala cargada para " + periodoID + ". Te precargué la de " + anterior.periodo + " como punto de partida:" +
+              " categorías, importes, valores del período y nombre de la suma sin incidencia." + String.fromCharCode(10, 10) +
+              "Subí el CSV con los importes nuevos y revisá los valores del período antes de publicar. Al publicar te muestro cuánto cambia cada categoría."
+          );
+        } else {
+          setNombreSinIncidencia("");
+          setValoresPeriodo([]);
+          alert(
+            "No hay una escala cargada para " + periodoID + "." + String.fromCharCode(10, 10) +
+            "Descargá la plantilla CSV, completala con los sueldos del acuerdo y volvé a subirla."
+          );
+        }
       }
     } catch (error) {
       console.error("Error al buscar período:", error);
+      alert("No se pudo leer la base: " + explicarErrorDeFirebase(error));
     }
+  };
+
+  /** Los errores del SDK vienen en inglés; acá se dicen en castellano. */
+  const explicarErrorDeFirebase = (error) => {
+    const codigo = String(error?.code || "");
+    if (codigo.includes("permission-denied")) return "la cuenta con la que entraste no tiene permiso para escribir. Entrá con la cuenta de administrador.";
+    if (codigo.includes("unavailable") || codigo.includes("network")) return "no hay conexión con Firestore. Revisá internet y probá de nuevo.";
+    if (codigo.includes("unauthenticated")) return "la sesión venció. Volvé a entrar.";
+    return error?.message || "error desconocido.";
   };
 
   // El lector de números vive en lib/numeros.js. Esta función nació acá y era
@@ -183,10 +241,23 @@ export default function EscalasTab({ convenios }) {
     if (problemaPeriodo) return alert(problemaPeriodo);
     if (!mesVigencia.trim()) return alert("Poné el nombre descriptivo del período. Por ejemplo: Septiembre 2026.");
 
+    // Los valores del período se leen primero: la revisión los necesita.
+    const valoresDelPeriodo = {};
+    for (const v of valoresPeriodo) {
+      const clave = slug(String(v.clave || "").trim(), "");
+      if (!clave) continue;
+      const numero = aNumero(v.valor, NaN);
+      if (!Number.isFinite(numero)) return alert(`El valor del período "${clave}" no se entiende: ${v.valor}`);
+      valoresDelPeriodo[clave] = numero;
+    }
+
     const { errores, advertencias } = revisarEscalaAntesDePublicar({
       claves: categoriasActuales,
       sueldos,
       clavesPrevias,
+      convenio: convenioCompleto,
+      valoresDelPeriodo,
+      escalaAnterior,
     });
 
     if (errores.length) {
@@ -214,20 +285,11 @@ export default function EscalasTab({ convenios }) {
 
       const escalaDoc = { mes_vigencia: mesVigencia, categorias: categoriasLimpias };
       if (nombreSinIncidencia.trim()) escalaDoc.nombre_sin_incidencia = nombreSinIncidencia.trim();
-      const valoresDelPeriodo = {};
-      for (const v of valoresPeriodo) {
-        const clave = slug(String(v.clave || "").trim(), "");
-        if (!clave) continue;
-        const numero = aNumero(v.valor, NaN);
-        if (!Number.isFinite(numero)) return alert(`El valor del período "${clave}" no se entiende: ${v.valor}`);
-        valoresDelPeriodo[clave] = numero;
-      }
       if (Object.keys(valoresDelPeriodo).length) escalaDoc.valores_del_periodo = valoresDelPeriodo;
-      await setDoc(escalaRef, escalaDoc);
 
       // Magia para crear las zonas y actualizar categorías automáticamente en el convenio
       const convenioRef = doc(db, "convenios", convenioSeleccionado);
-      let inputsModificados = [...convenioCompleto.inputs_requeridos];
+      let inputsModificados = [...(convenioCompleto.inputs_requeridos || [])];
 
       const indexCategoria = inputsModificados.findIndex((i) => i.id === "categoria");
       if (indexCategoria !== -1) {
@@ -283,16 +345,25 @@ export default function EscalasTab({ convenios }) {
         ultimo_periodo: periodoMasNuevo,
         ultimo_periodo_nombre: nombreMasNuevo || mesVigencia,
       };
-      await setDoc(convenioRef, convenioActualizado, { merge: true });
+      // La escala y el convenio van en una sola escritura: si una de las dos
+      // fallara, antes quedaba la base a mitad de camino.
+      const lote = writeBatch(db);
+      lote.set(escalaRef, escalaDoc);
+      lote.set(convenioRef, convenioActualizado, { merge: true });
+      await lote.commit();
       setConvenioCompleto(convenioActualizado);
 
       setClavesPrevias([...categoriasActuales]);
       alert("Listo: se publicaron " + categoriasActuales.length + " categorías para " + mesVigencia + ".");
     } catch (error) {
       console.error(error);
-      alert("Error al guardar.");
+      alert("No se guardó nada: " + explicarErrorDeFirebase(error));
     }
   };
+
+  const valoresRequeridos = valoresQueNecesita(convenioCompleto);
+  const clavesCargadas = new Set(valoresPeriodo.map((v) => slug(String(v.clave || "").trim(), "")));
+  const valoresFaltantes = valoresRequeridos.filter((v) => !clavesCargadas.has(v.clave));
 
   return (
     <form onSubmit={guardarEscalaParitaria} className="space-y-6">
@@ -368,6 +439,11 @@ export default function EscalasTab({ convenios }) {
           Los importes por día, por kilómetro o por mes que fija la planilla (comida, viático especial, pernoctada, km).
           La clave tiene que ser la misma que usa el adicional en Convenios. Si el convenio no los usa, dejalo vacío.
         </p>
+        {valoresFaltantes.length > 0 && (
+          <p className="text-[12px] text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-2 mb-2">
+            Este convenio necesita {valoresFaltantes.length} valor(es) que todavía no están: {valoresFaltantes.map((v) => `${v.clave} (${v.adicional})`).join(", ")}. Sin ellos no se puede publicar.
+          </p>
+        )}
         {valoresPeriodo.length > 0 && (
           <div className="space-y-2">
             {valoresPeriodo.map((v, i) => (
