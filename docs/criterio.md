@@ -201,6 +201,13 @@ mejor remuneración del semestre.
 1/12 por mes, que es el default, o entero cuando se cobra. Los viáticos de
 Camioneros no entran en Ganancias.
 
+**Horas extras por km de Camioneros, decidido el 5/10/2026:** pagan aportes,
+pero no entran en el SAC, el plus vacacional ni la solidaria.
+
+**Tope mínimo del art. 9 en jornadas cortas:** no se resuelve porque no se da.
+Desde 20 horas, el básico más bajo cargado (Camioneros, $949.566 a 44 hs) da
+unos $431.000, el triple de la base mínima.
+
 **Obra social, decidido el 5/10/2026.** El 3% del trabajador y el 6% del
 empleador van siempre sobre la jornada completa de la categoría (art. 92 ter
 inc. 4 LCT); la diferencia la paga el trabajador, y por eso la calculadora
