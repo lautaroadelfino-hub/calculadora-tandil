@@ -57,7 +57,7 @@ export default function Header() {
           id="mobile-menu"
           inert={!open}
           aria-hidden={!open}
-          className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${open ? "max-h-40" : "max-h-0"}`}
+          className={`md:hidden overflow-hidden transition-[max-height] duration-300 ${open ? "max-h-60" : "max-h-0"}`}
         >
           <nav className="flex flex-col gap-1 pb-4">
             {LINKS_NAVEGACION.map((l) => (

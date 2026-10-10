@@ -1,0 +1,54 @@
+rules_version = '2';
+
+// storage.rules
+//
+// OJO: ESTE ARCHIVO NO SE APLICA SOLO. Las reglas que rigen viven en la consola
+// de Firebase (Storage -> Reglas). Este archivo es la versión versionada y
+// revisable; para que rija hay que pegarlo en la consola y publicar, o usar la
+// CLI:
+//     firebase deploy --only storage
+//
+// Qué guarda Storage: los archivos de los acuerdos paritarios y escalas de cada
+// convenio (PDF, imágenes o Word), en acuerdos/<convenio>/<archivo>. Los sube
+// el dueño desde /admin y los baja cualquiera desde /acuerdos/<convenio>.
+//
+//   - se lee sin registro: la descarga es pública a propósito;
+//   - escribe únicamente el administrador, identificado por el mismo mail que
+//     en firestore.rules, con archivos de hasta 10 MB y de los formatos que el
+//     panel acepta (lib/acuerdosPublicados.js);
+//   - todo lo demás está cerrado hasta que se abra a propósito acá.
+//
+// SI ALGÚN DÍA CAMBIA EL MAIL DEL ADMINISTRADOR, hay que cambiarlo acá Y en
+// firestore.rules, y publicar los dos antes de usar el panel con la cuenta nueva.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function esAdmin() {
+      return request.auth != null
+          && request.auth.token.email == "admin@csueldos.com";
+    }
+
+    function formatoPermitido() {
+      return request.resource.contentType.matches(
+        'application/pdf|image/jpeg|image/png|application/msword|application/vnd\\.openxmlformats-officedocument\\.wordprocessingml\\.document'
+      );
+    }
+
+    // --- Archivos de los acuerdos --------------------------------------
+    match /acuerdos/{convenioId}/{archivo} {
+      allow read: if true;
+      // create y update por separado de delete: al borrar, request.resource es
+      // null y una condición sobre su tamaño haría fallar todos los borrados.
+      allow create, update: if esAdmin()
+          && request.resource.size <= 10 * 1024 * 1024
+          && formatoPermitido();
+      allow delete: if esAdmin();
+    }
+
+    // --- Todo lo demás está cerrado ------------------------------------
+    match /{todo=**} {
+      allow read, write: if false;
+    }
+  }
+}

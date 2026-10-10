@@ -1,30 +1,32 @@
 // app/page.js
 // La portada se arma en el servidor (edge de Cloudflare): lee los convenios y
-// las novedades por la API REST de Firestore y entrega el HTML con las tarjetas
-// puestas. El navegador ya no baja el SDK de Firebase para pintarla. Las
+// los acuerdos por la API REST de Firestore y entrega el HTML con las tarjetas
+// puestas. El navegador no baja el SDK de Firebase para pintarla. Las
 // lecturas se cachean en el edge un minuto (ver lib/firestoreRest.js).
 import Portada from "@/components/Portada";
 import { listarColeccion } from "@/lib/firestoreRest";
-import { novedadesPublicadas } from "@/lib/novedadesPublicadas";
+import { ultimoAcuerdoPorConvenio } from "@/lib/acuerdosPublicados";
 
 export const runtime = "edge";
 
 // Lo que la tarjeta y el buscador usan de cada convenio; el resto del
 // documento (reglas, inputs) pesa treinta veces más y acá no hace falta.
 const CAMPOS_DE_TARJETA = ["nombre", "cct", "sector", "activo", "descripcion", "ultimo_periodo", "ultimo_periodo_nombre"];
-const CAMPOS_DE_NOVEDAD = ["date", "title", "url", "tag", "published"];
+// De los acuerdos, sólo lo que hace falta para el chip "Último acuerdo".
+const CAMPOS_DE_ACUERDO = ["convenioId", "fecha", "published"];
 
 export default async function Home() {
   let convenios = [];
-  let novedades = null;
+  let ultimosAcuerdos = {};
   let fallo = false;
   try {
-    const [lista, noticias] = await Promise.all([
+    const [lista, acuerdos] = await Promise.all([
       listarColeccion("convenios", { campos: CAMPOS_DE_TARJETA }),
-      listarColeccion("novedades", { campos: CAMPOS_DE_NOVEDAD }).catch(() => null),
+      // Si los acuerdos no se pueden leer, la portada sale igual, sin el chip.
+      listarColeccion("acuerdos", { campos: CAMPOS_DE_ACUERDO }).catch(() => []),
     ]);
     convenios = lista;
-    novedades = noticias ? novedadesPublicadas(noticias, 24) : null;
+    ultimosAcuerdos = ultimoAcuerdoPorConvenio(acuerdos);
   } catch (error) {
     // Un error de red no es lo mismo que "todavía no hay convenios publicados":
     // la portada lo distingue y ofrece recargar.
@@ -37,8 +39,7 @@ export default async function Home() {
       {fallo ? <meta name="robots" content="noindex, nofollow" /> : null}
       <Portada
         convenios={convenios.filter((c) => c.activo !== false)}
-        enPreparacion={convenios.filter((c) => c.activo === false)}
-        novedades={novedades}
+        ultimosAcuerdos={ultimosAcuerdos}
         fallo={fallo}
       />
     </>

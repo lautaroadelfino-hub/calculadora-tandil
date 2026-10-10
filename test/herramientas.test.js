@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  HERRAMIENTAS, herramientasDisponibles, herramientasEnCamino,
+  HERRAMIENTAS, herramientasDisponibles,
   LINKS_NAVEGACION, SECTORES, estiloDeSector, estiloDeHerramienta,
 } from "../lib/herramientas.js";
 import { convenioToForm, formToConvenio } from "../lib/convenioForm.js";
@@ -31,10 +31,10 @@ describe("registro de herramientas", () => {
     }
   });
 
-  it("disponibles y en camino parten el registro sin superponerse", () => {
-    expect(herramientasDisponibles().length + herramientasEnCamino().length).toBe(HERRAMIENTAS.length);
-    const idsDisponibles = herramientasDisponibles().map((h) => h.id);
-    expect(herramientasEnCamino().some((h) => idsDisponibles.includes(h.id))).toBe(false);
+  it("las disponibles son exactamente las marcadas con disponible: true", () => {
+    expect(herramientasDisponibles().map((h) => h.id)).toEqual(
+      HERRAMIENTAS.filter((h) => h.disponible === true).map((h) => h.id)
+    );
   });
 
   it("el panel del empleador ya no existe como herramienta aparte", () => {
@@ -45,13 +45,6 @@ describe("registro de herramientas", () => {
     // sin hablarlo, esto lo frena: fue decisión, no olvido.
     expect(HERRAMIENTAS.find((h) => h.href === "/empleador")).toBeUndefined();
   });
-
-  it("el roadmap incluye lo que la portada venía prometiendo", () => {
-    const nombres = herramientasEnCamino().map((h) => h.nombre.toLowerCase()).join(" ");
-    expect(nombres).toMatch(/aguinaldo/);
-    expect(nombres).toMatch(/indemnizaci/);
-    expect(nombres).toMatch(/pdf/);
-  });
 });
 
 describe("navegación", () => {
@@ -61,6 +54,7 @@ describe("navegación", () => {
     const hrefs = LINKS_NAVEGACION.map((l) => l.href);
     expect(new Set(hrefs).size).toBe(hrefs.length);
     expect(hrefs).toContain("/");
+    expect(hrefs).toContain("/acuerdos");
     expect(hrefs).toContain("/novedades");
   });
 

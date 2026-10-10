@@ -142,7 +142,7 @@ body {
 /* ==== Overrides anti-superposición en el panel central ==== */
 @media (max-width: 1535px) {
   main .sticky:not([data-flotante]) { position: static !important; top: auto !important; }
-  /* Los modales (ReportModal, MobileExtras) llevan data-flotante y quedan
+  /* Los modales (ReportModal) llevan data-flotante y quedan
      afuera: en cualquier pantalla de menos de 1536 px esta regla los
      incrustaba en el flujo de la página como un bloque gris, en vez de
      flotar encima de todo. Detectado el 13/9/2026 al rehacer la portada. */

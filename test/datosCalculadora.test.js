@@ -209,6 +209,18 @@ describe("novedadesPublicadas", () => {
     expect(novedadesPublicadas(items, 10, { incluirNoPublicadas: true }).map((n) => n.id)).toEqual(["c", "b", "a", "d", "e"]);
     expect(novedadesPublicadas(undefined)).toEqual([]);
   });
+
+  it("con convenioId quedan sólo las de ese sindicato; sin él, todas", () => {
+    const items = [
+      { id: "general", date: "2026-09-13" },
+      { id: "cam1", date: "2026-08-03", convenioId: "camioneros" },
+      { id: "cam2", date: "2026-09-01", convenioId: "camioneros", published: false },
+      { id: "com", date: "2026-07-15", convenioId: "comercio" },
+    ];
+    expect(novedadesPublicadas(items, 20, { convenioId: "camioneros" }).map((n) => n.id)).toEqual(["cam1"]);
+    expect(novedadesPublicadas(items, 20, { convenioId: "camioneros", incluirNoPublicadas: true }).map((n) => n.id)).toEqual(["cam2", "cam1"]);
+    expect(novedadesPublicadas(items, 20).map((n) => n.id)).toEqual(["general", "cam1", "com"]);
+  });
 });
 
 describe("esIdDeConvenio", () => {

@@ -102,7 +102,7 @@ const idDe = (doc) => doc.name.slice(doc.name.lastIndexOf("/") + 1);
 const rutaRelativa = (doc) => doc.name.slice(doc.name.indexOf("/documents/") + "/documents/".length);
 
 // Las colecciones que el sitio usa (las mismas que firestore.rules deja leer).
-const COLECCIONES = ["convenios", "parametros_ganancias", "parametros_contribuciones", "novedades"];
+const COLECCIONES = ["convenios", "parametros_ganancias", "parametros_contribuciones", "novedades", "acuerdos"];
 
 const ahora = new Date();
 const dos = (n) => String(n).padStart(2, "0");

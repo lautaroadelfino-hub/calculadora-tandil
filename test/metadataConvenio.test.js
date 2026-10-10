@@ -1,6 +1,12 @@
 // test/metadataConvenio.test.js
 import { describe, it, expect } from "vitest";
-import { convenioDesdeRest, tituloDeConvenio, metadataDeConvenio } from "../lib/metadataConvenio.js";
+import {
+  convenioDesdeRest,
+  tituloDeConvenio,
+  metadataDeConvenio,
+  metadataDeAcuerdos,
+  metadataDeNovedadesDeConvenio,
+} from "../lib/metadataConvenio.js";
 
 describe("el título de la pestaña de cada calculadora", () => {
   it("lee nombre y cct del formato REST de Firestore", () => {
@@ -22,5 +28,24 @@ describe("el título de la pestaña de cada calculadora", () => {
     expect(m.alternates.canonical).toBe("/calcular/camioneros-cct-40-89");
     expect(m.description).toMatch(/Camioneros/);
     expect(metadataDeConvenio(null, "x").description).toBeUndefined();
+  });
+});
+
+describe("las páginas de acuerdos y de novedades de un convenio", () => {
+  const camioneros = { nombre: "Camioneros", cct: "40/89" };
+
+  it("acuerdos: título con el convenio, canonical en /acuerdos", () => {
+    const m = metadataDeAcuerdos(camioneros, "camioneros-cct-40-89");
+    expect(m.title).toBe("Acuerdos y escalas · Camioneros (CCT 40/89)");
+    expect(m.alternates.canonical).toBe("/acuerdos/camioneros-cct-40-89");
+    expect(m.description).toMatch(/Camioneros/);
+    expect(metadataDeAcuerdos(null, "x")).toEqual({ title: "Acuerdos y escalas", alternates: { canonical: "/acuerdos/x" } });
+  });
+
+  it("novedades: título con el convenio, canonical en /novedades", () => {
+    const m = metadataDeNovedadesDeConvenio(camioneros, "camioneros-cct-40-89");
+    expect(m.title).toBe("Novedades · Camioneros (CCT 40/89)");
+    expect(m.alternates.canonical).toBe("/novedades/camioneros-cct-40-89");
+    expect(metadataDeNovedadesDeConvenio(null, "x").title).toBe("Novedades");
   });
 });

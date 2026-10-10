@@ -47,7 +47,10 @@ delegar. Escrita el 24/9/2026 a partir de la auditoría integral del 23/9.
 **Respaldar** (no pide contraseña, tarda segundos): doble clic en
 `respaldar.bat`, o `node scripts/respaldar.mjs`. Deja una carpeta
 `respaldos/AAAA-MM-DD-HHMM/` con todas las colecciones que usa el sitio
-(convenios, escalas, Ganancias, contribuciones, novedades) y un `resumen.txt`.
+(convenios, escalas, Ganancias, contribuciones, novedades, acuerdos) y un
+`resumen.txt`. Los archivos de los acuerdos (PDF y demás) viven en Firebase
+Storage y **no entran en este respaldo**: se bajan desde la consola de Firebase
+(Storage → carpeta `acuerdos`).
 Conviene hacerlo **antes de cargar un mes** y guardar las carpetas en otro
 lado (un pendrive, Drive).
 
@@ -68,12 +71,13 @@ la variable `ADMIN_PASSWORD`, seteada sólo para esa corrida en la consola, no
 en `.env.local`) y reemplaza cada documento entero, tal como estaba en el
 respaldo. El sitio lo refleja en menos de un minuto.
 
-**Lo que no respalda esto:** los usuarios de Authentication y las reglas de
-Firestore. Las reglas están en `firestore.rules` (versionadas en el repo); el
-usuario administrador se recrea desde la consola.
+**Lo que no respalda esto:** los usuarios de Authentication, las reglas y los
+archivos de Storage. Las reglas están en `firestore.rules` y `storage.rules`
+(versionadas en el repo); el usuario administrador se recrea desde la consola;
+los archivos de los acuerdos se bajan desde la consola (Storage → `acuerdos`).
 
 ## Cada cuánto
 
 - Respaldo: antes de cada carga de mes, y una vez por mes aunque no se cargue nada.
 - Dependencias: `npm audit` de vez en cuando; el 24/9/2026 quedó en cero.
-- Reglas de Firestore: cada vez que cambia el archivo, volver a pegarlo en la consola.
+- Reglas de Firestore y de Storage: cada vez que cambia el archivo, volver a pegarlo en la consola.

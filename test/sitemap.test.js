@@ -19,15 +19,20 @@ const doc = (id, activo) => ({
 });
 
 describe("sitemap", () => {
-  it("lista la portada, las novedades y una calculadora por convenio activo, ordenadas", async () => {
+  it("lista las fijas y, por convenio activo, la calculadora, sus acuerdos y sus novedades, ordenadas", async () => {
     vi.stubGlobal("fetch", firestoreConConvenios([doc("comercio-cct-130-75", true), doc("camioneros-cct-40-89", true), doc("uocra-cct-76-75", false)]));
     const entradas = await sitemap();
     const urls = entradas.map((e) => e.url);
     expect(urls).toEqual([
       "https://liquidar.ar",
       "https://liquidar.ar/novedades",
+      "https://liquidar.ar/acuerdos",
       "https://liquidar.ar/calcular/camioneros-cct-40-89",
+      "https://liquidar.ar/acuerdos/camioneros-cct-40-89",
+      "https://liquidar.ar/novedades/camioneros-cct-40-89",
       "https://liquidar.ar/calcular/comercio-cct-130-75",
+      "https://liquidar.ar/acuerdos/comercio-cct-130-75",
+      "https://liquidar.ar/novedades/comercio-cct-130-75",
     ]);
   });
 
@@ -41,7 +46,7 @@ describe("sitemap", () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("sin red"); }));
     const silencio = vi.spyOn(console, "error").mockImplementation(() => {});
     const urls = (await sitemap()).map((e) => e.url);
-    expect(urls).toEqual(["https://liquidar.ar", "https://liquidar.ar/novedades"]);
+    expect(urls).toEqual(["https://liquidar.ar", "https://liquidar.ar/novedades", "https://liquidar.ar/acuerdos"]);
     silencio.mockRestore();
   });
 

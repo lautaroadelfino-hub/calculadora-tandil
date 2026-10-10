@@ -11,9 +11,10 @@ import {
   HISTORIAL_D1,
 } from "@/lib/novedades";
 
+// "acuerdo" ya no se ofrece: los acuerdos tienen su propia pestaña, con el
+// archivo. Las novedades viejas con ese tag se siguen pintando (TAG_BADGE).
 const TAGS = [
   { value: "release", label: "Novedad / lanzamiento" },
-  { value: "acuerdo", label: "Acuerdo paritario" },
   { value: "aviso", label: "Aviso" },
 ];
 
@@ -25,10 +26,18 @@ const TAG_BADGE = {
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
-export default function NovedadesTab() {
+const FORM_VACIO = () => ({ date: hoy(), title: "", url: "", tag: "release", convenioId: "" });
+
+/** @param convenios todos los convenios (también los inactivos), para asignarle uno a la novedad. */
+export default function NovedadesTab({ convenios = [] }) {
   const [items, setItems] = useState(null);
   const [guardando, setGuardando] = useState(false);
-  const [form, setForm] = useState({ date: hoy(), title: "", url: "", tag: "release" });
+  const [form, setForm] = useState(FORM_VACIO);
+
+  const nombreDeConvenio = (id) => {
+    const c = convenios.find((x) => x.id === id);
+    return c ? c.nombre : id;
+  };
 
   const recargar = async () => {
     try {
@@ -60,8 +69,9 @@ export default function NovedadesTab() {
         url: form.url.trim() || null,
         tag: form.tag,
         published: true,
+        convenioId: form.convenioId || null,
       });
-      setForm({ date: hoy(), title: "", url: "", tag: "release" });
+      setForm(FORM_VACIO());
       await recargar();
     } catch (error) {
       console.error(error);
@@ -133,10 +143,18 @@ export default function NovedadesTab() {
             className="border border-sky-200 p-2.5 rounded-lg outline-none bg-white text-sm w-full"
           />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_auto] gap-3 items-center">
-          <select name="tag" value={form.tag} onChange={handleChange} className="border border-sky-200 p-2.5 rounded-lg outline-none bg-white text-sm">
+        <div className="grid grid-cols-1 md:grid-cols-[auto_auto_1fr_auto] gap-3 items-center">
+          <select name="tag" value={form.tag} onChange={handleChange} className="border border-sky-200 p-2.5 rounded-lg outline-none bg-white text-sm" aria-label="Tipo">
             {TAGS.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+          {/* Con convenio, la novedad se ve en /novedades/<convenio> (y en la
+              lista general). Sin convenio es general del sitio. */}
+          <select name="convenioId" value={form.convenioId} onChange={handleChange} className="border border-sky-200 p-2.5 rounded-lg outline-none bg-white text-sm" aria-label="Convenio">
+            <option value="">General (todo el sitio)</option>
+            {convenios.map((c) => (
+              <option key={c.id} value={c.id}>{c.nombre}{c.activo === false ? " · inactivo" : ""}</option>
             ))}
           </select>
           <input
@@ -190,6 +208,9 @@ export default function NovedadesTab() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono text-xs text-gray-400">{n.date}</span>
+                      {n.convenioId ? (
+                        <span className="text-xs font-semibold text-slate-700">{nombreDeConvenio(n.convenioId)}</span>
+                      ) : null}
                       <span className={`px-2 py-0.5 text-[11px] rounded-full ${TAG_BADGE[n.tag] || "bg-gray-100 text-gray-600"}`}>{n.tag}</span>
                       {!publicada && (
                         <span className="px-2 py-0.5 text-[11px] rounded-full bg-gray-200 text-gray-600">borrador</span>

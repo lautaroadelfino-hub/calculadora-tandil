@@ -1,6 +1,6 @@
 "use client";
 // Panel de administración con secciones:
-//   Escalas paritarias · Convenios (reglas) · Ganancias · Contribuciones · Novedades
+//   Escalas paritarias · Convenios (reglas) · Ganancias · Contribuciones · Acuerdos · Novedades
 // Cada sección vive en components/admin/*.jsx.
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -14,12 +14,14 @@ import ConveniosTab from "@/components/admin/ConveniosTab";
 import GananciasTab from "@/components/admin/GananciasTab";
 import ContribucionesTab from "@/components/admin/ContribucionesTab";
 import NovedadesTab from "@/components/admin/NovedadesTab";
+import AcuerdosTab from "@/components/admin/AcuerdosTab";
 
 const TABS = [
   { id: "escalas", label: "Escalas paritarias", icon: "📊" },
   { id: "convenios", label: "Convenios", icon: "⚙️" },
   { id: "ganancias", label: "Ganancias", icon: "💰" },
   { id: "contribuciones", label: "Contribuciones", icon: "🏢" },
+  { id: "acuerdos", label: "Acuerdos", icon: "📄" },
   { id: "novedades", label: "Novedades", icon: "📰" },
 ];
 
@@ -94,7 +96,7 @@ export default function AdminPage() {
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Panel de Administración</h1>
-          <p className="text-gray-500 text-sm mt-1">Escalas, convenios, impuestos, contribuciones patronales y novedades</p>
+          <p className="text-gray-500 text-sm mt-1">Escalas, convenios, impuestos, contribuciones patronales, acuerdos y novedades</p>
         </div>
         <button
           onClick={cerrarSesion}
@@ -132,7 +134,8 @@ export default function AdminPage() {
         )}
         {tabActiva === "ganancias" && <GananciasTab />}
         {tabActiva === "contribuciones" && <ContribucionesTab />}
-        {tabActiva === "novedades" && <NovedadesTab />}
+        {tabActiva === "acuerdos" && <AcuerdosTab convenios={convenios} />}
+        {tabActiva === "novedades" && <NovedadesTab convenios={convenios} />}
       </div>
     </div>
   );

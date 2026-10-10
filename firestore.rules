@@ -15,9 +15,9 @@ rules_version = '2';
 // cualquier cuenta podría reescribir las escalas salariales de un sitio
 // público. Estas reglas cierran las dos cosas:
 //
-//   - se lee sin registro sólo lo que la calculadora necesita: los convenios y
-//     sus escalas, las tablas de Ganancias, las de contribuciones y las
-//     novedades. Todo lo demás está cerrado hasta que se abra a propósito acá;
+//   - se lee sin registro sólo lo que el sitio necesita: los convenios y sus
+//     escalas, las tablas de Ganancias, las de contribuciones, las novedades y
+//     los acuerdos. Todo lo demás está cerrado hasta que se abra a propósito acá;
 //   - escribe únicamente el administrador, identificado por el mail con el que
 //     entra a /admin.
 //
@@ -66,8 +66,16 @@ service cloud.firestore {
       allow write: if esAdmin();
     }
 
-    // --- Novedades del sitio -------------------------------------------
+    // --- Novedades del sitio y de cada convenio ------------------------
     match /novedades/{novedadId} {
+      allow read: if true;
+      allow write: if esAdmin();
+    }
+
+    // --- Acuerdos paritarios y escalas de cada convenio ----------------
+    // El documento guarda los datos y la URL de descarga; el archivo en sí
+    // vive en Storage (ver storage.rules).
+    match /acuerdos/{acuerdoId} {
       allow read: if true;
       allow write: if esAdmin();
     }

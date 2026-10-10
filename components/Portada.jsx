@@ -1,8 +1,17 @@
 // components/Portada.jsx
 // La portada es un DIRECTORIO: el visitante viene a encontrar SU convenio.
-// Recibe los convenios y las novedades ya leídos por app/page.js en el servidor:
-// el HTML llega con las tarjetas puestas y el navegador no trae el SDK de
-// Firebase (antes la grilla aparecía casi dos segundos después que la página).
+// Recibe los convenios y la fecha del último acuerdo de cada uno, ya leídos por
+// app/page.js en el servidor: el HTML llega con las tarjetas puestas y el
+// navegador no trae el SDK de Firebase (antes la grilla aparecía casi dos
+// segundos después que la página).
+//
+// QUÉ CAMBIÓ Y POR QUÉ (10/10/2026):
+// - Se fueron las tarjetas "Últimas novedades", "Acuerdos recientes" y
+//   "Próximas actualizaciones" del panel inferior, y la hoja flotante que las
+//   repetía en el celular. El sitio pasa a publicar los acuerdos y las
+//   novedades POR CONVENIO: cada tarjeta lleva a su calculadora y, abajo, a
+//   sus acuerdos y a sus novedades. La información reciente se ve entrando al
+//   sindicato, no en un costado de la portada.
 //
 // QUÉ CAMBIÓ Y POR QUÉ (13/9/2026):
 // - Las tarjetas ya no imprimen el sector ("SECTOR PRIVADO", "TRANSPORTE Y
@@ -25,9 +34,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 
 import ReportModal from "../components/ReportModal";
-import SideRailLeft from "../components/SideRailLeft";
-import MobileExtras from "../components/MobileExtras";
 import { herramientasDisponibles, estiloDeSector, estiloDeHerramienta } from "@/lib/herramientas";
+import { fechaCorta } from "@/lib/fechas";
 import {
   ordenarConvenios,
   filtrarConvenios,
@@ -60,46 +68,72 @@ const plural = (n, singular, pluralTxt) => (n === 1 ? singular : pluralTxt);
  * Ningún texto se trunca: [overflow-wrap:anywhere] parte una palabra
  * larguísima antes que desbordar, y `h-full` + `mt-auto` emparejan el pie de
  * todas las tarjetas de una misma fila aunque una tenga el nombre más largo.
+ *
+ * Tres links y ninguno adentro de otro (un <a> dentro de un <a> es HTML
+ * inválido): el principal, "Calcular", ocupa todo el cuerpo de la tarjeta; el
+ * pie lleva "Acuerdos" y "Novedades", a las páginas del convenio. Cada link
+ * del pie dice de qué convenio es en su aria-label: tres tarjetas con un
+ * "Acuerdos" idéntico no se distinguen con un lector de pantalla.
  */
-function TarjetaConvenio({ convenio }) {
+function TarjetaConvenio({ convenio, ultimoAcuerdo }) {
   const estilos = estiloDeSector(convenio.sector);
+  const linkDelPie =
+    "rounded-md text-slate-600 hover:text-slate-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500";
   return (
-    <Link
-      href={`/calcular/${convenio.id}`}
-      className={`group flex h-full min-w-0 flex-col rounded-2xl border bg-white/80 p-4 text-left shadow-sm transition-all hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${estilos.border}`}
+    <article
+      className={`group flex h-full min-w-0 flex-col rounded-2xl border bg-white/80 text-left shadow-sm transition-all hover:shadow-md ${estilos.border}`}
     >
-      <div className="flex min-w-0 items-start gap-2">
-        <span
-          aria-hidden="true"
-          className={`mt-[0.45rem] h-2 w-2 shrink-0 rounded-full bg-current ${estilos.texto}`}
-        />
-        <h3 className="min-w-0 text-base font-semibold leading-snug text-slate-900 [overflow-wrap:anywhere]">
-          {convenio.nombre}
-        </h3>
-      </div>
+      <Link
+        href={`/calcular/${convenio.id}`}
+        className="flex min-w-0 flex-1 flex-col rounded-t-2xl p-4 pb-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+      >
+        <div className="flex min-w-0 items-start gap-2">
+          <span
+            aria-hidden="true"
+            className={`mt-[0.45rem] h-2 w-2 shrink-0 rounded-full bg-current ${estilos.texto}`}
+          />
+          <h3 className="min-w-0 text-base font-semibold leading-snug text-slate-900 [overflow-wrap:anywhere]">
+            {convenio.nombre}
+          </h3>
+        </div>
 
-      {/* CCT y hasta cuándo llegan las escalas: dos chips que envuelven en
-          varias líneas si hace falta. Antes todas las tarjetas decían
-          "Liquidación actualizada", incluso con las escalas congeladas hace
-          dos meses; acá se dice hasta dónde llegan de verdad, y si el
-          documento no lo trae, el chip no aparece: no se inventa un mes. */}
-      <div className="mt-2.5 flex flex-wrap gap-1.5">
-        {convenio.cct ? (
-          <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 [overflow-wrap:anywhere]">
-            CCT {convenio.cct}
-          </span>
-        ) : null}
-        {convenio.ultimo_periodo_nombre ? (
-          <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800 [overflow-wrap:anywhere]">
-            Escalas hasta {convenio.ultimo_periodo_nombre}
-          </span>
-        ) : null}
-      </div>
+        {/* CCT, hasta cuándo llegan las escalas y la fecha del último acuerdo:
+            chips que envuelven en varias líneas si hace falta. Antes todas las
+            tarjetas decían "Liquidación actualizada", incluso con las escalas
+            congeladas hace dos meses; acá se dice hasta dónde llegan de verdad,
+            y si el dato no está, el chip no aparece: no se inventa nada. */}
+        <div className="mt-2.5 flex flex-wrap gap-1.5">
+          {convenio.cct ? (
+            <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-700 [overflow-wrap:anywhere]">
+              CCT {convenio.cct}
+            </span>
+          ) : null}
+          {convenio.ultimo_periodo_nombre ? (
+            <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-800 [overflow-wrap:anywhere]">
+              Escalas hasta {convenio.ultimo_periodo_nombre}
+            </span>
+          ) : null}
+          {ultimoAcuerdo ? (
+            <span className="rounded-md bg-sky-50 px-2 py-0.5 text-[11px] font-medium text-sky-800 [overflow-wrap:anywhere]">
+              Último acuerdo {fechaCorta(ultimoAcuerdo)}
+            </span>
+          ) : null}
+        </div>
 
-      <span className={`mt-auto pt-3 text-[13px] font-medium group-hover:underline ${estilos.texto}`}>
-        Comenzar →
-      </span>
-    </Link>
+        <span className={`mt-auto pt-3 text-[13px] font-medium group-hover:underline ${estilos.texto}`}>
+          Calcular →
+        </span>
+      </Link>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 px-4 py-2 text-[12px]">
+        <Link href={`/acuerdos/${convenio.id}`} aria-label={`Acuerdos de ${convenio.nombre}`} className={linkDelPie}>
+          Acuerdos
+        </Link>
+        <Link href={`/novedades/${convenio.id}`} aria-label={`Novedades de ${convenio.nombre}`} className={linkDelPie}>
+          Novedades
+        </Link>
+      </div>
+    </article>
   );
 }
 
@@ -146,9 +180,11 @@ function TarjetasCargando({ clases }) {
   );
 }
 
-export default function Portada({ convenios = [], enPreparacion = [], novedades = null, fallo = false }) {
-  // Los convenios inactivos son los que se están preparando: se muestran en
-  // "Próximas actualizaciones" en vez de estar escritos a mano en el código.
+/**
+ * @param ultimosAcuerdos  { convenioId: "AAAA-MM-DD" } con la fecha del último
+ *   acuerdo publicado de cada convenio (lib/acuerdosPublicados.js).
+ */
+export default function Portada({ convenios = [], ultimosAcuerdos = {}, fallo = false }) {
   // Los datos vienen del servidor: acá nunca hay "cargando".
   const cargando = false;
   // Un error de red no es lo mismo que "todavía no hay convenios publicados", y
@@ -166,10 +202,9 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
     }
   }, []);
 
-  // Modal / extras
+  // Modal de reporte
   const [showReport, setShowReport] = useState(false);
   const reportBtnRef = useRef(null);
-  const [showExtras, setShowExtras] = useState(false);
 
 
   // El sector y el color salen del campo `sector` del documento, elegible
@@ -314,7 +349,7 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
                   </div>
                   <div className={GRILLA}>
                     {grupo.convenios.map((conv) => (
-                      <TarjetaConvenio key={conv.id} convenio={conv} />
+                      <TarjetaConvenio key={conv.id} convenio={conv} ultimoAcuerdo={ultimosAcuerdos[conv.id]} />
                     ))}
                   </div>
                 </div>
@@ -323,7 +358,7 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
           ) : (
             <div className={GRILLA}>
               {visibles.map((conv) => (
-                <TarjetaConvenio key={conv.id} convenio={conv} />
+                <TarjetaConvenio key={conv.id} convenio={conv} ultimoAcuerdo={ultimosAcuerdos[conv.id]} />
               ))}
             </div>
           )}
@@ -348,46 +383,17 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
           </section>
         ) : null}
 
-        {/* GRID INFERIOR: SideRailLeft (novedades + próximas actualizaciones)
-            y el panel de ayuda con el botón de reporte. */}
-        <div
-          className="
-            grid grid-cols-1 min-h-0
-            xl:grid-cols-[320px_minmax(0,1fr)]
-            2xl:grid-cols-[360px_minmax(0,1fr)]
-            gap-8 2xl:gap-12
-          "
-        >
-          <div className="hidden xl:block min-h-0">
-            <SideRailLeft enPreparacion={enPreparacion} novedades={novedades} />
-          </div>
-
-          <div className="min-w-0">
-            {/* Clases escritas a mano en vez de la utilidad .panel: .panel
-                incluye overflow-hidden, y acá adentro hay texto que tiene que
-                poder crecer sin que se le corte nada. */}
-            {/* Sólo el botón: el título y los dos párrafos que lo rodeaban se
-                sacaron (24/9/2026), no decían nada que el botón no diga. */}
-            <div className="min-w-0">
-              <button
-                ref={reportBtnRef}
-                type="button"
-                onClick={() => setShowReport(true)}
-                className="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900 transition-colors"
-              >
-                Reportar error / sugerencia
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="xl:hidden mt-4">
+        {/* Sólo el botón: el título y los dos párrafos que lo rodeaban se
+            sacaron (24/9/2026), no decían nada que el botón no diga. El panel
+            lateral de novedades que lo acompañaba se sacó el 10/10/2026. */}
+        <div className="min-w-0">
           <button
+            ref={reportBtnRef}
             type="button"
-            onClick={() => setShowExtras(true)}
-            className="w-full rounded-xl border border-slate-200 bg-white py-2.5 text-slate-800"
+            onClick={() => setShowReport(true)}
+            className="w-full lg:w-auto px-4 py-2.5 rounded-xl bg-slate-800 text-white hover:bg-slate-900 transition-colors"
           >
-            Novedades / Actualizaciones
+            Reportar error / sugerencia
           </button>
         </div>
 
@@ -404,13 +410,6 @@ export default function Portada({ convenios = [], enPreparacion = [], novedades 
         />
       </div>
 
-      <MobileExtras
-        open={showExtras}
-        onClose={() => setShowExtras(false)}
-        onReport={() => setShowReport(true)}
-        novedades={novedades}
-        enPreparacion={enPreparacion}
-      />
       <footer className="border-t border-slate-200 mt-10">
         <div className="w-full max-w-[1600px] mx-auto px-0 sm:px-6 py-4 text-xs text-slate-500 flex flex-wrap items-center gap-2">
           <span>© {new Date().getFullYear()} LiquidAR.ar.</span>

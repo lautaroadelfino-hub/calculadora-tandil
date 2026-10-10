@@ -153,7 +153,7 @@ npm run lint         # revisa el código
 También están `iniciar-calculadora.bat`, `probar-calculos.bat` y
 `respaldar.bat` para hacer lo mismo con doble clic.
 
-Hace falta un archivo `.env.local` con tres claves de Firebase. Son públicas
+Hace falta un archivo `.env.local` con cuatro claves de Firebase. Son públicas
 por diseño (se ven en el navegador de cualquiera que entre al sitio), pero no
 viajan en el repositorio:
 
@@ -161,7 +161,14 @@ viajan en el repositorio:
 NEXT_PUBLIC_FIREBASE_API_KEY=...
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=liquidar-f01ab.firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=liquidar-f01ab
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=liquidar-f01ab.firebasestorage.app
 ```
+
+La cuarta es el bucket de Firebase Storage, donde van los archivos de los
+acuerdos que se cargan desde /admin (pestaña Acuerdos). Si falta, el sitio
+funciona igual y el panel avisa que no puede subir archivos. En Cloudflare
+Pages las cuatro van en Settings → Variables and Secrets, y después de
+agregar una hay que volver a desplegar.
 
 **Regla de oro con los tests:** si uno falla, se arregla el código, nunca el
 test. Un test de regresión que se "arregla" cambiando el número esperado es la
@@ -226,6 +233,9 @@ mandale esa hoja primero.
   (Firestore Database → Reglas → Publicar) con la cuenta de Google dueña del
   proyecto, que es `info@liquidar.ar`. Y si cambiás el mail del administrador,
   cambialo en el archivo y en la consola antes de usar el panel.
+- **`storage.rules` es lo mismo para Firebase Storage** (los archivos de los
+  acuerdos): se pega en Storage → Reglas → Publicar. Lee cualquiera, escribe
+  sólo el administrador, hasta 10 MB y sólo PDF, JPG, PNG, DOC o DOCX.
 - **A `/admin` entra cualquier usuario autenticado de Firebase, pero guardar
   sólo puede `admin@csueldos.com`**, porque así lo dicen las reglas. Ese mail
   vive en tres lugares: `firestore.rules`, la consola de Firebase y la variable
