@@ -81,7 +81,10 @@ export default function RootLayout({ children }) {
         </Suspense>
 
         <Header />
-        <div className="relative z-0 w-full px-4 sm:px-6 lg:px-8 pt-6 pb-8 pt-[var(--h-header)] print:p-0">
+        {/* La barra es sticky y ya ocupa su lugar: acá no se le reserva altura.
+            Antes había un pt-[var(--h-header)] que dejaba una banda vacía de
+            más de 130 px debajo de la barra (C11 de la auditoría del 23/9/2026). */}
+        <div className="relative z-0 w-full px-4 sm:px-6 lg:px-8 pt-6 pb-8 print:p-0">
           <main id="contenido" className="space-y-6">{children}</main>
         </div>
         <Analitica />

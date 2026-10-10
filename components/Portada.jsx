@@ -77,8 +77,10 @@ const plural = (n, singular, pluralTxt) => (n === 1 ? singular : pluralTxt);
  */
 function TarjetaConvenio({ convenio, ultimoAcuerdo }) {
   const estilos = estiloDeSector(convenio.sector);
-  const linkDelPie =
-    "rounded-md text-slate-600 hover:text-slate-900 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500";
+  // Botones con borde e ícono, no texto suelto: como links pelados "no se
+  // notaba que eran un botón que redirige" (dueño, 10/10/2026).
+  const botonDelPie =
+    "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500";
   return (
     <article
       className={`group flex h-full min-w-0 flex-col rounded-2xl border bg-white/80 text-left shadow-sm transition-all hover:shadow-md ${estilos.border}`}
@@ -125,11 +127,26 @@ function TarjetaConvenio({ convenio, ultimoAcuerdo }) {
         </span>
       </Link>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 px-4 py-2 text-[12px]">
-        <Link href={`/acuerdos/${convenio.id}`} aria-label={`Acuerdos de ${convenio.nombre}`} className={linkDelPie}>
+      <div className="flex flex-wrap gap-2 border-t border-slate-100 px-4 py-2.5">
+        <Link
+          href={`/acuerdos/${convenio.id}`}
+          aria-label={`Acuerdos de ${convenio.nombre}`}
+          className={`${botonDelPie} border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100`}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" />
+            <path d="M14 3v6h6M8 13h8M8 17h8" />
+          </svg>
           Acuerdos
         </Link>
-        <Link href={`/novedades/${convenio.id}`} aria-label={`Novedades de ${convenio.nombre}`} className={linkDelPie}>
+        <Link
+          href={`/novedades/${convenio.id}`}
+          aria-label={`Novedades de ${convenio.nombre}`}
+          className={`${botonDelPie} border-slate-200 bg-white text-slate-700 hover:bg-slate-50`}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M4 5h16v14H4zM8 9h8M8 13h5" />
+          </svg>
           Novedades
         </Link>
       </div>
@@ -237,7 +254,8 @@ export default function Portada({ convenios = [], ultimosAcuerdos = {}, fallo = 
   const GRILLA = activos.length > 6 ? GRILLA_AMPLIA : GRILLA_COMPACTA;
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-100 via-slate-50 to-white overflow-x-hidden">
+    // Sin fondo propio: lo pone el body (app/globals.css), hasta el borde.
+    <div className="min-h-[100dvh] overflow-x-hidden">
       {/* El layout ya pone el gutter lateral (16 px en el celular): acá no se
           duplica, que en 360 px eran 64 px perdidos. En monitores grandes el
           contenido se frena en 1600 px y se centra, como la calculadora. */}

@@ -11,10 +11,12 @@ body {
     Arial, "Noto Sans", "Liberation Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol",
     "Noto Color Emoji", sans-serif;
   color: #0f172a; /* slate-900 */
-  background:
-    radial-gradient(1200px 600px at 90% -10%, rgba(59,130,246,0.12), transparent 60%),
-    radial-gradient(800px 400px at -5% 10%, rgba(16,185,129,0.10), transparent 60%),
-    #f1f5f9; /* slate-100 */
+  /* El fondo de TODAS las páginas vive acá. Antes la portada y la calculadora
+     pintaban su propio degradado adentro del margen del layout, y en los 16 a
+     32 px del borde se veía este fondo, distinto: una franja clara a lo largo
+     del costado (lo marcó el dueño el 10/10/2026). */
+  background: linear-gradient(to bottom right, #f1f5f9, #f8fafc 50%, #ffffff);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -209,16 +211,11 @@ main > * { isolation: isolate; }
   }
 }
 
-/* === Altura del header por breakpoint/altura === */
-:root { --h-header: 88px; }                    /* base */
-@media (min-width: 768px){ :root { --h-header: 104px; } }     /* md */
-@media (min-width: 1280px){ :root { --h-header: 116px; } }    /* xl */
-
-/* Escritorios de poca altura */
-@media (max-height: 740px){ :root { --h-header: 96px; } }     
-@media (min-width:1280px) and (max-height:740px){ 
-  :root { --h-header: 88px; } 
-}
+/* === Altura de la barra superior ===
+   Una sola, para todos los anchos: la barra la usa como alto (components/
+   Header.jsx) y las páginas para calcular el mínimo de alto visible. Antes
+   había cinco valores por breakpoint que no coincidían con la barra real. */
+:root { --h-header: 60px; }
 
 @layer utilities {
   /* Forzar contenedores a permitir scroll interno cuando están en grids/flex */
@@ -278,7 +275,10 @@ main > * { isolation: isolate; }
   font-size: clamp(1.05rem, 10cqw, 1.70rem);
 }
 
-html { scrollbar-gutter: stable both-edges; } /* evita saltitos al aparecer la barra */
+/* Reserva el lugar de la barra de scroll para que la página no salte cuando
+   aparece. Sólo del lado derecho: con "both-edges" se reservaba también a la
+   izquierda y quedaba una franja vacía de 15 px a lo largo de todo el sitio. */
+html { scrollbar-gutter: stable; }
 
 
 /* ===== Impresión del recibo oficial =====

@@ -291,7 +291,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
   );
 
   return (
-    <div className="min-h-[100dvh] bg-gradient-to-br from-slate-100 via-slate-50 to-white">
+    <div className="min-h-[100dvh]">
       {/* El layout ya pone 16 px de margen por lado en el celular: acá no se
           duplica. En escritorio el tope sube a 1280 px y en monitores grandes
           a 1600: antes, con 1152 px, un monitor de 1920 usaba el 57 % del
@@ -516,7 +516,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
               407/2026: datos · lo que paga el empleador · haberes y deducciones ·
               neto · composición del costo laboral. */}
           {resultadoLiquidacion ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-6 print:shadow-none print:border-0 print:static">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-[calc(var(--h-header)+1rem)] print:shadow-none print:border-0 print:static">
 
               <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3 print:hidden">
                 <div>
@@ -730,7 +730,7 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-10 text-center lg:sticky lg:top-6">
+            <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-10 text-center lg:sticky lg:top-[calc(var(--h-header)+1rem)]">
               <div className="text-4xl mb-3">🧾</div>
               <h2 className="font-semibold text-slate-700">Tu recibo va a aparecer acá</h2>
             </div>
