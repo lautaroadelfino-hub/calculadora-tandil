@@ -2,7 +2,7 @@
 import Link from "next/link";
 // La página que no existe, con la cara del sitio. Antes salía la pantalla
 // negra del framework, en inglés, sin ningún camino de vuelta.
-export const metadata = { title: "Página no encontrada" };
+export const metadata = { title: "Página no encontrada", robots: { index: false } };
 
 export default function NoEncontrada() {
   return (

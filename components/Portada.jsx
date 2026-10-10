@@ -429,9 +429,11 @@ export default function Portada({ convenios = [], ultimosAcuerdos = {}, fallo = 
       </div>
 
       <footer className="border-t border-slate-200 mt-10">
-        <div className="w-full max-w-[1600px] mx-auto px-0 sm:px-6 py-4 text-xs text-slate-500 flex flex-wrap items-center gap-2">
+        <div className="w-full max-w-[1600px] mx-auto px-0 sm:px-6 py-4 text-xs text-slate-500 flex flex-wrap items-center gap-x-4 gap-y-2">
           <span>© {new Date().getFullYear()} LiquidAR.ar.</span>
           <span className="text-slate-500">Versión {APP_VERSION}</span>
+          <Link href="/acuerdos" className="hover:underline">Acuerdos y escalas</Link>
+          <Link href="/novedades" className="hover:underline">Novedades</Link>
         </div>
       </footer>
     </div>

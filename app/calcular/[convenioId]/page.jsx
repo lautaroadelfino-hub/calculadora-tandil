@@ -6,14 +6,27 @@
 // segundos en cada visita. Las lecturas se cachean en el edge un minuto (ver
 // lib/firestoreRest.js). El 404 de un convenio inexistente y la metadata los
 // resuelve layout.js, con la misma lectura del convenio.
+//
+// Desde el 10/10/2026 la página lleva también un encabezado con palabras
+// clave ("Calculadora de sueldo de Camioneros") y, debajo de la calculadora,
+// un texto con qué calcula y preguntas frecuentes, todo armado acá, en el
+// servidor, desde los datos cargados (lib/textoConvenio.js): es lo que Google
+// lee, y se actualiza solo cuando el dueño carga un mes nuevo.
 import { notFound } from "next/navigation";
 import CalculadoraConvenio from "@/components/calculadora/CalculadoraConvenio";
+import TextoDeCalculadora from "@/components/calculadora/TextoDeCalculadora";
+import EncabezadoConvenio from "@/components/EncabezadoConvenio";
+import JsonLd from "@/components/JsonLd";
 import {
   cargarDatosDeCalculadora,
   busquedaDesdeSearchParams,
   convenioCacheado,
+  acuerdosCacheados,
   LECTOR_REAL,
 } from "@/lib/datosCalculadora";
+import { acuerdosPublicados } from "@/lib/acuerdosPublicados";
+import { parrafoDeConvenio, preguntasFrecuentes } from "@/lib/textoConvenio";
+import { jsonLdFaq, jsonLdMigas } from "@/lib/jsonLd";
 
 export const runtime = "edge";
 
@@ -26,15 +39,38 @@ export default async function PaginaCalculadora({ params, searchParams }) {
     leerDocumento: (ruta) => (ruta === `convenios/${convenioId}` ? convenioCacheado(convenioId) : LECTOR_REAL.leerDocumento(ruta)),
   };
   let inicial;
+  let acuerdos;
   try {
-    inicial = await cargarDatosDeCalculadora(convenioId, consulta, lector);
+    // Los acuerdos sólo alimentan el texto: si no se pueden leer, la calculadora sale igual.
+    [inicial, acuerdos] = await Promise.all([cargarDatosDeCalculadora(convenioId, consulta, lector), acuerdosCacheados().catch(() => [])]);
   } catch (error) {
     console.error("No se pudieron leer los datos del convenio:", error);
     return <SinDatos destino={`/calcular/${encodeURIComponent(convenioId)}${consulta}`} />;
   }
   if (!inicial) notFound();
-  // key: al pasar de un convenio a otro, la calculadora arranca de cero.
-  return <CalculadoraConvenio key={convenioId} convenioId={convenioId} inicial={inicial} />;
+
+  const { convenio, periodos, periodoInicial } = inicial;
+  const escala = inicial.escalas[periodoInicial] || null;
+  const periodoNombre = (periodos.find((p) => p.id === periodoInicial) || {}).nombre || "";
+  const ultimoAcuerdo = acuerdosPublicados(acuerdos, { convenioId, limite: 1 })[0] || null;
+  const parrafo = parrafoDeConvenio({ convenio, escala, periodoNombre, periodos, ultimoAcuerdo });
+  const preguntas = preguntasFrecuentes({ convenio, escala, periodoNombre });
+  const titulo = `Calculadora de sueldo de ${convenio.nombre}`;
+
+  return (
+    <>
+      <JsonLd datos={jsonLdMigas([{ nombre: "Inicio", url: "/" }, { nombre: titulo, url: `/calcular/${encodeURIComponent(convenioId)}` }])} />
+      {preguntas.length ? <JsonLd datos={jsonLdFaq(preguntas)} /> : null}
+      {/* key: al pasar de un convenio a otro, la calculadora arranca de cero. */}
+      <CalculadoraConvenio
+        key={convenioId}
+        convenioId={convenioId}
+        inicial={inicial}
+        encabezado={<EncabezadoConvenio convenio={convenio} convenioId={convenioId} activa="calcular" titulo={titulo} />}
+        pie={<TextoDeCalculadora convenio={convenio} convenioId={convenioId} parrafo={parrafo} preguntas={preguntas} />}
+      />
+    </>
+  );
 }
 
 /**

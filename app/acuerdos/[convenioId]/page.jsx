@@ -56,7 +56,7 @@ export default async function PaginaAcuerdos({ params }) {
       {lista.length === 0 ? (
         <p className="text-sm text-slate-600">Todavía no hay acuerdos cargados.</p>
       ) : (
-        <ListaAcuerdos acuerdos={lista} />
+        <ListaAcuerdos acuerdos={lista} convenioId={convenioId} />
       )}
     </div>
   );

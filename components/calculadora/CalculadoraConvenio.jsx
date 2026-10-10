@@ -31,7 +31,14 @@ const pct = (fraccion) =>
 /** 36.5 -> "36,5" */
 const num = (n) => Number(n || 0).toLocaleString("es-AR", { maximumFractionDigits: 2 });
 
-export default function CalculadoraConvenio({ convenioId, inicial }) {
+/**
+ * @param encabezado  el encabezado armado en el servidor (título con palabras
+ *   clave y las pestañas del convenio); si no viene, el nombre y el CCT.
+ * @param pie  el texto de abajo (qué calcula y preguntas frecuentes), también
+ *   del servidor: así está en el HTML que lee Google aunque esto sea un
+ *   componente de cliente.
+ */
+export default function CalculadoraConvenio({ convenioId, inicial, encabezado = null, pie = null }) {
 
   // Estados de datos
   const [convenio] = useState(inicial.convenio);
@@ -299,10 +306,12 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
       <div className="max-w-7xl 2xl:max-w-[1600px] mx-auto px-0 sm:px-6 py-6 sm:py-8 mb-16">
 
         {/* ENCABEZADO DEL CONVENIO */}
-        <header className="mb-6 print:hidden">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{convenio.nombre}</h1>
-          <p className="text-sm text-slate-500 mt-1">CCT {convenio.cct}</p>
-        </header>
+        {encabezado || (
+          <header className="mb-6 print:hidden">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">{convenio.nombre}</h1>
+            <p className="text-sm text-slate-500 mt-1">CCT {convenio.cct}</p>
+          </header>
+        )}
 
         {/* Dos columnas desde 1024 px, con más lugar para el recibo (3/8 y 5/8;
             5/12 y 7/12 desde 1280): el formulario no gana nada con más ancho y
@@ -737,6 +746,8 @@ export default function CalculadoraConvenio({ convenioId, inicial }) {
           )}
 
         </div>
+
+        {pie}
 
         <ReportModal
           open={showReport}

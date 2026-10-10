@@ -1,18 +1,25 @@
 // app/layout.js
 import "./globals.css";
-import { Inter } from "next/font/google";
-import { Suspense } from "react";              // 👈 agrega esto
+import { Suspense } from "react";
 import AuthNavFloating from "../components/AuthNavFloating";
 import Header from "../components/Header";
 import Analitica from "../components/Analitica";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 // El sitio vive detrás de Cloudflare, así que carga rápido, que es algo que
 // Google premia. Lo que faltaba era decirle DE QUÉ se trata: el título era
 // "LiquidAR" a secas y la descripción "Cálculo rápido de tu sueldo", que no
 // es lo que nadie escribe en el buscador. Un contador busca "calculadora
 // sueldo empleados de comercio 2026".
+//
+// QUÉ CAMBIÓ Y POR QUÉ (10/10/2026): Google tenía indexada UNA sola página,
+// la portada. Acá había un canonical "/" y un openGraph con la url de la
+// portada que heredaban todas las páginas sin metadata propia: /novedades le
+// decía a Google que era una copia de la portada, y al compartir cualquier
+// página salía el título general. Ahora cada página declara su canonical y su
+// url (lib/metadataConvenio.js, metadataDePagina) y acá queda sólo lo común.
+// También se fueron los íconos PNG que no existían en public/brand/ y la
+// fuente Inter, que se descargaba y no se usaba (globals.css fija la del
+// sistema).
 export const metadata = {
   metadataBase: new URL("https://liquidar.ar"),
   title: {
@@ -20,42 +27,24 @@ export const metadata = {
     template: "%s — LiquidAR",
   },
   description:
-    "Calculá tu recibo de sueldo según el convenio colectivo: Empleados de Comercio (CCT 130/75), Gastronómicos (CCT 389/04) y más. Escalas actualizadas, antigüedad, presentismo, SAC, retenciones y estimación de Ganancias. Gratis y sin registrarte.",
-  keywords: [
-    "calculadora de sueldo",
-    "recibo de sueldo",
-    "convenio colectivo",
-    "empleados de comercio",
-    "CCT 130/75",
-    "UTHGRA",
-    "liquidación de sueldos",
-    "paritarias",
-    "costo laboral",
-    "Argentina",
-  ],
-  alternates: { canonical: "/" },
+    "Calculadora de sueldo por convenio colectivo: Camioneros (CCT 40/89), Empleados de Comercio (CCT 130/75) y Gastronómicos UTHGRA (CCT 389/04). Escalas actualizadas, antigüedad, horas extras, aguinaldo, aportes y costo del empleador. Gratis y sin registro.",
   openGraph: {
     type: "website",
     locale: "es_AR",
-    url: "https://liquidar.ar",
     siteName: "LiquidAR",
-    title: "LiquidAR — Calculadora de sueldos por convenio colectivo",
-    description:
-      "Simulá tu recibo de sueldo por convenio, con escalas actualizadas, retenciones y estimación de Ganancias.",
   },
   twitter: {
-    card: "summary",
-    title: "LiquidAR — Calculadora de sueldos por convenio",
-    description: "Simulá tu recibo de sueldo por convenio colectivo argentino.",
+    card: "summary_large_image",
   },
   robots: { index: true, follow: true },
+  // Al declarar `icons` acá, Next deja de agregar solo el app/apple-icon.png:
+  // por eso va explícito.
   icons: {
     icon: [
       { url: "/brand/favicon.svg", type: "image/svg+xml" },
-      { url: "/brand/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/brand/favicon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/favicon.ico", sizes: "any" },
     ],
-    apple: [{ url: "/brand/apple-touch-icon.png", sizes: "180x180" }],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
   },
 };
 
@@ -66,8 +55,8 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es" className={inter.variable}>
-      <body className="font-sans antialiased bg-pattern min-h-screen overflow-x-hidden">
+    <html lang="es">
+      <body className="font-sans antialiased min-h-screen overflow-x-hidden">
         {/* Primera parada del tabulador: saltar la barra e ir al contenido. */}
         <a
           href="#contenido"

@@ -236,6 +236,15 @@ mandale esa hoja primero.
 - **`storage.rules` es lo mismo para Firebase Storage** (los archivos de los
   acuerdos): se pega en Storage → Reglas → Publicar. Lee cualquiera, escribe
   sólo el administrador, hasta 10 MB y sólo PDF, JPG, PNG, DOC o DOCX.
+- **Cada acuerdo tiene su propia página**: `liquidar.ar/acuerdos/<convenio>/<título-en-minúsculas>`
+  (la URL se ve en la pestaña Acuerdos de /admin, debajo de cada uno). Esa
+  dirección se arma del título al crear el acuerdo y **no cambia si después
+  editás el título**: puede estar en Google o compartida. Despublicar un
+  acuerdo deja su página en 404 y Google la saca sola.
+- **Google**: el sitio está en Search Console (verificación por DNS). Cada
+  página declara su propio título, descripción, canonical e imagen para
+  compartir; `/sitemap.xml` lista todas las páginas con su fecha real de
+  cambio y `/robots.txt` permite todo (el panel y el login llevan `noindex`).
 - **A `/admin` entra cualquier usuario autenticado de Firebase, pero guardar
   sólo puede `admin@csueldos.com`**, porque así lo dicen las reglas. Ese mail
   vive en tres lugares: `firestore.rules`, la consola de Firebase y la variable

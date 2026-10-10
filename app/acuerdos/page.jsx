@@ -14,17 +14,18 @@ import { listarColeccion } from "@/lib/firestoreRest";
 import { acuerdosPublicados, CAMPOS_DE_ACUERDO, etiquetaDeFormato } from "@/lib/acuerdosPublicados";
 import { ordenarConvenios } from "@/lib/directorio";
 import { estiloDeSector } from "@/lib/herramientas";
+import { metadataDePagina } from "@/lib/metadataConvenio";
 import { fechaCorta } from "@/lib/fechas";
 import SinDatos from "@/components/SinDatos";
 
 export const runtime = "edge";
 
-export const metadata = {
+export const metadata = metadataDePagina({
   title: "Acuerdos y escalas",
   description:
     "Acuerdos paritarios, escalas salariales y homologaciones por convenio colectivo, con el documento de cada uno para descargar.",
-  alternates: { canonical: "/acuerdos" },
-};
+  canonical: "/acuerdos",
+});
 
 const POR_CONVENIO = 3;
 
@@ -37,35 +38,35 @@ function IconoDescarga() {
   );
 }
 
-/** Una fila de la tarjeta: fecha, título y el archivo (o la fuente, si no hay archivo). */
-function FilaAcuerdo({ acuerdo }) {
-  const href = acuerdo.archivoUrl || acuerdo.fuenteUrl;
+/**
+ * Una fila de la tarjeta: fecha, título (link a la página del acuerdo) y el
+ * ícono de descarga (link al archivo, o a la fuente si no hay archivo). Son
+ * dos links hermanos, nunca uno adentro del otro.
+ */
+function FilaAcuerdo({ acuerdo, convenioId }) {
+  const descarga = acuerdo.archivoUrl || acuerdo.fuenteUrl;
   const formato = etiquetaDeFormato(acuerdo.archivoTipo);
   const etiqueta = acuerdo.archivoUrl ? `Descargar ${formato || "archivo"}: ${acuerdo.titulo}` : `Fuente: ${acuerdo.titulo}`;
-  const contenido = (
-    <>
-      <span className="w-[62px] shrink-0 text-xs text-slate-500">{fechaCorta(acuerdo.fecha)}</span>
-      <span className="min-w-0 flex-1 text-sm font-medium text-slate-900 [overflow-wrap:anywhere]">{acuerdo.titulo}</span>
-      {href ? (
-        <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
-          <IconoDescarga />
-        </span>
-      ) : null}
-    </>
-  );
-  const clases = "flex items-center gap-3 px-4 py-3";
-  if (!href) return <li className={clases}>{contenido}</li>;
   return (
-    <li>
-      <a
-        href={href}
-        target="_blank"
-        rel="noopener"
-        aria-label={etiqueta}
-        className={`${clases} hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-500`}
+    <li className="flex items-center gap-3 px-4 py-3">
+      <span className="w-[62px] shrink-0 text-xs text-slate-500">{fechaCorta(acuerdo.fecha)}</span>
+      <Link
+        href={`/acuerdos/${encodeURIComponent(convenioId)}/${acuerdo.slug}`}
+        className="min-w-0 flex-1 text-sm font-medium text-slate-900 hover:underline [overflow-wrap:anywhere]"
       >
-        {contenido}
-      </a>
+        {acuerdo.titulo}
+      </Link>
+      {descarga ? (
+        <a
+          href={descarga}
+          target="_blank"
+          rel="noopener"
+          aria-label={etiqueta}
+          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+        >
+          <IconoDescarga />
+        </a>
+      ) : null}
     </li>
   );
 }
@@ -114,7 +115,7 @@ export default async function PaginaAcuerdos() {
                 </div>
                 <ul className="divide-y divide-slate-100">
                   {ultimos.map((a) => (
-                    <FilaAcuerdo key={a.id} acuerdo={a} />
+                    <FilaAcuerdo key={a.id} acuerdo={a} convenioId={convenio.id} />
                   ))}
                 </ul>
                 <Link

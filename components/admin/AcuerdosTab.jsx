@@ -17,7 +17,9 @@ import {
   validarArchivo,
   validarAcuerdo,
   nombreDeArchivo,
+  slugDeAcuerdo,
 } from "@/lib/acuerdosPublicados";
+import { slugDeUrl } from "@/lib/texto";
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
@@ -130,7 +132,12 @@ export default function AcuerdosTab({ convenios = [] }) {
           await borrarArchivo(editando.archivoRuta).catch((err) => console.error("No se borró el archivo viejo:", err));
         }
       } else {
-        await crearAcuerdo({ ...datos, published: true });
+        // La URL de la página del acuerdo sale del título. Si otro acuerdo del
+        // mismo convenio ya usa ese slug (mismo título, otro mes), va con la
+        // fecha atrás para que las dos páginas existan.
+        const base = slugDeUrl(titulo, "acuerdo");
+        const usados = new Set((items || []).filter((a) => a.convenioId === form.convenioId).map(slugDeAcuerdo));
+        await crearAcuerdo({ ...datos, slug: usados.has(base) ? `${base}-${form.fecha}` : base, published: true });
       }
       limpiar();
       await recargar();
@@ -319,6 +326,15 @@ export default function AcuerdosTab({ convenios = [] }) {
                           Fuente
                         </a>
                       ) : null}
+                      {/* La página pública del acuerdo, para copiar y compartir. */}
+                      <a
+                        href={`/acuerdos/${encodeURIComponent(a.convenioId)}/${slugDeAcuerdo(a)}`}
+                        target="_blank"
+                        rel="noopener"
+                        className="text-slate-500 hover:underline [overflow-wrap:anywhere]"
+                      >
+                        /acuerdos/{a.convenioId}/{slugDeAcuerdo(a)}
+                      </a>
                     </div>
                   </div>
                   <div className="flex gap-2 shrink-0 flex-wrap">

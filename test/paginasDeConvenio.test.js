@@ -12,8 +12,10 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import PaginaAcuerdos from "../app/acuerdos/[convenioId]/page.jsx";
+import PaginaAcuerdo, { generateMetadata as metadataDelAcuerdo } from "../app/acuerdos/[convenioId]/[slug]/page.jsx";
 import IndiceAcuerdos from "../app/acuerdos/page.jsx";
 import PaginaNovedades from "../app/novedades/[convenioId]/page.jsx";
+import NovedadesGenerales, { metadata as metadataDeNovedades } from "../app/novedades/page.jsx";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -128,5 +130,82 @@ describe("/novedades/<convenio>", () => {
   it("un convenio que no existe es un 404 de verdad", async () => {
     vi.stubGlobal("fetch", firestoreSimulado());
     await expect(PaginaNovedades(params("no-existe"))).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NEXT_NOT_FOUND/);
+  });
+});
+
+describe("/acuerdos/<convenio>/<slug>: la página de un acuerdo", () => {
+  const params2 = (convenioId, slug) => ({ params: Promise.resolve({ convenioId, slug }) });
+
+  it("muestra el acuerdo con su descarga, la fuente, el anterior y el siguiente, y el paso a la calculadora", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado());
+    const h = await html(PaginaAcuerdo(params2("camioneros-cct-40-89", "acta-acuerdo-mayo-2026")));
+    expect(h).toMatch(/<h1[^>]*>Acta acuerdo mayo 2026<\/h1>/);
+    expect(h).toContain("Acuerdo paritario de Camioneros (CCT 40/89) del");
+    expect(h).toContain('href="https://sindicato.org/acta"');
+    expect(h).toContain('href="/calcular/camioneros-cct-40-89"');
+    // El siguiente (más nuevo) es la escala de agosto; no hay anterior.
+    expect(h).toContain('href="/acuerdos/camioneros-cct-40-89/escala-salarial-agosto-2026"');
+    // Datos estructurados: migas y documento.
+    expect(h).toContain('"@type":"BreadcrumbList"');
+    expect(h).toContain('"@type":"DigitalDocument"');
+    expect(h).toContain('"datePublished":"2026-05-30"');
+  });
+
+  it("la metadata lleva el título del acuerdo, el convenio y el canonical con el slug", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado());
+    const m = await metadataDelAcuerdo(params2("camioneros-cct-40-89", "escala-salarial-agosto-2026"));
+    expect(m.title).toBe("Escala salarial agosto 2026 · Camioneros (CCT 40/89)");
+    expect(m.alternates.canonical).toBe("/acuerdos/camioneros-cct-40-89/escala-salarial-agosto-2026");
+    expect(m.openGraph.url).toBe(m.alternates.canonical);
+    expect((await metadataDelAcuerdo(params2("camioneros-cct-40-89", "no-existe"))).title).toBe("Acuerdos y escalas");
+  });
+
+  it("404 real con slug inexistente, mal formado, despublicado o de otro convenio", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado());
+    for (const [c, s] of [["camioneros-cct-40-89", "no-existe"], ["camioneros-cct-40-89", "Escala-Salarial-Agosto-2026"], ["camioneros-cct-40-89", ".."], ["camioneros-cct-40-89", "borrador-que-no-se-ve"], ["uocra-cct-76-75", "escala-salarial-agosto-2026"], ["no-existe", "x"]]) {
+      await expect(PaginaAcuerdo(params2(c, s))).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NEXT_NOT_FOUND/);
+    }
+  });
+
+  it("si Firestore no responde, ofrece recargar y no se indexa", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("sin red"); }));
+    const silencio = vi.spyOn(console, "error").mockImplementation(() => {});
+    const h = await html(PaginaAcuerdo(params2("camioneros-cct-40-89", "escala-salarial-agosto-2026")));
+    expect(h).toContain("No pudimos traer el acuerdo");
+    expect(h).toContain("noindex");
+    silencio.mockRestore();
+  });
+
+  it("la lista del convenio y el índice enlazan a la página de cada acuerdo", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado());
+    const lista = await html(PaginaAcuerdos(params("camioneros-cct-40-89")));
+    expect(lista).toContain('href="/acuerdos/camioneros-cct-40-89/escala-salarial-agosto-2026"');
+    const indice = await html(IndiceAcuerdos());
+    expect(indice).toContain('href="/acuerdos/camioneros-cct-40-89/escala-salarial-agosto-2026"');
+    // El ícono de descarga sigue yendo al archivo, como link hermano.
+    expect(indice).toContain('href="https://storage/a1.pdf"');
+  });
+});
+
+describe("/novedades (todas)", () => {
+  it("se arma en el servidor con todas las publicadas y el chip del convenio", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado());
+    const h = await html(NovedadesGenerales());
+    expect(h).toContain("Novedad general del sitio");
+    expect(h).toContain("Camioneros: nueva escala cargada");
+    expect(h).toContain('href="/novedades/camioneros-cct-40-89"');
+    expect(h).not.toContain("animate-pulse");
+  });
+
+  it("tiene canonical propio (antes heredaba el de la portada)", () => {
+    expect(metadataDeNovedades.alternates.canonical).toBe("/novedades");
+    expect(metadataDeNovedades.openGraph.url).toBe("/novedades");
+  });
+
+  it("si Firestore no responde, ofrece recargar", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("sin red"); }));
+    const silencio = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await html(NovedadesGenerales())).toContain("No pudimos traer las novedades");
+    silencio.mockRestore();
   });
 });

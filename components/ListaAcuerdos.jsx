@@ -1,7 +1,8 @@
 // components/ListaAcuerdos.jsx
-// La lista de acuerdos de un convenio: fecha, tipo, título, vigencia y los
-// links para bajar el archivo y ver la fuente. Componente de servidor; la
-// usan /acuerdos y /acuerdos/<convenio>.
+// La lista de acuerdos de un convenio: fecha, tipo, título (link a la página
+// del acuerdo), vigencia y los links para bajar el archivo y ver la fuente.
+// Componente de servidor; la usa /acuerdos/<convenio>.
+import Link from "next/link";
 import { fechaLarga } from "@/lib/fechas";
 import { etiquetaDeTipo, etiquetaDeFormato } from "@/lib/acuerdosPublicados";
 
@@ -12,7 +13,9 @@ const CHIP_DE_TIPO = {
   otro: "bg-slate-100 text-slate-700",
 };
 
-export default function ListaAcuerdos({ acuerdos }) {
+/** @param acuerdos ya con `slug` resuelto (lib/acuerdosPublicados.js) */
+export default function ListaAcuerdos({ acuerdos, convenioId }) {
+  const id = encodeURIComponent(convenioId);
   return (
     <ul className="space-y-3">
       {acuerdos.map((a) => {
@@ -26,7 +29,9 @@ export default function ListaAcuerdos({ acuerdos }) {
               </span>
               {a.vigencia ? <span className="[overflow-wrap:anywhere]">Vigencia: {a.vigencia}</span> : null}
             </div>
-            <h3 className="mt-1 text-base font-semibold text-slate-900 [overflow-wrap:anywhere]">{a.titulo}</h3>
+            <h3 className="mt-1 text-base font-semibold text-slate-900 [overflow-wrap:anywhere]">
+              <Link href={`/acuerdos/${id}/${a.slug}`} className="hover:underline">{a.titulo}</Link>
+            </h3>
             {a.archivoUrl || a.fuenteUrl ? (
               <div className="mt-3 flex flex-wrap gap-2 text-sm">
                 {a.archivoUrl ? (

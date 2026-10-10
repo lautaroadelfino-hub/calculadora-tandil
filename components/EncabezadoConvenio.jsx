@@ -13,17 +13,19 @@ const PESTANAS = [
 /**
  * @param convenio   { nombre, cct, activo } leído por REST
  * @param convenioId el id de la URL
- * @param seccion    lo que dice la línea chica arriba del nombre
- * @param activa     "acuerdos" | "novedades": la página en la que estamos
+ * @param seccion    lo que dice la línea chica arriba del título
+ * @param activa     "calcular" | "acuerdos" | "novedades": la página en la que estamos
+ * @param titulo     el h1; por defecto, el nombre del convenio. La página de
+ *                   un acuerdo pone el título del acuerdo, que es lo que se busca.
  */
-export default function EncabezadoConvenio({ convenio, convenioId, seccion, activa }) {
+export default function EncabezadoConvenio({ convenio, convenioId, seccion, activa, titulo }) {
   const id = encodeURIComponent(convenioId);
   const sinCalculadora = convenio.activo === false;
   return (
-    <header className="mb-6">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">{seccion}</p>
+    <header className="mb-6 print:hidden">
+      {seccion ? <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-700">{seccion}</p> : null}
       <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 [overflow-wrap:anywhere]">{convenio.nombre}</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 [overflow-wrap:anywhere]">{titulo || convenio.nombre}</h1>
         {convenio.cct ? (
           <span className="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">CCT {convenio.cct}</span>
         ) : null}
