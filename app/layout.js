@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import AuthNavFloating from "../components/AuthNavFloating";
 import Header from "../components/Header";
 import Analitica from "../components/Analitica";
+import { IMAGEN_PARA_COMPARTIR } from "../lib/metadataConvenio";
 
 // El sitio vive detrás de Cloudflare, así que carga rápido, que es algo que
 // Google premia. Lo que faltaba era decirle DE QUÉ se trata: el título era
@@ -28,23 +29,25 @@ export const metadata = {
   },
   description:
     "Calculadora de sueldo por convenio colectivo: Camioneros (CCT 40/89), Empleados de Comercio (CCT 130/75) y Gastronómicos UTHGRA (CCT 389/04). Escalas actualizadas, antigüedad, horas extras, aguinaldo, aportes y costo del empleador. Gratis y sin registro.",
-  openGraph: {
-    type: "website",
-    locale: "es_AR",
-    siteName: "LiquidAR",
-  },
   twitter: {
     card: "summary_large_image",
   },
   robots: { index: true, follow: true },
-  // Al declarar `icons` acá, Next deja de agregar solo el app/apple-icon.png:
-  // por eso va explícito.
+  // Los íconos y la imagen para compartir viven en public/brand/ como archivos
+  // estáticos: el adaptador de Cloudflare no acepta app/apple-icon.png ni
+  // app/opengraph-image.png (los toma como rutas sin runtime edge).
   icons: {
     icon: [
       { url: "/brand/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" },
     ],
-    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+    apple: [{ url: "/brand/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    siteName: "LiquidAR",
+    images: [IMAGEN_PARA_COMPARTIR],
   },
 };
 

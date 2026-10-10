@@ -43,7 +43,7 @@ describe("metadataDePagina", () => {
   it("no repite título ni descripción en openGraph: los completa Next desde la página", () => {
     const m = metadataDePagina({ title: "Novedades", description: "d", canonical: "/novedades" });
     expect(m.openGraph).toMatchObject({ type: "website", locale: "es_AR", siteName: "LiquidAR", url: "/novedades" });
-    expect(m.openGraph.images[0].url).toBe("/opengraph-image.png");
+    expect(m.openGraph.images[0].url).toBe("/brand/compartir.png");
     expect(m.openGraph.title).toBeUndefined();
     expect(m.alternates.canonical).toBe("/novedades");
     expect(metadataDePagina({ title: "x", canonical: "/x" }).description).toBeUndefined();
