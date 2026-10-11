@@ -13,7 +13,12 @@ import { dirname, resolve } from "node:path";
 
 const raiz = dirname(fileURLToPath(import.meta.url));
 
+// Los tests de interfaz (test/ui/*.test.jsx) corren en jsdom y declaran el
+// entorno con un comentario `// @vitest-environment jsdom` al principio del
+// archivo: el resto de la suite sigue en Node, que es más rápido. El JSX se
+// compila con el runtime automático de React, igual que en Next.
 export default defineConfig({
+  esbuild: { jsx: "automatic" },
   resolve: {
     alias: {
       "@": resolve(raiz, "."),

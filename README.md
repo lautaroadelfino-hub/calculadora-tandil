@@ -145,7 +145,7 @@ social por la jornada (los dos se apagan desde la pestaña Contribuciones).
 ```bash
 npm install          # la primera vez
 npm run dev          # levanta http://localhost:3000
-npm test             # corre los tests (más de 570)
+npm test             # corre los tests (más de 700; los de interfaz, en test/ui, corren en jsdom)
 npm run build        # corre los tests y después compila: es lo que hace Cloudflare al publicar
 npm run lint         # revisa el código
 ```
