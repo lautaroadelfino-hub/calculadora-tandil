@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import semilla from "@/data/contribuciones.seed.json";
+import { conFfepDelPeriodo, ultimoPeriodoConFfep } from "@/lib/ffep";
 import { aNumero as parseNum, formatearNumero as fmt } from "@/lib/numeros";
 import { esPeriodoValido } from "@/lib/periodos";
 import {
@@ -43,9 +44,12 @@ export default function ContribucionesTab() {
   };
   useEffect(() => { cargarPeriodos(); }, []);
 
+  // La semilla trae las alícuotas de julio 2026; el FFEP cambia todos los meses
+  // (Disposición SRT), así que se pone el del período que se está cargando.
   const cargarOficiales = () => {
-    setForm(tablaToForm(semilla));
-    if (!periodoID) setPeriodoID("2026-07");
+    const periodo = periodoID || "2026-07";
+    setForm(tablaToForm(conFfepDelPeriodo(semilla, periodo)));
+    if (!periodoID) setPeriodoID(periodo);
   };
 
   const editarExistente = async (id) => {
@@ -160,7 +164,9 @@ export default function ContribucionesTab() {
             Desde el 01/06/2026 el recibo tiene que mostrar lo que paga el empleador por cada trabajador
             (art. 140 inc. j) LCT, Decreto 407/2026). Esta tabla es lo que la calculadora usa para esa
             sección. Cargá los valores oficiales, revisalos y guardá. Como con Ganancias, se usa el período
-            exacto o, si no existe, el más reciente anterior, y el recibo avisa cuál usó.
+            exacto o, si no existe, el más reciente anterior, y el recibo avisa cuál usó. El FFEP cambia
+            todos los meses: al cargar los valores oficiales se pone el del período (histórico en
+            data/ffep.json, de provinciart.com.ar/ffep, conocido hasta {ultimoPeriodoConFfep()}).
           </p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-3 items-end">
@@ -170,7 +176,7 @@ export default function ContribucionesTab() {
           </div>
           <div className="flex flex-wrap gap-2 sm:justify-end">
             <button type="button" onClick={cargarOficiales} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow-sm">
-              ✨ Cargar valores oficiales julio 2026
+              ✨ Cargar valores oficiales (alícuotas julio 2026, FFEP del período)
             </button>
             {periodosCargados?.length > 0 && (
               <select onChange={(e) => editarExistente(e.target.value)} value="" className="border border-indigo-300 rounded-lg px-3 py-2 text-xs bg-white text-indigo-800 font-semibold">

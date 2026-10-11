@@ -57,7 +57,7 @@ describe("Camioneros: el convenio cargado es coherente con el modelo", () => {
 });
 
 describe("Camioneros: canarios de agosto 2026", () => {
-  it("Conductor de primera, 22 días, 5 años, no afiliado: neto $1.442.051,50 y costo $2.050.459,88", () => {
+  it("Conductor de primera, 22 días, 5 años, no afiliado: neto $1.442.051,50 y costo $2.050.674,88", () => {
     const r = procesarRecibo(convenio, agosto, { ...porDefecto, antiguedad_años: 5 }, null, opciones);
     expect(money(linea(r, "Antigüedad").monto)).toBe(53795.52);
     expect(money(linea(r, "Comida").monto)).toBe(362189.3); // 22 × 16.463,15
@@ -68,8 +68,8 @@ describe("Camioneros: canarios de agosto 2026", () => {
     expect(money(r.totales.bruto)).toBe(1129705.96);
     expect(money(r.totales.noRemunerativo)).toBe(543935.26);
     expect(money(r.totales.neto)).toBe(1442051.5);
-    expect(money(r.totales.contribuciones)).toBe(376818.66);
-    expect(money(r.totales.costoEmpleador)).toBe(2050459.88);
+    expect(money(r.totales.contribuciones)).toBe(377033.66); // con el FFEP de 07/2026 ($1.839) de la semilla
+    expect(money(r.totales.costoEmpleador)).toBe(2050674.88);
     expect(r.avisos).toEqual([]);
   });
 

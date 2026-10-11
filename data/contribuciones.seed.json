@@ -1,6 +1,6 @@
 {
   "_nota": "Contribuciones patronales por período, para la sección 'Costo total empleador' del recibo (art. 140 inc. j) LCT según Ley 27.802, reglamentado por Decreto 407/2026). Se administra desde /admin → Contribuciones y se guarda en Firestore en 'parametros_contribuciones' con el ID del período (ej: 2026-07). Las alícuotas son FRACCIONES (0.1077 = 10,77%); el formulario las muestra en porcentaje y convierte al guardar. Cada concepto dice su base ('remunerativo' o 'remunerativo_mas_no_remunerativo'), si se le resta la detracción, y a cuál de los siete rubros del decreto pertenece. La contribución de obra social lleva base remunerativo_mas_no_remunerativo por decisión del dueño (los flags de su Nacional Sistema marcan que el no remunerativo la paga), aunque la fórmula cargada en ese sistema use sólo el remunerativo.",
-  "_fuente": "Alícuotas: Ley 27.541 art. 19 (18% resto de actividades y MiPyME; 20,40% servicios y comercio que superan los topes MiPyME), con la distribución por subsistema del F.931; verificadas contra las fórmulas cargadas en Nacional Sistema en julio de 2026 y contra el recibo real 07/2026 legajo 12427. Obra social 6%: Ley 23.660 art. 16. Detracción $7.003,68 por trabajador: Ley 27.541 art. 22 (no se actualiza). FFEP y SCVO: sumas fijas por trabajador vigentes en Nacional Sistema en julio de 2026. Bases del art. 9 Ley 24.241: las de julio 2026.",
+  "_fuente": "Alícuotas: Ley 27.541 art. 19 (18% resto de actividades y MiPyME; 20,40% servicios y comercio que superan los topes MiPyME), con la distribución por subsistema del F.931; verificadas contra las fórmulas cargadas en Nacional Sistema en julio de 2026 y contra el recibo real 07/2026 legajo 12427. Obra social 6%: Ley 23.660 art. 16. Detracción $7.003,68 por trabajador: Ley 27.541 art. 22 (no se actualiza). FFEP: $1.839 para el período 07/2026 (Disposición SRT 7/2026; cambia todos los meses, histórico en provinciart.com.ar/ffep). SCVO: suma fija por trabajador vigente en Nacional Sistema en julio de 2026. Bases del art. 9 Ley 24.241: las de julio 2026.",
   "vigencia": "Julio 2026",
   "detraccion": {
     "monto": 7003.68,
@@ -36,7 +36,7 @@
     }
   },
   "universales": [
-    { "id": "ffep", "label": "FFEP (Fondo Fiduciario de Enfermedades Profesionales)", "unidad": "suma_fija", "monto": 1624,   "rubro": "art" },
+    { "id": "ffep", "label": "FFEP (Fondo Fiduciario de Enfermedades Profesionales)", "unidad": "suma_fija", "monto": 1839,   "rubro": "art" },
     { "id": "scvo", "label": "Seguro Colectivo de Vida Obligatorio",                  "unidad": "suma_fija", "monto": 424.62, "rubro": "otros" }
   ],
   "criterios_contables": {

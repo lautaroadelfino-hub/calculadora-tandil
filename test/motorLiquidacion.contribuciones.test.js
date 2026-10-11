@@ -56,10 +56,10 @@ describe("el canario, con la sección del empleador puesta", () => {
     expect(money(linea(con, "SIPA").monto)).toBe(money((bruto - 7003.68) * 0.1077));
     expect(money(linea(con, "Obra social").monto)).toBe(money(bruto * 0.06));
     expect(money(linea(con, "ART").monto)).toBe(money(bruto * 0.03));
-    expect(linea(con, "FFEP").monto).toBe(1624);
+    expect(linea(con, "FFEP").monto).toBe(1839); // FFEP del período 07/2026 (Disposición SRT 7/2026)
     expect(con.costoEmpleador.regimen.id).toBe("resto_mipyme");
-    // El total, como número redondo para que quede escrito: $391.986,00.
-    expect(con.totales.contribuciones).toBeCloseTo(391985.99, 1);
+    // El total, como número redondo para que quede escrito: $392.201,00.
+    expect(con.totales.contribuciones).toBeCloseTo(392200.99, 1);
   });
 
   it("los totales y el bloque del empleador cierran entre sí", () => {
@@ -217,7 +217,7 @@ describe("la composición por rubro", () => {
     );
     expect(rubros.inssjp.trabajador).toBeCloseTo(linea(r, "Ley 19.032 PAMI").monto, 6);
     expect(rubros.inssjp.empleador).toBeCloseTo(linea(r, "INSSJP").monto, 6);
-    expect(rubros.art.empleador).toBeCloseTo(linea(r, "ART").monto + 1624, 6);
+    expect(rubros.art.empleador).toBeCloseTo(linea(r, "ART").monto + 1839, 6);
     expect(rubros.otros.empleador).toBeCloseTo(424.62, 6);
     expect(rubros.camaras.total).toBe(0);
   });
@@ -232,7 +232,7 @@ describe("la jornada parcial", () => {
   it("prorratea la detracción, no las sumas fijas", () => {
     const r = procesarRecibo(comercioConArt, escala, entradas({ carga_horaria: 24 }), null, opciones());
     expect(money(r.costoEmpleador.detraccion.prorrateada)).toBe(3501.84);
-    expect(linea(r, "FFEP").monto).toBe(1624);
+    expect(linea(r, "FFEP").monto).toBe(1839);
     expect(r.costoEmpleador.costoPorHora).toBeCloseTo(r.costoEmpleador.costoLaboral / 100, 6);
   });
 });

@@ -60,7 +60,7 @@ describe("la semilla de contribuciones", () => {
 
   it("FFEP y SCVO son sumas fijas universales, con su rubro", () => {
     const porId = Object.fromEntries(semilla.universales.map((u) => [u.id, u]));
-    expect(porId.ffep).toMatchObject({ unidad: "suma_fija", monto: 1624, rubro: "art" });
+    expect(porId.ffep).toMatchObject({ unidad: "suma_fija", monto: 1839, rubro: "art" });
     expect(porId.scvo).toMatchObject({ unidad: "suma_fija", monto: 424.62, rubro: "otros" });
   });
 
