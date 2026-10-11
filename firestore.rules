@@ -18,26 +18,26 @@ rules_version = '2';
 //   - se lee sin registro sólo lo que el sitio necesita: los convenios y sus
 //     escalas, las tablas de Ganancias, las de contribuciones, las novedades y
 //     los acuerdos. Todo lo demás está cerrado hasta que se abra a propósito acá;
-//   - escribe únicamente el administrador, identificado por el mail con el que
-//     entra a /admin.
+//   - escribe únicamente el administrador, identificado por el UID de su
+//     usuario de Firebase Authentication (desde el 11/10/2026; antes era por el
+//     mail, y cambiar el mail obligaba a republicar las reglas).
 //
-// SI ALGÚN DÍA CAMBIA EL MAIL DEL ADMINISTRADOR, hay que cambiarlo acá y
-// publicar ANTES de usar el panel con la cuenta nueva: si no, el panel deja de
-// poder guardar. La consola de Firebase sigue accesible igual (las reglas no la
-// gobiernan), así que nunca es un encierro definitivo.
-//
-// Alternativa por UID, si se prefiere: request.auth.uid == "<uid>". El UID
-// está en la consola, en Authentication -> Users.
+// El UID no cambia aunque se cambie el mail o la contraseña del usuario. Está
+// en la consola, en Authentication -> Users. SI ALGÚN DÍA SE CREA OTRO USUARIO
+// ADMINISTRADOR, hay que poner su UID acá y publicar ANTES de usar el panel con
+// él: si no, el panel deja de poder guardar. La consola de Firebase sigue
+// accesible igual (las reglas no la gobiernan), así que nunca es un encierro
+// definitivo.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // --- El único que escribe ------------------------------------------
     // La cuenta de Firebase Authentication (proveedor "password") con la que
-    // se entra a /admin. Los tokens de esa cuenta traen el mail.
+    // se entra a /admin, hoy admin@liquidar.ar, identificada por su UID.
     function esAdmin() {
       return request.auth != null
-          && request.auth.token.email == "admin@csueldos.com";
+          && request.auth.uid == "yx2H1OsUirUTvevmtTasVnSU5Zw1";
     }
 
     // --- Convenios y sus escalas ---------------------------------------

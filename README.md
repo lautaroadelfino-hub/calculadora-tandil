@@ -229,12 +229,13 @@ mandale esa hoja primero.
   `docs/continuidad.md`).
 - **`firestore.rules` está en el repo pero NO se aplica solo.** Desde el
   13/9/2026 (10:56) la consola y el archivo dicen lo mismo: se lee sin registro
-  sólo lo que la calculadora usa, y escribe únicamente la cuenta
-  `admin@csueldos.com` con la que entrás a /admin; todo lo demás está cerrado.
-  Si alguna vez cambiás el archivo, hay que volver a pegarlo en la consola
+  sólo lo que la calculadora usa, y escribe únicamente el usuario con el que
+  entrás a /admin, identificado por su UID; todo lo demás está cerrado. Si
+  alguna vez cambiás el archivo, hay que volver a pegarlo en la consola
   (Firestore Database → Reglas → Publicar) con la cuenta de Google dueña del
-  proyecto, que es `info@liquidar.ar`. Y si cambiás el mail del administrador,
-  cambialo en el archivo y en la consola antes de usar el panel.
+  proyecto, que es `info@liquidar.ar`. Cambiar el mail o la contraseña del
+  administrador no toca las reglas; crear otro usuario administrador sí (hay
+  que poner su UID en el archivo y en la consola antes de usar el panel).
 - **`storage.rules` es lo mismo para Firebase Storage** (los archivos de los
   acuerdos): se pega en Storage → Reglas → Publicar. Lee cualquiera, escribe
   sólo el administrador, hasta 10 MB y sólo PDF, JPG, PNG, DOC o DOCX.
@@ -248,14 +249,12 @@ mandale esa hoja primero.
   compartir; `/sitemap.xml` lista todas las páginas con su fecha real de
   cambio y `/robots.txt` permite todo (el panel y el login llevan `noindex`).
 - **A `/admin` entra cualquier usuario autenticado de Firebase, pero guardar
-  sólo puede `admin@csueldos.com`**, porque así lo dicen las reglas. Ese mail
-  vive en tres lugares: `firestore.rules`, la consola de Firebase y la variable
-  `ADMIN_EMAIL` de `.env.local` (que usa `scripts/restaurar.mjs`; si no está,
-  el script usa `admin@csueldos.com`). Ojo: `csueldos.com` no es un dominio
-  del proyecto. Si alguien lo registrara podría pedir un cambio de contraseña
-  de esa cuenta y recibir el mail. Conviene mover el usuario a un mail de
-  `liquidar.ar` (consola → Authentication → Users → editar) y actualizar los
-  tres lugares.
+  sólo puede `admin@liquidar.ar`**, porque las reglas llevan el UID de ese
+  usuario (`yx2H1OsUirUTvevmtTasVnSU5Zw1`). El mail es un alias de
+  `info@liquidar.ar` en Google Workspace, así que "Olvidé mi contraseña"
+  llega ahí. `scripts/restaurar.mjs` entra con ese mail (o con `ADMIN_EMAIL`
+  de `.env.local`, si está). Hasta el 11/10/2026 el usuario era
+  `admin@csueldos.com`, un dominio que nadie tenía registrado.
 - **Las visitas se miden con Cloudflare Web Analytics** (sin cookies, sin
   aviso de consentimiento). Se enciende con la variable
   `NEXT_PUBLIC_CF_BEACON_TOKEN` en el proyecto de Cloudflare Pages (Settings →

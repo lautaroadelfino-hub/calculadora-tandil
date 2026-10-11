@@ -13,20 +13,20 @@ rules_version = '2';
 // el dueño desde /admin y los baja cualquiera desde /acuerdos/<convenio>.
 //
 //   - se lee sin registro: la descarga es pública a propósito;
-//   - escribe únicamente el administrador, identificado por el mismo mail que
+//   - escribe únicamente el administrador, identificado por el mismo UID que
 //     en firestore.rules, con archivos de hasta 10 MB y de los formatos que el
 //     panel acepta (lib/acuerdosPublicados.js);
 //   - todo lo demás está cerrado hasta que se abra a propósito acá.
 //
-// SI ALGÚN DÍA CAMBIA EL MAIL DEL ADMINISTRADOR, hay que cambiarlo acá Y en
-// firestore.rules, y publicar los dos antes de usar el panel con la cuenta nueva.
+// SI ALGÚN DÍA SE CREA OTRO USUARIO ADMINISTRADOR, hay que poner su UID acá Y
+// en firestore.rules, y publicar los dos antes de usar el panel con él.
 
 service firebase.storage {
   match /b/{bucket}/o {
 
     function esAdmin() {
       return request.auth != null
-          && request.auth.token.email == "admin@csueldos.com";
+          && request.auth.uid == "yx2H1OsUirUTvevmtTasVnSU5Zw1";
     }
 
     function formatoPermitido() {

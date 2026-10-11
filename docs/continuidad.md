@@ -8,10 +8,11 @@ delegar. Escrita el 24/9/2026 a partir de la auditoría integral del 23/9.
 | Qué | Cuenta | Para qué |
 |---|---|---|
 | Consola de Firebase (proyecto `liquidar-f01ab`) y Google Cloud | `info@liquidar.ar` | Reglas de Firestore, usuarios de Authentication, datos a mano |
-| Usuario de Firebase Authentication con el que se entra a `/admin` | `admin@csueldos.com` | Es la única identidad que puede escribir en la base (`firestore.rules`). Es sólo un usuario de la app, pero **`csueldos.com` no es del proyecto**: si alguien registrara ese dominio podría pedir un cambio de contraseña de la cuenta y recibir el mail. Conviene moverla a un mail de `liquidar.ar` (consola → Authentication → Users → editar) y cambiarla en `firestore.rules`, en la consola y en `ADMIN_EMAIL` de `.env.local`. Mientras tanto, la contraseña se cambia desde la consola con `info@liquidar.ar` |
+| Usuario de Firebase Authentication con el que se entra a `/admin` | `admin@liquidar.ar` (alias de `info@liquidar.ar` en Google Workspace) | Es la única identidad que puede escribir en la base y en Storage: las reglas la identifican por su UID (`yx2H1OsUirUTvevmtTasVnSU5Zw1`), no por el mail, así que cambiar el mail o la contraseña no obliga a tocar las reglas. Hasta el 11/10/2026 era `admin@csueldos.com`, un dominio que nadie tenía registrado. La contraseña se cambia desde la consola con `info@liquidar.ar`, o con "Olvidé mi contraseña", que llega a `info@` |
 | GitHub (`lautaroadelfino-hub/calculadora-tandil`) | la cuenta del dueño | El código. Todo lo que llega a `main` se despliega solo |
 | Cloudflare Pages | la cuenta del dueño | Construye y publica el sitio en cada push; variables de entorno del build |
 | Dominio `liquidar.ar` | la cuenta del dueño en el registrador | DNS apuntando a Cloudflare |
+| Formspree (formulario `manaynzy`, el botón "Reportar error / sugerencia") | `info@liquidar.ar` | Cada envío llega por mail a `info@liquidar.ar`; el formulario se administra en formspree.io con esa cuenta |
 
 ## Qué se rompe si...
 
@@ -33,7 +34,7 @@ delegar. Escrita el 24/9/2026 a partir de la auditoría integral del 23/9.
   Hasta entonces, `next` se queda en `^16`.
 - **Firestore no responde:** el sitio muestra "No pudimos traer los datos" y
   sigue en pie; vuelve solo cuando Firestore vuelve.
-- **Se pierde la contraseña de `admin@csueldos.com`:** se cambia desde la
+- **Se pierde la contraseña de `admin@liquidar.ar`:** se cambia desde la
   consola de Firebase (Authentication → Users) con `info@liquidar.ar`.
 - **Se pierde el acceso a `info@liquidar.ar`:** es el único acceso a la
   consola. Conviene tener un segundo dueño del proyecto de Firebase (IAM) en

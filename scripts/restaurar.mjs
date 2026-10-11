@@ -25,7 +25,7 @@
 // entero, tal como estaba en el respaldo. La contraseña también se puede
 // pasar en la variable de entorno ADMIN_PASSWORD, sólo para esa corrida.
 // El mail del administrador sale de ADMIN_EMAIL en .env.local (si no está,
-// admin@csueldos.com).
+// admin@liquidar.ar).
 
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { join, dirname, resolve } from "node:path";
@@ -66,7 +66,7 @@ if (!existsSync(join(carpeta, "resumen.txt"))) {
 
 const PROYECTO = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY;
-const ADMIN = process.env.ADMIN_EMAIL || "admin@csueldos.com";
+const ADMIN = process.env.ADMIN_EMAIL || "admin@liquidar.ar";
 if (!PROYECTO || !API_KEY) {
   console.error("Faltan NEXT_PUBLIC_FIREBASE_PROJECT_ID o NEXT_PUBLIC_FIREBASE_API_KEY en .env.local (ver README).");
   process.exit(1);

@@ -233,7 +233,7 @@ una regla que nadie sigue.
 | La obra social va siempre sobre la jornada completa (decisión del 5/10/2026, art. 92 ter inc. 4 LCT); que su base **incluya el no remunerativo** sigue fijo. Los dos motores viejos lo tenían como opción y Comercio y Gastronómicos elegían valores **distintos** | Regla 2 |
 | Los adicionales de importe fijo van como "por unidad" con unidad `mes` y el importe en la escala del período; lo que todavía no existe es un adicional porcentual sobre otro adicional ("15% sobre el valor comida", ítem 5.3.11 del 40/89) ni los coeficientes zonales del sur (1,20 y 1,40) | Modelo incompleto |
 | Las bases de una contribución patronal son dos palabras (`remunerativo`, `remunerativo_mas_no_remunerativo`). Alcanzan para los convenios cargados; el día que uno tenga dos sumas no remunerativas con tratamiento distinto, la línea tiene que crecer | Modelo incompleto |
-| `firestore.rules` y la consola coinciden desde el 13/9/2026 (lectura sólo de lo que usa la calculadora; escribe sólo `admin@csueldos.com`; el resto cerrado). Lo que sigue siendo cierto: **el archivo no se aplica solo**, y cada cambio hay que volver a pegarlo en la consola con la cuenta `info@liquidar.ar` | A recordar al agregar una colección |
+| `firestore.rules` y la consola coinciden desde el 13/9/2026 (lectura sólo de lo que usa la calculadora; escribe sólo el usuario admin, por UID; el resto cerrado). Lo que sigue siendo cierto: **el archivo no se aplica solo**, y cada cambio hay que volver a pegarlo en la consola con la cuenta `info@liquidar.ar` | A recordar al agregar una colección |
 
 **Ya saldado (13 de septiembre de 2026, tercera pasada, por Camioneros):** los
 adicionales **por unidad** (`adicionales_por_unidad`: por día, por km, por viaje o
