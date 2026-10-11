@@ -46,7 +46,7 @@
       "id": "categoria",
       "tipo": "select",
       "label": "Categoría (Nivel Profesional)",
-      "default": "Nivel 1 (Peón, Lavacopas, Guardarropas)",
+      "default": "Nivel 1 (Peón - Lavacopas)",
       "opciones": [
         "Nivel 1 (Peón - Lavacopas)",
         "Nivel 2 (Mozo Mostrador - Cadete)",
