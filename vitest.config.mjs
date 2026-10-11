@@ -15,10 +15,18 @@ const raiz = dirname(fileURLToPath(import.meta.url));
 
 // Los tests de interfaz (test/ui/*.test.jsx) corren en jsdom y declaran el
 // entorno con un comentario `// @vitest-environment jsdom` al principio del
-// archivo: el resto de la suite sigue en Node, que es más rápido. El JSX se
-// compila con el runtime automático de React, igual que en Next.
+// archivo: el resto de la suite sigue en Node, que es más rápido. El JSX lo
+// compila oxc con el runtime automático de React, igual que en Next.
+//
+// NODE_ENV se fuerza a "test": Cloudflare Pages corre `npm run build` con
+// NODE_ENV=production, y con eso React carga su build de producción, que no
+// tiene `React.act`, y Testing Library se cae ("React.act is not a function").
+// Tres builds del 11/10/2026 no salieron a producción por esto, mientras que
+// en GitHub Actions y en la máquina local pasaban.
 export default defineConfig({
-  esbuild: { jsx: "automatic" },
+  test: {
+    env: { NODE_ENV: "test" },
+  },
   resolve: {
     alias: {
       "@": resolve(raiz, "."),
