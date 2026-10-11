@@ -13,8 +13,8 @@
 import { describe, it, expect } from "vitest";
 import { procesarRecibo } from "../lib/motorLiquidacion.js";
 import semilla from "../data/contribuciones.seed.json";
-import convenioComercio from "./fixtures/comercio-cct-130-75.convenio.json";
-import escalasComercio from "./fixtures/comercio-cct-130-75.escalas.json";
+import convenioComercio from "./fixtures/patron/comercio-cct-130-75.convenio.json";
+import escalasComercio from "./fixtures/patron/comercio-cct-130-75.escalas.json";
 
 const money = (n) => Math.round(n * 100) / 100;
 const escala = escalasComercio["2026-07"];

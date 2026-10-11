@@ -6,8 +6,8 @@
 import { describe, it, expect } from "vitest";
 import { elegirPeriodo, nombreDePeriodo, esPeriodoValido } from "../lib/periodos.js";
 import { procesarRecibo } from "../lib/motorLiquidacion.js";
-import convenioComercio from "./fixtures/comercio-cct-130-75.convenio.json";
-import escalasComercio from "./fixtures/comercio-cct-130-75.escalas.json";
+import convenioComercio from "./fixtures/patron/comercio-cct-130-75.convenio.json";
+import escalasComercio from "./fixtures/patron/comercio-cct-130-75.escalas.json";
 
 describe("elegirPeriodo", () => {
   const cargados = ["2026-01", "2026-07", "2025-07"]; // desordenados a propósito

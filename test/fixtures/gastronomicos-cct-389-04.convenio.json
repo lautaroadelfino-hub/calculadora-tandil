@@ -1,52 +1,107 @@
 {
-  "nombre": "Gastronómicos (UTHGRA)",
-  "activo": true,
+  "sector": "privado",
   "reglas_calculo": {
+    "retenciones_sindicales": {
+      "uthgra_sepelio": {
+        "porcentaje": 0.01,
+        "base": "remunerativo_mas_no_remunerativo",
+        "label": "Seguro de Vida y Sepelio (1%)"
+      },
+      "contribucion_solidaria_uthgra_2": {
+        "label": "Contribución Solidaria UTHGRA (2%)",
+        "base": "remunerativo_habitual",
+        "porcentaje": 0.02,
+        "condicion": "solo_no_afiliado"
+      },
+      "uthgra_afiliado": {
+        "base": "remunerativo_mas_no_remunerativo",
+        "porcentaje": 0.025,
+        "condicion": "solo_afiliado",
+        "label": "Cuota Afiliado UTHGRA (2.5%)"
+      }
+    },
+    "art": {
+      "alicuota_tipica": 0.05
+    },
     "adicionales_remunerativos": {
       "complemento_servicio": {
+        "aplica_sobre": "basico",
         "porcentaje": 0.12,
         "label": "Complemento de Servicio (12%)"
       },
       "asistencia_perfecta": {
-        "porcentaje": 0.1,
-        "label": "Asistencia Perfecta (10%)"
+        "aplica_sobre": "basico",
+        "label": "Asistencia Perfecta (10%)",
+        "depende_de": "asistencia_perfecta",
+        "porcentaje": 0.1
       }
     },
-    "retenciones_sindicales": {
-      "uthgra_afiliado": {
-        "label": "Cuota Afiliado UTHGRA (2.5%)",
-        "porcentaje": 0.025,
-        "base": "remunerativo_mas_no_remunerativo",
-        "condicion": "solo_afiliado"
-      },
-      "uthgra_sepelio": {
-        "label": "Seguro de Vida y Sepelio (1%)",
-        "base": "remunerativo_mas_no_remunerativo",
-        "porcentaje": 0.01
-      }
-    },
+    "no_remunerativo_genera_adicionales": false,
     "antiguedad": {
-      "porcentaje_por_año": 0.01,
-      "aplica_sobre": "basico"
+      "modo": "tramos",
+      "tramos": [
+        {
+          "desde_años": 1,
+          "porcentaje": 0.01
+        },
+        {
+          "desde_años": 3,
+          "porcentaje": 0.02
+        },
+        {
+          "porcentaje": 0.04,
+          "desde_años": 5
+        },
+        {
+          "porcentaje": 0.05,
+          "desde_años": 7
+        },
+        {
+          "porcentaje": 0.06,
+          "desde_años": 9
+        },
+        {
+          "porcentaje": 0.07,
+          "desde_años": 11
+        },
+        {
+          "desde_años": 13,
+          "porcentaje": 0.08
+        },
+        {
+          "porcentaje": 0.1,
+          "desde_años": 15
+        },
+        {
+          "porcentaje": 0.12,
+          "desde_años": 17
+        },
+        {
+          "porcentaje": 0.14,
+          "desde_años": 19
+        }
+      ]
     }
   },
-  "cct": "389/04",
+  "activo": true,
+  "id": "gastronomicos-cct-389-04",
+  "ultimo_periodo_nombre": "Septiembre 2026",
+  "ultimo_periodo": "2026-09",
   "inputs_requeridos": [
     {
+      "label": "Zona / Escala",
+      "default": "Escala A",
       "id": "zona",
+      "tipo": "select",
       "opciones": [
         "Escala A",
         "Escala B"
-      ],
-      "label": "Zona / Escala",
-      "tipo": "select",
-      "default": "Escala A"
+      ]
     },
     {
-      "id": "categoria",
-      "tipo": "select",
-      "label": "Categoría (Nivel Profesional)",
       "default": "Nivel 1 (Peón - Lavacopas)",
+      "tipo": "select",
+      "id": "categoria",
       "opciones": [
         "Nivel 1 (Peón - Lavacopas)",
         "Nivel 2 (Mozo Mostrador - Cadete)",
@@ -55,38 +110,47 @@
         "Nivel 5 (Cajero - Comis Cocina)",
         "Nivel 6 (Mozo - Maître)",
         "Nivel 7 (Jefe Brigada - Recepción)"
-      ]
+      ],
+      "label": "Categoría (Nivel Profesional)"
     },
     {
       "default": 48,
+      "label": "Horas Semanales (Jornada)",
       "tipo": "number",
-      "id": "carga_horaria",
-      "label": "Horas Semanales (Jornada)"
+      "id": "carga_horaria"
     },
     {
-      "label": "Años de Antigüedad",
       "default": 0,
+      "id": "antiguedad_años",
       "tipo": "number",
-      "id": "antiguedad_años"
+      "label": "Años de Antigüedad"
     },
     {
-      "id": "horas_extras_50",
       "label": "Horas Extras al 50%",
-      "tipo": "number",
-      "default": 0
+      "default": 0,
+      "id": "horas_extras_50",
+      "tipo": "number"
     },
     {
-      "tipo": "number",
-      "id": "horas_extras_100",
       "label": "Horas Extras al 100%",
-      "default": 0
+      "default": 0,
+      "id": "horas_extras_100",
+      "tipo": "number"
     },
     {
-      "default": false,
-      "tipo": "boolean",
       "label": "Afiliado a UTHGRA (2.5%)",
-      "id": "afiliado_sindicato"
+      "tipo": "boolean",
+      "id": "afiliado_sindicato",
+      "default": false
+    },
+    {
+      "origen": "adicional",
+      "label": "¿Tuvo asistencia perfecta este mes?",
+      "tipo": "boolean",
+      "default": true,
+      "id": "asistencia_perfecta"
     }
   ],
-  "id": "gastronomicos-cct-389-04"
+  "nombre": "Gastronómicos (UTHGRA)",
+  "cct": "389/04"
 }

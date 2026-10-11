@@ -162,8 +162,8 @@ un dato que cambia por período clavado adentro del código.
    y probalo con un convenio que no lo tenga.
 5. **Escribí el test**, y después borrá a propósito la línea del motor que lee
    el campo: si el test sigue en verde, el test no sirve.
-6. **Verificá que nada se movió:** `npm test` y el canario del README (Vendedor
-   B, 5 años, julio 2026 → **$1.166.249,70**).
+6. **Verificá que nada se movió:** `npm test` y el canario de producción del
+   README (Vendedor B, 5 años, septiembre 2026 → **$1.251.841,10**).
 
 ---
 

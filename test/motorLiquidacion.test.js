@@ -5,8 +5,8 @@
 
 import { describe, it, expect } from "vitest";
 import { procesarRecibo } from "../lib/motorLiquidacion.js";
-import convenioComercio from "./fixtures/comercio-cct-130-75.convenio.json";
-import escalasComercio from "./fixtures/comercio-cct-130-75.escalas.json";
+import convenioComercio from "./fixtures/patron/comercio-cct-130-75.convenio.json";
+import escalasComercio from "./fixtures/patron/comercio-cct-130-75.escalas.json";
 import paramsGanancias from "../data/ganancias.seed.json";
 
 // Redondea a 2 decimales para comparar pesos sin ruido de coma flotante.

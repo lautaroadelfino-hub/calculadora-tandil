@@ -1,15 +1,15 @@
 // test/textoConvenio.test.js
 // El texto de cada calculadora sale de los datos: lo que no está cargado no se
-// afirma. Se prueba con los fixtures reales de los tres convenios.
+// afirma. Se prueba con la foto congelada de los tres convenios (test/fixtures/patron).
 
 import { describe, it, expect } from "vitest";
 import { categoriaDeReferencia, basicoDeReferencia, parrafoDeConvenio, preguntasFrecuentes } from "../lib/textoConvenio.js";
-import camioneros from "./fixtures/camioneros-cct-40-89.convenio.json";
-import escalasCamioneros from "./fixtures/camioneros-cct-40-89.escalas.json";
-import comercio from "./fixtures/comercio-cct-130-75.convenio.json";
-import escalasComercio from "./fixtures/comercio-cct-130-75.escalas.json";
-import gastro from "./fixtures/gastronomicos-cct-389-04.convenio.json";
-import escalasGastro from "./fixtures/gastronomicos-cct-389-04.escalas.json";
+import camioneros from "./fixtures/patron/camioneros-cct-40-89.convenio.json";
+import escalasCamioneros from "./fixtures/patron/camioneros-cct-40-89.escalas.json";
+import comercio from "./fixtures/patron/comercio-cct-130-75.convenio.json";
+import escalasComercio from "./fixtures/patron/comercio-cct-130-75.escalas.json";
+import gastro from "./fixtures/patron/gastronomicos-cct-389-04.convenio.json";
+import escalasGastro from "./fixtures/patron/gastronomicos-cct-389-04.escalas.json";
 
 const ultimo = (escalas) => {
   const id = Object.keys(escalas).sort().pop();

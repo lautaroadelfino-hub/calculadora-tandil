@@ -13,8 +13,8 @@
 
 import { describe, it, expect } from "vitest";
 import { procesarRecibo } from "../lib/motorLiquidacion.js";
-import convenio from "./fixtures/gastronomicos-cct-389-04.convenio.json";
-import escalas from "./fixtures/gastronomicos-cct-389-04.escalas.json";
+import convenio from "./fixtures/patron/gastronomicos-cct-389-04.convenio.json";
+import escalas from "./fixtures/patron/gastronomicos-cct-389-04.escalas.json";
 
 const money = (n) => Math.round(n * 100) / 100;
 

@@ -1,0 +1,185 @@
+{
+  "2026-04": {
+    "categorias": {
+      "Escala A|Nivel 2 (Mozo Mostrador - Cadete)": {
+        "basico": 1082172,
+        "no_remunerativo": 42600
+      },
+      "Escala A|Nivel 7 (Jefe Brigada - Recepción)": {
+        "basico": 1746068,
+        "no_remunerativo": 68700
+      },
+      "Escala A|Nivel 4 (Mucama - Medio Oficial)": {
+        "basico": 1217949,
+        "no_remunerativo": 47900
+      },
+      "Escala A|Nivel 3 (Ayudante Cocina - Comis)": {
+        "no_remunerativo": 45500,
+        "basico": 1157998
+      },
+      "Escala B|Nivel 3 (Ayudante Cocina - Comis)": {
+        "no_remunerativo": 44000,
+        "basico": 1119502
+      },
+      "Escala B|Nivel 5 (Cajero - Comis Cocina)": {
+        "basico": 1205812,
+        "no_remunerativo": 47400
+      },
+      "Escala A|Nivel 1 (Peón - Lavacopas)": {
+        "basico": 1018924,
+        "no_remunerativo": 40100
+      },
+      "Escala B|Nivel 2 (Mozo Mostrador - Cadete)": {
+        "no_remunerativo": 41100,
+        "basico": 1045541
+      },
+      "Escala B|Nivel 1 (Peón - Lavacopas)": {
+        "no_remunerativo": 38700,
+        "basico": 984650
+      },
+      "Escala B|Nivel 6 (Mozo - Maître)": {
+        "no_remunerativo": 51700,
+        "basico": 1313289
+      },
+      "Escala A|Nivel 5 (Cajero - Comis Cocina)": {
+        "no_remunerativo": 50600,
+        "basico": 1286618
+      },
+      "Escala B|Nivel 7 (Jefe Brigada - Recepción)": {
+        "no_remunerativo": 57400,
+        "basico": 1459012
+      },
+      "Escala B|Nivel 4 (Mucama - Medio Oficial)": {
+        "basico": 1154918,
+        "no_remunerativo": 45400
+      },
+      "Escala A|Nivel 6 (Mozo - Maître)": {
+        "no_remunerativo": 53300,
+        "basico": 1356336
+      }
+    },
+    "mes_vigencia": "Abril 2026"
+  },
+  "2026-05": {
+    "categorias": {
+      "Escala A|Nivel 3 (Ayudante Cocina - Comis)": {
+        "no_remunerativo": 45500,
+        "basico": 1175368
+      },
+      "Escala B|Nivel 4 (Mucama - Medio Oficial)": {
+        "no_remunerativo": 45400,
+        "basico": 1172242
+      },
+      "Escala A|Nivel 1 (Peón - Lavacopas)": {
+        "basico": 1034207,
+        "no_remunerativo": 40100
+      },
+      "Escala A|Nivel 2 (Mozo Mostrador - Cadete)": {
+        "basico": 1098404,
+        "no_remunerativo": 42600
+      },
+      "Escala A|Nivel 5 (Cajero - Comis Cocina)": {
+        "no_remunerativo": 50600,
+        "basico": 1305917
+      },
+      "Escala B|Nivel 2 (Mozo Mostrador - Cadete)": {
+        "basico": 1061224,
+        "no_remunerativo": 41100
+      },
+      "Escala A|Nivel 7 (Jefe Brigada - Recepción)": {
+        "no_remunerativo": 68700,
+        "basico": 1772259
+      },
+      "Escala B|Nivel 3 (Ayudante Cocina - Comis)": {
+        "basico": 1136295,
+        "no_remunerativo": 44000
+      },
+      "Escala B|Nivel 6 (Mozo - Maître)": {
+        "basico": 1332989,
+        "no_remunerativo": 51700
+      },
+      "Escala B|Nivel 7 (Jefe Brigada - Recepción)": {
+        "no_remunerativo": 57400,
+        "basico": 1480897
+      },
+      "Escala B|Nivel 5 (Cajero - Comis Cocina)": {
+        "no_remunerativo": 47400,
+        "basico": 1223889
+      },
+      "Escala B|Nivel 1 (Peón - Lavacopas)": {
+        "no_remunerativo": 38700,
+        "basico": 999420
+      },
+      "Escala A|Nivel 6 (Mozo - Maître)": {
+        "basico": 1376681,
+        "no_remunerativo": 53300
+      },
+      "Escala A|Nivel 4 (Mucama - Medio Oficial)": {
+        "basico": 1236218,
+        "no_remunerativo": 47900
+      }
+    },
+    "mes_vigencia": "Mayo 2026"
+  },
+  "2026-06": {
+    "mes_vigencia": "Junio 2026",
+    "categorias": {
+      "Escala B|Nivel 6 (Mozo - Maître)": {
+        "basico": 1332989,
+        "no_remunerativo": 51700
+      },
+      "Escala B|Nivel 5 (Cajero - Comis Cocina)": {
+        "no_remunerativo": 47400,
+        "basico": 1223889
+      },
+      "Escala A|Nivel 6 (Mozo - Maître)": {
+        "no_remunerativo": 53300,
+        "basico": 1376681
+      },
+      "Escala A|Nivel 7 (Jefe Brigada - Recepción)": {
+        "basico": 1772259,
+        "no_remunerativo": 68700
+      },
+      "Escala A|Nivel 1 (Peón - Lavacopas)": {
+        "basico": 1034207,
+        "no_remunerativo": 40100
+      },
+      "Escala B|Nivel 4 (Mucama - Medio Oficial)": {
+        "no_remunerativo": 45400,
+        "basico": 1172242
+      },
+      "Escala B|Nivel 1 (Peón - Lavacopas)": {
+        "no_remunerativo": 38700,
+        "basico": 999420
+      },
+      "Escala B|Nivel 3 (Ayudante Cocina - Comis)": {
+        "no_remunerativo": 44000,
+        "basico": 1136295
+      },
+      "Escala B|Nivel 7 (Jefe Brigada - Recepción)": {
+        "no_remunerativo": 57400,
+        "basico": 1480897
+      },
+      "Escala A|Nivel 4 (Mucama - Medio Oficial)": {
+        "no_remunerativo": 47900,
+        "basico": 1236218
+      },
+      "Escala B|Nivel 2 (Mozo Mostrador - Cadete)": {
+        "no_remunerativo": 41100,
+        "basico": 1061224
+      },
+      "Escala A|Nivel 5 (Cajero - Comis Cocina)": {
+        "basico": 1305917,
+        "no_remunerativo": 50600
+      },
+      "Escala A|Nivel 2 (Mozo Mostrador - Cadete)": {
+        "basico": 1098404,
+        "no_remunerativo": 42600
+      },
+      "Escala A|Nivel 3 (Ayudante Cocina - Comis)": {
+        "no_remunerativo": 45500,
+        "basico": 1175368
+      }
+    }
+  }
+}

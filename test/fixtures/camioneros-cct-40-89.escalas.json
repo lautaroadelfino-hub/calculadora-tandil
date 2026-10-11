@@ -1,109 +1,16 @@
 {
   "2026-07": {
-    "mes_vigencia": "Julio 2026",
     "categorias": {
-      "Conductor de primera categoría": {
-        "basico": 1060010.29,
+      "Oficial completo de taller": {
+        "basico": 1119399.19,
         "no_remunerativo": 0
       },
-      "Conductor de segunda categoría": {
-        "basico": 1041120.5,
-        "no_remunerativo": 0
-      },
-      "Conductor de tercera categoría (fletes al instante)": {
-        "basico": 1022211.59,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de hasta 10 tn y operador de autoelevador": {
-        "basico": 1078908.01,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 10 y hasta 20 tn": {
-        "basico": 1186798.82,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 20 y hasta 35 tn": {
-        "basico": 1234270.77,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 35 y hasta 45 tn": {
-        "basico": 1283641.6,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 45 y hasta 55 tn": {
-        "basico": 1334987.26,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 55 y hasta 70 tn": {
-        "basico": 1401736.62,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 70 y hasta 90 tn": {
-        "basico": 1471823.46,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 90 y hasta 110 tn": {
-        "basico": 1545414.63,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 110 y hasta 140 tn": {
-        "basico": 1622685.36,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 140 y hasta 170 tn": {
-        "basico": 1703819.63,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 170 y hasta 300 tn": {
-        "basico": 1789010.61,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 300 tn": {
-        "basico": 1932131.45,
-        "no_remunerativo": 0
-      },
-      "Encargado": {
-        "basico": 996260.07,
-        "no_remunerativo": 0
-      },
-      "Recibidor y/o clasificador de guías": {
-        "basico": 986757.26,
-        "no_remunerativo": 0
-      },
-      "Operario especializado": {
-        "basico": 977448.77,
-        "no_remunerativo": 0
-      },
-      "Recolector de residuos y limpieza": {
-        "basico": 977448.77,
-        "no_remunerativo": 0
-      },
-      "Peón": {
-        "basico": 968120.14,
-        "no_remunerativo": 0
-      },
-      "Peón general de barrido y limpieza": {
-        "basico": 968120.14,
-        "no_remunerativo": 0
-      },
-      "Operador de servicios": {
-        "basico": 1127892.91,
-        "no_remunerativo": 0
-      },
-      "Distribuidor domiciliario": {
-        "basico": 1026600.66,
-        "no_remunerativo": 0
-      },
-      "Ayudante mayor de 18 años": {
-        "basico": 949566.29,
+      "Oficial": {
+        "basico": 1064259.72,
         "no_remunerativo": 0
       },
       "Chofer de camión blindado": {
         "basico": 1139645.55,
-        "no_remunerativo": 0
-      },
-      "Chofer con firma": {
-        "basico": 1223953,
         "no_remunerativo": 0
       },
       "Custodia de camión de caudales": {
@@ -114,271 +21,555 @@
         "basico": 1456635.75,
         "no_remunerativo": 0
       },
-      "Auxiliar operativo de segunda": {
-        "basico": 1014678.64,
+      "Conductor de grúas de más de 140 y hasta 170 tn": {
+        "basico": 1703819.63,
         "no_remunerativo": 0
       },
-      "Oficial de primera": {
-        "basico": 1180565.06,
-        "no_remunerativo": 0
+      "Conductor de grúas de más de 170 y hasta 300 tn": {
+        "no_remunerativo": 0,
+        "basico": 1789010.61
       },
-      "Oficial completo de taller": {
-        "basico": 1119399.19,
-        "no_remunerativo": 0
-      },
-      "Oficial": {
-        "basico": 1064259.72,
-        "no_remunerativo": 0
+      "Conductor de grúas de más de 20 y hasta 35 tn": {
+        "no_remunerativo": 0,
+        "basico": 1234270.77
       },
       "Medio oficial": {
         "basico": 1005364.13,
         "no_remunerativo": 0
       },
+      "Operario especializado": {
+        "no_remunerativo": 0,
+        "basico": 977448.77
+      },
+      "Ayudante mayor de 18 años": {
+        "no_remunerativo": 0,
+        "basico": 949566.29
+      },
+      "Lavador / engrasador / ayudante de taller": {
+        "no_remunerativo": 0,
+        "basico": 1005364.13
+      },
       "Oficial gomero": {
         "basico": 1064259.72,
+        "no_remunerativo": 0
+      },
+      "Auxiliar operativo de primera de clearing y correo privado": {
+        "no_remunerativo": 0,
+        "basico": 1056788.57
+      },
+      "Conductor de grúas de más de 55 y hasta 70 tn": {
+        "basico": 1401736.62,
+        "no_remunerativo": 0
+      },
+      "Conductor de segunda categoría": {
+        "no_remunerativo": 0,
+        "basico": 1041120.5
+      },
+      "Maestranza y/o sereno": {
+        "no_remunerativo": 0,
+        "basico": 958852.06
+      },
+      "Operador de servicios": {
+        "no_remunerativo": 0,
+        "basico": 1127892.91
+      },
+      "Peón": {
+        "no_remunerativo": 0,
+        "basico": 968120.14
+      },
+      "Conductor de grúas de más de 70 y hasta 90 tn": {
+        "no_remunerativo": 0,
+        "basico": 1471823.46
+      },
+      "Administrativo de primera categoría": {
+        "basico": 1054850.64,
+        "no_remunerativo": 0
+      },
+      "Conductor de grúas de más de 300 tn": {
+        "no_remunerativo": 0,
+        "basico": 1932131.45
+      },
+      "Auxiliar operativo de segunda de clearing y correo privado": {
+        "basico": 1005793.05,
+        "no_remunerativo": 0
+      },
+      "Conductor de tercera categoría (fletes al instante)": {
+        "no_remunerativo": 0,
+        "basico": 1022211.59
+      },
+      "Peón general de barrido y limpieza": {
+        "basico": 968120.14,
+        "no_remunerativo": 0
+      },
+      "Conductor de primera categoría": {
+        "no_remunerativo": 0,
+        "basico": 1060010.29
+      },
+      "Distribuidor domiciliario": {
+        "no_remunerativo": 0,
+        "basico": 1026600.66
+      },
+      "Administrativo de cuarta categoría": {
+        "basico": 958852.06,
         "no_remunerativo": 0
       },
       "Medio oficial gomero": {
         "basico": 1005364.13,
         "no_remunerativo": 0
       },
-      "Lavador / engrasador / ayudante de taller": {
-        "basico": 1005364.13,
+      "Recibidor y/o clasificador de guías": {
+        "basico": 986757.26,
         "no_remunerativo": 0
       },
-      "Administrativo de primera categoría": {
-        "basico": 1054850.64,
+      "Conductor de grúas de hasta 10 tn y operador de autoelevador": {
+        "no_remunerativo": 0,
+        "basico": 1078908.01
+      },
+      "Auxiliar operativo de segunda": {
+        "basico": 1014678.64,
         "no_remunerativo": 0
+      },
+      "Conductor de grúas de más de 35 y hasta 45 tn": {
+        "no_remunerativo": 0,
+        "basico": 1283641.6
+      },
+      "Conductor de grúas de más de 10 y hasta 20 tn": {
+        "basico": 1186798.82,
+        "no_remunerativo": 0
+      },
+      "Oficial de primera": {
+        "no_remunerativo": 0,
+        "basico": 1180565.06
       },
       "Administrativo de segunda categoría": {
         "basico": 1014678.64,
         "no_remunerativo": 0
       },
+      "Conductor de grúas de más de 45 y hasta 55 tn": {
+        "basico": 1334987.26,
+        "no_remunerativo": 0
+      },
+      "Encargado": {
+        "no_remunerativo": 0,
+        "basico": 996260.07
+      },
+      "Chofer con firma": {
+        "basico": 1223953,
+        "no_remunerativo": 0
+      },
+      "Recolector de residuos y limpieza": {
+        "no_remunerativo": 0,
+        "basico": 977448.77
+      },
       "Administrativo de tercera categoría": {
         "basico": 977448.77,
         "no_remunerativo": 0
       },
-      "Administrativo de cuarta categoría": {
-        "basico": 958852.06,
+      "Conductor de grúas de más de 90 y hasta 110 tn": {
+        "basico": 1545414.63,
         "no_remunerativo": 0
       },
-      "Maestranza y/o sereno": {
-        "basico": 958852.06,
-        "no_remunerativo": 0
-      },
-      "Auxiliar operativo de primera de clearing y correo privado": {
-        "basico": 1056788.57,
-        "no_remunerativo": 0
-      },
-      "Auxiliar operativo de segunda de clearing y correo privado": {
-        "basico": 1005793.05,
+      "Conductor de grúas de más de 110 y hasta 140 tn": {
+        "basico": 1622685.36,
         "no_remunerativo": 0
       }
     },
     "valores_del_periodo": {
-      "comida": 16219.85,
+      "ingreso_egreso_tierra_del_fuego": 44949.87,
       "viatico_especial": 8139.09,
-      "pernoctada": 18891.63,
-      "km_hora_extra": 84.80265,
+      "adicional_bitrenes": 684978.64,
+      "choferes_larga_distancia_5_11_3a2": 333729.97,
       "km_viatico": 84.80265,
+      "comida": 16219.85,
+      "km_hora_extra": 84.80265,
+      "cruce_frontera": 39420.52,
+      "pernoctada": 18891.63,
       "permanencia_fuera_residencia": 57242.2,
       "simple_presencia": 30004.53,
-      "cruce_frontera": 39420.52,
-      "ingreso_egreso_tierra_del_fuego": 44949.87,
-      "plus_vacacional_dia": 24761.03,
-      "adicional_bitrenes": 684978.64,
-      "choferes_larga_distancia_5_11_3a2": 333729.97
-    }
+      "plus_vacacional_dia": 24761.03
+    },
+    "mes_vigencia": "Julio 2026"
   },
   "2026-08": {
+    "valores_del_periodo": {
+      "pernoctada": 19175,
+      "choferes_larga_distancia_5_11_3a2": 338735.92,
+      "simple_presencia": 30454.6,
+      "adicional_bitrenes": 695253.32,
+      "viatico_especial": 8261.18,
+      "km_viatico": 86.07469,
+      "plus_vacacional_dia": 25132.45,
+      "comida": 16463.15,
+      "cruce_frontera": 40011.83,
+      "permanencia_fuera_residencia": 58100.83,
+      "ingreso_egreso_tierra_del_fuego": 45624.12,
+      "km_hora_extra": 86.07469
+    },
     "mes_vigencia": "Agosto 2026",
     "categorias": {
-      "Conductor de primera categoría": {
-        "basico": 1075910.44,
+      "Maestranza y/o sereno": {
+        "basico": 973234.84,
         "no_remunerativo": 0
       },
-      "Conductor de segunda categoría": {
-        "basico": 1056737.31,
-        "no_remunerativo": 0
-      },
-      "Conductor de tercera categoría (fletes al instante)": {
-        "basico": 1037544.76,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de hasta 10 tn y operador de autoelevador": {
-        "basico": 1095091.63,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 10 y hasta 20 tn": {
-        "basico": 1204600.8,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 20 y hasta 35 tn": {
-        "basico": 1252784.83,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 35 y hasta 45 tn": {
-        "basico": 1302896.22,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 45 y hasta 55 tn": {
-        "basico": 1355012.07,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 55 y hasta 70 tn": {
-        "basico": 1422762.67,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 70 y hasta 90 tn": {
-        "basico": 1493900.81,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 90 y hasta 110 tn": {
-        "basico": 1568595.85,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 110 y hasta 140 tn": {
-        "basico": 1647025.64,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 140 y hasta 170 tn": {
-        "basico": 1729376.92,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 170 y hasta 300 tn": {
-        "basico": 1815845.77,
-        "no_remunerativo": 0
-      },
-      "Conductor de grúas de más de 300 tn": {
-        "basico": 1961113.42,
-        "no_remunerativo": 0
+      "Peón": {
+        "no_remunerativo": 0,
+        "basico": 982641.94
       },
       "Encargado": {
         "basico": 1011203.97,
         "no_remunerativo": 0
       },
-      "Recibidor y/o clasificador de guías": {
-        "basico": 1001558.62,
-        "no_remunerativo": 0
+      "Auxiliar operativo de primera de clearing y correo privado": {
+        "no_remunerativo": 0,
+        "basico": 1072640.4
       },
-      "Operario especializado": {
-        "basico": 992110.5,
-        "no_remunerativo": 0
-      },
-      "Recolector de residuos y limpieza": {
-        "basico": 992110.5,
-        "no_remunerativo": 0
-      },
-      "Peón": {
-        "basico": 982641.94,
-        "no_remunerativo": 0
-      },
-      "Peón general de barrido y limpieza": {
-        "basico": 982641.94,
+      "Conductor de grúas de más de 35 y hasta 45 tn": {
+        "basico": 1302896.22,
         "no_remunerativo": 0
       },
       "Operador de servicios": {
         "basico": 1144811.3,
         "no_remunerativo": 0
       },
-      "Distribuidor domiciliario": {
-        "basico": 1041999.67,
-        "no_remunerativo": 0
+      "Conductor de grúas de más de 45 y hasta 55 tn": {
+        "no_remunerativo": 0,
+        "basico": 1355012.07
       },
-      "Ayudante mayor de 18 años": {
-        "basico": 963809.78,
-        "no_remunerativo": 0
-      },
-      "Chofer de camión blindado": {
-        "basico": 1156740.23,
-        "no_remunerativo": 0
-      },
-      "Chofer con firma": {
-        "basico": 1242312.29,
-        "no_remunerativo": 0
-      },
-      "Custodia de camión de caudales": {
-        "basico": 1002883.54,
-        "no_remunerativo": 0
-      },
-      "Auxiliar operativo de primera": {
-        "basico": 1478485.29,
-        "no_remunerativo": 0
-      },
-      "Auxiliar operativo de segunda": {
-        "basico": 1029898.82,
-        "no_remunerativo": 0
-      },
-      "Oficial de primera": {
-        "basico": 1198273.54,
-        "no_remunerativo": 0
-      },
-      "Oficial completo de taller": {
-        "basico": 1136190.18,
-        "no_remunerativo": 0
-      },
-      "Oficial": {
-        "basico": 1080223.62,
+      "Conductor de grúas de más de 10 y hasta 20 tn": {
+        "basico": 1204600.8,
         "no_remunerativo": 0
       },
       "Medio oficial": {
         "basico": 1020444.59,
         "no_remunerativo": 0
       },
-      "Oficial gomero": {
-        "basico": 1080223.62,
+      "Chofer con firma": {
+        "basico": 1242312.29,
         "no_remunerativo": 0
       },
-      "Medio oficial gomero": {
-        "basico": 1020444.59,
-        "no_remunerativo": 0
+      "Conductor de grúas de más de 170 y hasta 300 tn": {
+        "no_remunerativo": 0,
+        "basico": 1815845.77
       },
-      "Lavador / engrasador / ayudante de taller": {
-        "basico": 1020444.59,
-        "no_remunerativo": 0
+      "Conductor de grúas de más de 140 y hasta 170 tn": {
+        "no_remunerativo": 0,
+        "basico": 1729376.92
       },
       "Administrativo de primera categoría": {
-        "basico": 1070673.4,
-        "no_remunerativo": 0
+        "no_remunerativo": 0,
+        "basico": 1070673.4
       },
-      "Administrativo de segunda categoría": {
-        "basico": 1029898.82,
-        "no_remunerativo": 0
-      },
-      "Administrativo de tercera categoría": {
-        "basico": 992110.5,
+      "Oficial de primera": {
+        "basico": 1198273.54,
         "no_remunerativo": 0
       },
       "Administrativo de cuarta categoría": {
         "basico": 973234.84,
         "no_remunerativo": 0
       },
-      "Maestranza y/o sereno": {
-        "basico": 973234.84,
+      "Peón general de barrido y limpieza": {
+        "no_remunerativo": 0,
+        "basico": 982641.94
+      },
+      "Auxiliar operativo de segunda": {
+        "basico": 1029898.82,
         "no_remunerativo": 0
       },
-      "Auxiliar operativo de primera de clearing y correo privado": {
-        "basico": 1072640.4,
+      "Conductor de primera categoría": {
+        "no_remunerativo": 0,
+        "basico": 1075910.44
+      },
+      "Conductor de grúas de más de 20 y hasta 35 tn": {
+        "no_remunerativo": 0,
+        "basico": 1252784.83
+      },
+      "Distribuidor domiciliario": {
+        "basico": 1041999.67,
+        "no_remunerativo": 0
+      },
+      "Conductor de grúas de más de 300 tn": {
+        "no_remunerativo": 0,
+        "basico": 1961113.42
+      },
+      "Conductor de grúas de hasta 10 tn y operador de autoelevador": {
+        "no_remunerativo": 0,
+        "basico": 1095091.63
+      },
+      "Conductor de tercera categoría (fletes al instante)": {
+        "no_remunerativo": 0,
+        "basico": 1037544.76
+      },
+      "Operario especializado": {
+        "basico": 992110.5,
+        "no_remunerativo": 0
+      },
+      "Medio oficial gomero": {
+        "no_remunerativo": 0,
+        "basico": 1020444.59
+      },
+      "Conductor de grúas de más de 110 y hasta 140 tn": {
+        "basico": 1647025.64,
+        "no_remunerativo": 0
+      },
+      "Recibidor y/o clasificador de guías": {
+        "no_remunerativo": 0,
+        "basico": 1001558.62
+      },
+      "Oficial": {
+        "no_remunerativo": 0,
+        "basico": 1080223.62
+      },
+      "Conductor de grúas de más de 90 y hasta 110 tn": {
+        "no_remunerativo": 0,
+        "basico": 1568595.85
+      },
+      "Lavador / engrasador / ayudante de taller": {
+        "basico": 1020444.59,
+        "no_remunerativo": 0
+      },
+      "Conductor de segunda categoría": {
+        "no_remunerativo": 0,
+        "basico": 1056737.31
+      },
+      "Recolector de residuos y limpieza": {
+        "basico": 992110.5,
+        "no_remunerativo": 0
+      },
+      "Auxiliar operativo de primera": {
+        "basico": 1478485.29,
+        "no_remunerativo": 0
+      },
+      "Administrativo de segunda categoría": {
+        "no_remunerativo": 0,
+        "basico": 1029898.82
+      },
+      "Conductor de grúas de más de 55 y hasta 70 tn": {
+        "basico": 1422762.67,
+        "no_remunerativo": 0
+      },
+      "Ayudante mayor de 18 años": {
+        "no_remunerativo": 0,
+        "basico": 963809.78
+      },
+      "Conductor de grúas de más de 70 y hasta 90 tn": {
+        "basico": 1493900.81,
+        "no_remunerativo": 0
+      },
+      "Oficial completo de taller": {
+        "basico": 1136190.18,
+        "no_remunerativo": 0
+      },
+      "Chofer de camión blindado": {
+        "basico": 1156740.23,
         "no_remunerativo": 0
       },
       "Auxiliar operativo de segunda de clearing y correo privado": {
         "basico": 1020879.95,
         "no_remunerativo": 0
+      },
+      "Administrativo de tercera categoría": {
+        "no_remunerativo": 0,
+        "basico": 992110.5
+      },
+      "Oficial gomero": {
+        "no_remunerativo": 0,
+        "basico": 1080223.62
+      },
+      "Custodia de camión de caudales": {
+        "basico": 1002883.54,
+        "no_remunerativo": 0
+      }
+    }
+  },
+  "2026-09": {
+    "categorias": {
+      "Administrativo de primera categoría": {
+        "no_remunerativo": 18000,
+        "basico": 1089945.52
+      },
+      "Conductor de grúas de más de 170 y hasta 300 tn": {
+        "no_remunerativo": 18000,
+        "basico": 1848530.97
+      },
+      "Conductor de grúas de más de 140 y hasta 170 tn": {
+        "basico": 1760505.69,
+        "no_remunerativo": 18000
+      },
+      "Auxiliar operativo de primera": {
+        "basico": 1505098.03,
+        "no_remunerativo": 18000
+      },
+      "Conductor de tercera categoría (fletes al instante)": {
+        "no_remunerativo": 18000,
+        "basico": 1056220.57
+      },
+      "Medio oficial gomero": {
+        "no_remunerativo": 18000,
+        "basico": 1038812.59
+      },
+      "Conductor de grúas de más de 20 y hasta 35 tn": {
+        "no_remunerativo": 18000,
+        "basico": 1275334.95
+      },
+      "Chofer con firma": {
+        "basico": 1264673.91,
+        "no_remunerativo": 18000
+      },
+      "Oficial de primera": {
+        "no_remunerativo": 18000,
+        "basico": 1219842.46
+      },
+      "Auxiliar operativo de segunda de clearing y correo privado": {
+        "basico": 1039255.79,
+        "no_remunerativo": 18000
+      },
+      "Conductor de grúas de más de 300 tn": {
+        "basico": 1996413.45,
+        "no_remunerativo": 18000
+      },
+      "Operario especializado": {
+        "basico": 1009968.49,
+        "no_remunerativo": 18000
+      },
+      "Conductor de grúas de más de 70 y hasta 90 tn": {
+        "no_remunerativo": 18000,
+        "basico": 1520791.01
+      },
+      "Conductor de primera categoría": {
+        "basico": 1095276.83,
+        "no_remunerativo": 18000
+      },
+      "Conductor de grúas de más de 55 y hasta 70 tn": {
+        "no_remunerativo": 18000,
+        "basico": 1448372.39
+      },
+      "Peón": {
+        "no_remunerativo": 18000,
+        "basico": 1000329.49
+      },
+      "Lavador / engrasador / ayudante de taller": {
+        "no_remunerativo": 18000,
+        "basico": 1038812.59
+      },
+      "Distribuidor domiciliario": {
+        "no_remunerativo": 18000,
+        "basico": 1060755.66
+      },
+      "Administrativo de tercera categoría": {
+        "no_remunerativo": 18000,
+        "basico": 1009968.49
+      },
+      "Conductor de segunda categoría": {
+        "no_remunerativo": 18000,
+        "basico": 1075758.58
+      },
+      "Encargado": {
+        "basico": 1029405.64,
+        "no_remunerativo": 18000
+      },
+      "Chofer de camión blindado": {
+        "basico": 1177561.55,
+        "no_remunerativo": 18000
+      },
+      "Oficial completo de taller": {
+        "basico": 1156641.6,
+        "no_remunerativo": 18000
+      },
+      "Conductor de grúas de más de 35 y hasta 45 tn": {
+        "basico": 1326348.35,
+        "no_remunerativo": 18000
+      },
+      "Auxiliar operativo de segunda": {
+        "basico": 1048437,
+        "no_remunerativo": 18000
+      },
+      "Administrativo de cuarta categoría": {
+        "no_remunerativo": 18000,
+        "basico": 990753.07
+      },
+      "Ayudante mayor de 18 años": {
+        "no_remunerativo": 18000,
+        "basico": 981158.36
+      },
+      "Administrativo de segunda categoría": {
+        "basico": 1048437,
+        "no_remunerativo": 18000
+      },
+      "Peón general de barrido y limpieza": {
+        "no_remunerativo": 18000,
+        "basico": 1000329.49
+      },
+      "Oficial gomero": {
+        "basico": 1099667.65,
+        "no_remunerativo": 18000
+      },
+      "Medio oficial": {
+        "no_remunerativo": 18000,
+        "basico": 1038812.59
+      },
+      "Maestranza y/o sereno": {
+        "no_remunerativo": 18000,
+        "basico": 990753.07
+      },
+      "Custodia de camión de caudales": {
+        "basico": 1020935.44,
+        "no_remunerativo": 18000
+      },
+      "Recibidor y/o clasificador de guías": {
+        "no_remunerativo": 18000,
+        "basico": 1019586.68
+      },
+      "Conductor de grúas de hasta 10 tn y operador de autoelevador": {
+        "basico": 1114803.28,
+        "no_remunerativo": 18000
+      },
+      "Auxiliar operativo de primera de clearing y correo privado": {
+        "no_remunerativo": 18000,
+        "basico": 1091947.93
+      },
+      "Conductor de grúas de más de 45 y hasta 55 tn": {
+        "basico": 1379402.28,
+        "no_remunerativo": 18000
+      },
+      "Conductor de grúas de más de 90 y hasta 110 tn": {
+        "basico": 1596830.56,
+        "no_remunerativo": 18000
+      },
+      "Oficial": {
+        "basico": 1099667.65,
+        "no_remunerativo": 18000
+      },
+      "Recolector de residuos y limpieza": {
+        "basico": 1009968.49,
+        "no_remunerativo": 18000
+      },
+      "Operador de servicios": {
+        "basico": 1165417.9,
+        "no_remunerativo": 18000
+      },
+      "Conductor de grúas de más de 110 y hasta 140 tn": {
+        "no_remunerativo": 18000,
+        "basico": 1676672.09
+      },
+      "Conductor de grúas de más de 10 y hasta 20 tn": {
+        "no_remunerativo": 18000,
+        "basico": 1226283.61
       }
     },
     "valores_del_periodo": {
-      "comida": 16463.15,
-      "viatico_especial": 8261.18,
-      "pernoctada": 19175,
-      "km_hora_extra": 86.07469,
-      "km_viatico": 86.07469,
-      "permanencia_fuera_residencia": 58100.83,
-      "simple_presencia": 30454.6,
-      "cruce_frontera": 40011.83,
-      "ingreso_egreso_tierra_del_fuego": 45624.12,
-      "plus_vacacional_dia": 25132.45,
-      "adicional_bitrenes": 695253.32,
-      "choferes_larga_distancia_5_11_3a2": 338735.92
-    }
+      "cruce_frontera": 40732.04,
+      "comida": 16759.49,
+      "choferes_larga_distancia_5_11_3a2": 344833.17,
+      "km_hora_extra": 87.62403,
+      "km_viatico": 87.62403,
+      "simple_presencia": 31002.78,
+      "permanencia_fuera_residencia": 59146.64,
+      "ingreso_egreso_tierra_del_fuego": 46445.35,
+      "adicional_bitrenes": 707767.88,
+      "viatico_especial": 8409.88,
+      "plus_vacacional_dia": 25584.83,
+      "pernoctada": 19520.15
+    },
+    "mes_vigencia": "Septiembre 2026"
   }
 }

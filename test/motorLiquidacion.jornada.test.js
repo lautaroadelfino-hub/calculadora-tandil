@@ -14,8 +14,8 @@
 import { describe, it, expect } from "vitest";
 import { procesarRecibo } from "../lib/motorLiquidacion.js";
 import { POR_DEFECTO } from "../lib/vocabularioConvenios.js";
-import convenio from "./fixtures/comercio-cct-130-75.convenio.json";
-import escalas from "./fixtures/comercio-cct-130-75.escalas.json";
+import convenio from "./fixtures/patron/comercio-cct-130-75.convenio.json";
+import escalas from "./fixtures/patron/comercio-cct-130-75.escalas.json";
 
 const money = (n) => Math.round(n * 100) / 100;
 const linea = (r, t) => r.detalle.find((l) => l.concepto.includes(t));

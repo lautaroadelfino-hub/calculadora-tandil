@@ -1,6 +1,6 @@
 // test/invariantes.test.js
 // Reglas que TODO convenio tiene que cumplir, corridas contra todos los
-// fixtures capturados de producción. No comprueban un número en particular:
+// fixtures capturados de producción (test/fixtures/, no la foto de patron/). No comprueban un número en particular:
 // comprueban que la calculadora no se rompa ni mienta.
 //
 // Es data-driven a propósito: cada vez que se capture un convenio nuevo con

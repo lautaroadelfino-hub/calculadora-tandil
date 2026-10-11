@@ -184,13 +184,15 @@ forma más rápida de romper producción sin que nadie se entere.
    contribuciones de septiembre y Ganancias jul-dic 2026). Si cambió sin que lo
    hayas decidido, algo se rompió.
 
-   Ojo, son dos canarios distintos: los tests usan una foto congelada de julio
-   2026 en `test/fixtures/` que da **$1.166.249,70**, y esa foto tenía la escala
-   de julio mal cargada (los $120.000 no remunerativos sumados al básico y sin
-   el tramo del 1,9%). El 13/9/2026 se corrigió en Firestore con la planilla
-   firmada del acuerdo; la foto de los tests se dejó a propósito, porque lo que
-   vigila es la aritmética del motor, no la escala. Si algún día se recapturan
-   los fixtures, esos números esperados cambian y hay que actualizarlos a mano.
+   Ojo, son dos canarios distintos. Los tests con pesos fijos usan la foto
+   congelada del 13/9/2026 en `test/fixtures/patron/`, que da
+   **$1.166.249,70** con la escala de julio tal como estaba cargada antes de
+   corregirla con la planilla firmada del acuerdo (los $120.000 no
+   remunerativos sumados al básico y sin el tramo del 1,9%). Esa foto no se
+   recaptura nunca: lo que vigila es la aritmética del motor, no la escala. El
+   canario de producción de septiembre también está en
+   `test/canarioProduccion.test.js`, sobre las capturas vivas de
+   `test/fixtures/`.
 5. Recién ahí, a `main`.
 
 ---
@@ -261,5 +263,7 @@ mandale esa hoja primero.
   → Add a site → liquidar.ar". Sin la variable, el sitio no manda nada y no
   pasa nada.
 - **`node scripts/capturarFixtures.mjs <id-del-convenio>`** baja el convenio y
-  todas sus escalas a `test/fixtures/`, y con eso ese convenio queda cubierto
-  por los tests. No es un respaldo: para eso está `respaldar.bat`.
+  todas sus escalas a `test/fixtures/`, que es lo que leen los tests sobre
+  datos actuales (invariantes, canario de producción). No toca
+  `test/fixtures/patron/`, la foto congelada de los tests con pesos fijos. No
+  es un respaldo: para eso está `respaldar.bat`.

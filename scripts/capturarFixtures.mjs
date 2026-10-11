@@ -1,7 +1,9 @@
 // scripts/capturarFixtures.mjs
 // Uso interno (dev): baja de Firestore un convenio (por omisión Comercio) y
-// todas sus escalas, y los guarda como fixtures JSON para los tests. No es un
-// respaldo: para eso está scripts/respaldar.mjs.
+// todas sus escalas, y los guarda como fixtures JSON en test/fixtures/ para los
+// tests que corren sobre datos actuales. No toca test/fixtures/patron/: esa es
+// la foto congelada del 13/9/2026 que usan los tests con pesos fijos, y no se
+// recaptura. No es un respaldo: para eso está scripts/respaldar.mjs.
 // Ejecutar: node scripts/capturarFixtures.mjs <id-del-convenio>
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc, collection, getDocs } from "firebase/firestore";

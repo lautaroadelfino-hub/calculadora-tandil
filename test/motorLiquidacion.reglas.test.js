@@ -4,8 +4,8 @@
 
 import { describe, it, expect } from "vitest";
 import { procesarRecibo, porcentajeAntiguedad } from "../lib/motorLiquidacion.js";
-import convenioGastro from "./fixtures/gastronomicos-cct-389-04.convenio.json";
-import escalasGastro from "./fixtures/gastronomicos-cct-389-04.escalas.json";
+import convenioGastro from "./fixtures/patron/gastronomicos-cct-389-04.convenio.json";
+import escalasGastro from "./fixtures/patron/gastronomicos-cct-389-04.escalas.json";
 
 const money = (n) => Math.round(n * 100) / 100;
 const linea = (r, texto) => r.detalle.find((l) => l.concepto.includes(texto));

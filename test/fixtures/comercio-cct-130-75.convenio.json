@@ -1,9 +1,49 @@
 {
+  "activo": true,
+  "ultimo_periodo": "2026-09",
+  "sector": "privado",
+  "cct": "130/75",
+  "id": "comercio-cct-130-75",
+  "reglas_calculo": {
+    "art": {
+      "alicuota_tipica": 0.05
+    },
+    "antiguedad": {
+      "porcentaje_por_año": 0.01
+    },
+    "presentismo": {
+      "aplica_sobre": "basico_mas_antiguedad",
+      "porcentaje": 0.08333
+    },
+    "retenciones_sindicales": {
+      "faecys": {
+        "porcentaje": 0.005,
+        "label": "Aporte FAECyS (0,5%)",
+        "base": "remunerativo_mas_no_remunerativo"
+      },
+      "sec_afiliado": {
+        "porcentaje": 0.02,
+        "base": "remunerativo_mas_no_remunerativo",
+        "condicion": "solo_afiliado",
+        "label": "Cuota Afiliado Sindical (2%)"
+      },
+      "sec_solidario": {
+        "base": "remunerativo_mas_no_remunerativo",
+        "porcentaje": 0.02,
+        "condicion": "solo_no_afiliado",
+        "label": "Aporte Solidario Gremial (2%)"
+      },
+      "osecac_fijo": {
+        "rubro": "obra_social",
+        "valor_fijo": 100,
+        "label": "Aporte Fijo OSECAC"
+      }
+    }
+  },
+  "ultimo_periodo_nombre": "Septiembre 2026",
+  "nombre": "Empleados de Comercio",
   "inputs_requeridos": [
     {
-      "id": "categoria",
-      "label": "Categoría",
-      "default": "Administrativo A",
       "opciones": [
         "Administrativo A",
         "Administrativo B",
@@ -27,73 +67,40 @@
         "Vendedor C",
         "Vendedor D"
       ],
-      "tipo": "select"
+      "id": "categoria",
+      "default": "Administrativo A",
+      "tipo": "select",
+      "label": "Categoría"
     },
     {
-      "id": "carga_horaria",
       "tipo": "number",
       "default": 48,
+      "id": "carga_horaria",
       "label": "Horas Semanales (Jornada)"
     },
     {
-      "default": 0,
-      "tipo": "number",
       "label": "Años de Antigüedad",
-      "id": "antiguedad_años"
-    },
-    {
-      "label": "Horas Extras al 50%",
-      "id": "horas_extras_50",
+      "id": "antiguedad_años",
       "default": 0,
       "tipo": "number"
     },
     {
       "tipo": "number",
-      "label": "Horas Extras al 100%",
+      "id": "horas_extras_50",
       "default": 0,
-      "id": "horas_extras_100"
+      "label": "Horas Extras al 50%"
     },
     {
-      "id": "afiliado_sindicato",
+      "tipo": "number",
+      "id": "horas_extras_100",
+      "label": "Horas Extras al 100%",
+      "default": 0
+    },
+    {
+      "tipo": "boolean",
       "default": false,
-      "label": "Afiliado al Sindicato (SEC)",
-      "tipo": "boolean"
+      "id": "afiliado_sindicato",
+      "label": "Afiliado al Sindicato (SEC)"
     }
-  ],
-  "activo": true,
-  "cct": "130/75",
-  "reglas_calculo": {
-    "presentismo": {
-      "porcentaje": 0.08333,
-      "aplica_sobre": "basico_mas_antiguedad"
-    },
-    "antiguedad": {
-      "aplica_sobre": "basico",
-      "porcentaje_por_año": 0.01
-    },
-    "retenciones_sindicales": {
-      "sec_solidario": {
-        "label": "Aporte Solidario Gremial (2%)",
-        "porcentaje": 0.02,
-        "base": "remunerativo_mas_no_remunerativo"
-      },
-      "sec_afiliado": {
-        "porcentaje": 0.02,
-        "base": "remunerativo_mas_no_remunerativo",
-        "label": "Cuota Afiliado Sindical (2%)",
-        "condicion": "solo_afiliado"
-      },
-      "osecac_fijo": {
-        "valor_fijo": 100,
-        "label": "Aporte Fijo OSECAC"
-      },
-      "faecys": {
-        "label": "Aporte FAECyS (0,5%)",
-        "base": "remunerativo_mas_no_remunerativo",
-        "porcentaje": 0.005
-      }
-    }
-  },
-  "id": "comercio-cct-130-75",
-  "nombre": "Empleados de Comercio"
+  ]
 }
