@@ -9,12 +9,12 @@ import { procesarRecibo } from "../lib/motorLiquidacion.js";
 import {
   celdasDeLinea,
   filasEmpleador,
+  columnasDelEmpleador,
   filasTrabajador,
   bloquesComposicion,
   porcionesDelCosto,
   encabezado,
   lineasPorTipo,
-  SUBTITULO_CCT,
   NOTA_SEGURIDAD_SOCIAL,
 } from "../lib/reciboOficial.js";
 import semilla from "../data/contribuciones.seed.json";
@@ -106,15 +106,31 @@ describe("las filas de las dos tablas", () => {
     expect(filas[0].celdas.unidad).toBe("2,5%");
   });
 
-  it("Camioneros: el subtítulo 'Costo derivado del CCT:' y debajo las contribuciones propias del convenio", () => {
+  it("Camioneros: las contribuciones propias del convenio van al final, como costo del empleador, sin subtítulo", () => {
     const filas = filasEmpleador(rCamioneros.detalle);
-    const i = filas.findIndex((f) => f.clase === "subtitulo");
+    expect(filas.every((f) => f.clase === "linea")).toBe(true);
+    const i = filas.findIndex((f) => f.linea.origen === "convenio");
     expect(i).toBeGreaterThan(0);
-    expect(filas[i].texto).toBe(SUBTITULO_CCT);
-    const despues = filas.slice(i + 1);
-    expect(despues.length).toBeGreaterThan(0);
-    expect(despues.every((f) => f.linea.origen === "convenio")).toBe(true);
+    expect(filas.slice(i).length).toBeGreaterThan(0);
+    expect(filas.slice(i).every((f) => f.linea.origen === "convenio")).toBe(true);
     expect(filas.slice(0, i).every((f) => f.linea.origen !== "convenio")).toBe(true);
+  });
+
+  it("las dos columnas del empleador: en orden, de alto parecido, y los conceptos largos del CCT no caen todos del mismo lado", () => {
+    const filas = filasEmpleador(rCamioneros.detalle);
+    const [izq, der] = columnasDelEmpleador(filas);
+    expect([...izq, ...der]).toEqual(filas);
+    const alto = (fs) => fs.reduce((a, f) => a + Math.max(1, Math.ceil(f.linea.concepto.length / 32)), 0);
+    expect(Math.abs(alto(izq) - alto(der))).toBeLessThanOrEqual(2);
+    expect(izq.length).toBeGreaterThan(der.length);
+  });
+
+  it("las dos columnas con pocos conceptos: parejos se parten por la mitad, uno solo va a la izquierda, sin filas quedan vacías", () => {
+    const f = (c) => ({ clase: "linea", linea: { concepto: c, monto: 1 }, celdas: {} });
+    expect(columnasDelEmpleador([f("a"), f("b"), f("c"), f("d")]).map((c) => c.length)).toEqual([2, 2]);
+    expect(columnasDelEmpleador([f("a"), f("b"), f("c")]).map((c) => c.length)).toEqual([2, 1]);
+    expect(columnasDelEmpleador([f("a")]).map((c) => c.length)).toEqual([1, 0]);
+    expect(columnasDelEmpleador([])).toEqual([[], []]);
   });
 
   it("el trabajador: haberes, un renglón en blanco y los descuentos en positivo, con su explicación", () => {

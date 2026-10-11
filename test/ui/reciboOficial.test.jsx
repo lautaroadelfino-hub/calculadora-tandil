@@ -86,8 +86,22 @@ describe("el recibo en pantalla", () => {
     const costo = conTabla.costoEmpleador.costoLaboral;
     expect(importeDeFranja("Costo total empleador")).toBe(money(costo));
     expect(importeDeFranja("Sub total contribuciones empleador")).toBe(money(conTabla.costoEmpleador.totalContribuciones));
-    const contribuciones = screen.getByRole("table", { name: "Contribuciones a cargo del empleador" });
-    expect(within(contribuciones).getAllByRole("row").length).toBeGreaterThan(2);
+    // Las contribuciones van en dos columnas (y, para el celular, en una sola
+    // tabla con las mismas líneas): cada una con su importe y su base para el
+    // lector de pantalla.
+    const lineas = conTabla.detalle.filter((l) => l.tipo === "contribucion");
+    const izquierda = screen.getByRole("table", { name: "Contribuciones a cargo del empleador, primera columna" });
+    const derecha = screen.getByRole("table", { name: "Contribuciones a cargo del empleador, segunda columna" });
+    const filas = [...within(izquierda).getAllByRole("row"), ...within(derecha).getAllByRole("row")].map((r) => r.textContent);
+    for (const l of lineas) {
+      const fila = filas.find((t) => t.startsWith(l.concepto));
+      expect(fila, `falta la contribución "${l.concepto}"`).toBeDefined();
+      expect(fila).toContain(money(l.monto));
+    }
+    expect(filas.filter((t) => t.includes("Base $")).length).toBeGreaterThan(0);
+    const celular = screen.getByRole("table", { name: "Contribuciones a cargo del empleador" });
+    expect(within(celular).getAllByRole("row").length - 1).toBe(lineas.length);
+    expect(screen.queryByText("Costo derivado del CCT:")).toBeNull();
     expect(screen.getByRole("img", { name: /Costo total empleador/ })).toBeTruthy();
     const torta = screen.getByRole("table", { name: "Costo total empleador por componente" });
     const importes = within(torta)

@@ -6,6 +6,11 @@
 // tabla del trabajador con haberes y aportes, la composición salarial, el
 // neto, el "Detalle de la composición salarial" y la torta del costo total.
 //
+// Las contribuciones del empleador van en dos columnas (desde 640 px y al
+// imprimir; en el celular, una): con la tabla de cuatro columnas y las notas
+// de base, la sección medía el doble y el recibo no entraba en una hoja. La
+// base de cada contribución queda para el lector de pantalla y como tooltip.
+//
 // Sólo dibuja: las celdas las arma lib/reciboOficial.js, que es puro y tiene
 // tests. Las casillas que la simulación no conoce (empresa, CUIT, nombre,
 // legajo, CUIL, fecha de ingreso, lugar y fecha de pago) quedan en blanco.
@@ -15,6 +20,7 @@ import {
   money,
   encabezado,
   filasEmpleador,
+  columnasDelEmpleador,
   filasTrabajador,
   bloquesComposicion,
   porcionesDelCosto,
@@ -55,7 +61,7 @@ function Franja({ titulo, importe, grande = false }) {
   );
 }
 
-/** La tabla CONCEPTO / UNIDAD / BASE / MONTO, común al empleador y al trabajador. */
+/** La tabla CONCEPTO / UNIDAD / BASE / MONTO del trabajador (y la del empleador cuando no hay tabla de contribuciones). */
 function Tabla({ filas, titulo, vacio }) {
   return (
     <table className={`w-full table-fixed border-collapse border ${NEGRO} -mt-px text-[11px] sm:text-[12px] text-slate-900`}>
@@ -78,13 +84,6 @@ function Tabla({ filas, titulo, vacio }) {
           </tr>
         )}
         {filas.map((f, i) => {
-          if (f.clase === "subtitulo") {
-            return (
-              <tr key={i}>
-                <td colSpan={4} className={`${CELDA} pt-2 font-medium`}>{f.texto}</td>
-              </tr>
-            );
-          }
           if (f.clase === "separador") {
             return (
               <tr key={i} aria-hidden="true">
@@ -126,6 +125,63 @@ function Tabla({ filas, titulo, vacio }) {
         })}
       </tbody>
     </table>
+  );
+}
+
+/** Una contribución del empleador: concepto (con la base, para el lector de pantalla y como tooltip), unidad y monto. */
+function FilaEmpleador({ fila }) {
+  const { linea, celdas } = fila;
+  const base = celdas.base ? `Base ${celdas.base}${celdas.baseNota ? ` · ${celdas.baseNota}` : ""}` : "";
+  const tooltip = [fila.explicacion, base].filter(Boolean).join(". ");
+  return (
+    <tr className={linea.pendiente ? "text-amber-700" : ""}>
+      <td className={`${CELDA} border-l-0 [overflow-wrap:anywhere] py-0 leading-tight`} title={tooltip || undefined}>
+        {linea.concepto}
+        {base && <span className="sr-only"> {base}</span>}
+      </td>
+      <td className={`${CELDA} text-right tabular-nums whitespace-nowrap py-0`}>{celdas.unidad}</td>
+      <td className={`${CELDA} border-r-0 text-right tabular-nums whitespace-nowrap py-0`}>{money(linea.monto)}</td>
+    </tr>
+  );
+}
+
+/** Una columna de contribuciones: CONCEPTO / UNIDAD / MONTO. */
+function ColumnaEmpleador({ filas, titulo }) {
+  return (
+    <table className="w-full table-fixed border-collapse text-[11px] text-slate-900">
+      <caption className="sr-only">{titulo}</caption>
+      <thead>
+        <tr>
+          <th scope="col" className={`${ROTULO} border-l-0 w-[52%]`}>Concepto</th>
+          <th scope="col" className={`${ROTULO} w-[16%]`}>Unidad</th>
+          <th scope="col" className={`${ROTULO} border-r-0 w-[32%]`}>Monto</th>
+        </tr>
+      </thead>
+      <tbody>
+        {filas.map((f, i) => <FilaEmpleador key={i} fila={f} />)}
+      </tbody>
+    </table>
+  );
+}
+
+/**
+ * Las contribuciones del empleador: en el celular una columna; desde 640 px
+ * y al imprimir, dos de alto parecido. Sin tabla de contribuciones cargada,
+ * la tabla común con el aviso.
+ */
+function TablaEmpleador({ filas, vacio }) {
+  if (filas.length === 0) return <Tabla titulo="Contribuciones a cargo del empleador" filas={[]} vacio={vacio} />;
+  const [izquierda, derecha] = columnasDelEmpleador(filas);
+  return (
+    <div className={`border ${NEGRO} -mt-px`}>
+      <div className="sm:hidden print:hidden">
+        <ColumnaEmpleador filas={filas} titulo="Contribuciones a cargo del empleador" />
+      </div>
+      <div className="hidden sm:grid print:grid grid-cols-2 divide-x divide-slate-900">
+        <ColumnaEmpleador filas={izquierda} titulo="Contribuciones a cargo del empleador, primera columna" />
+        <ColumnaEmpleador filas={derecha} titulo="Contribuciones a cargo del empleador, segunda columna" />
+      </div>
+    </div>
   );
 }
 
@@ -295,8 +351,7 @@ export default function ReciboOficial({ resultado, convenio, entradas, periodoId
 
         {/* Lo que paga el empleador, antes del bruto: es el punto de la norma */}
         <Franja titulo="Costo total empleador" importe={empleador ? money(empleador.costoLaboral) : "—"} grande />
-        <Tabla
-          titulo="Contribuciones a cargo del empleador"
+        <TablaEmpleador
           filas={empleador ? filasEmpleador(resultado.detalle) : []}
           vacio={`Para ${mesSinTabla} no hay tabla de contribuciones cargada.`}
         />

@@ -300,9 +300,11 @@ html { scrollbar-gutter: stable; }
   /* El recibo entero en una hoja A4: se imprime sólo el recibo (lo demás
      lleva print:hidden) y se reduce a escala para que quepa con sus
      márgenes; las notas debajo de cada base no se imprimen. Con la escala 1
-     el recibo de Comercio con SAC y horas extras ocupaba dos hojas. */
+     el recibo de Comercio con SAC y horas extras ocupaba dos hojas; con las
+     contribuciones del empleador en dos columnas (11/10/2026) entra hasta
+     0,85 y se deja 0,8 por si la impresora recorta más margen. */
   .recibo-impresion {
-    zoom: 0.75;
+    zoom: 0.8;
   }
   .recibo-impresion tr, .recibo-impresion figure {
     break-inside: avoid;
