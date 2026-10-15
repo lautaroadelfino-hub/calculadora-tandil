@@ -183,3 +183,117 @@ describe("4. lo que está guardado en la base, hoy", () => {
     expect(Array.isArray(sobrantes)).toBe(true);
   });
 });
+
+describe("5. todo lo que el modelo declara sobrevive a guardarlo desde el panel", () => {
+  // El chequeo 1 mira que el panel no guarde nada de más. Este mira lo
+  // contrario: que lo que el modelo declara siga ahí después de abrir el
+  // convenio en /admin y guardarlo. Al guardar, el formulario vuelve a armar
+  // las reglas con los campos que conoce, así que un campo que el motor entiende
+  // y el panel no se pierde en silencio. Se agregó el 15/10/2026, antes de
+  // sumarle campos al convenio (plan de A11–A14).
+
+  // Lo que hoy el panel todavía no sabe guardar. Ningún convenio cargado lo
+  // usa, y está anotado en docs/criterio.md ("Lo que todavía NO cumple este
+  // criterio"). Cuando el panel aprenda a guardarlo, el test avisa para sacarlo.
+  const PENDIENTES_DEL_PANEL = [
+    // El panel cuelga un adicional sólo de su propia pregunta, y sólo por el "sí".
+    "adicionales_remunerativos.*.depende_de",
+    "adicionales_remunerativos.*.cuando",
+    // A las retenciones el panel les ofrece sólo la afiliación (`condicion`).
+    "retenciones_sindicales.*.depende_de",
+    "retenciones_sindicales.*.cuando",
+  ];
+
+  const preguntas = [
+    { id: "categoria", tipo: "select", label: "Categoría", default: "A", opciones: ["A"] },
+    { id: "afiliado_sindicato", tipo: "boolean", label: "Afiliado al Sindicato", default: false },
+    { id: "pregunta_x", tipo: "boolean", label: "¿Pregunta X?", default: false },
+    { id: "cantidad_x", tipo: "number", label: "Cantidad X", default: 1 },
+  ];
+  const comunes = {
+    jornada: { horas_semanales_completas: 44, divisor_horas_mensuales: 192 },
+    presentismo: { porcentaje: 0.08333, aplica_sobre: "basico" },
+    retenciones_sindicales: {
+      ret_pct: { label: "Ret pct", porcentaje: 0.01, base: "remunerativo_habitual", condicion: "solo_afiliado", depende_de: "pregunta_x", cuando: true, rubro: "otros" },
+      ret_fija: { label: "Ret fija", valor_fijo: 100, rubro: "obra_social", reemplaza_obra_social: true },
+    },
+    contribuciones_convenio: {
+      con_pct: { label: "Con pct", porcentaje: 0.01, base: "basico", rubro: "camaras" },
+      con_fija: { label: "Con fija", valor_fijo: 100, rubro: "otros" },
+    },
+    art: { alicuota_tipica: 0.04 },
+    adicionales_por_unidad: {
+      pu_x: { label: "PU X", valor: "pu_x", unidad: "viaje", naturaleza: "no_remunerativo", con_incidencia: true, cantidad_de: "cantidad_x", depende_de: "pregunta_x", cuando: false },
+    },
+  };
+  // Dos documentos, porque la antigüedad lineal y por tramos no conviven en uno.
+  const documentos = {
+    "por tramos, sobre básico más adicionales": {
+      ...comunes,
+      no_remunerativo_genera_adicionales: false,
+      antiguedad: { modo: "tramos", tramos: [{ desde_años: 1, porcentaje: 0.01 }, { desde_años: 5, porcentaje: 0.04 }], aplica_sobre: "basico_mas_adicionales" },
+      adicionales_remunerativos: { ad_x: { label: "Ad X", porcentaje: 0.05, aplica_sobre: "basico", depende_de: "pregunta_x", cuando: false } },
+    },
+    "lineal, sobre el básico": {
+      ...comunes,
+      antiguedad: { porcentaje_por_año: 0.01 },
+      adicionales_remunerativos: { ad_y: { label: "Ad Y", porcentaje: 0.05, aplica_sobre: "basico_mas_antiguedad" } },
+    },
+  };
+  const docDe = (reglas) => ({ id: "zz-completo", nombre: "Completo", cct: "1/1", activo: true, sector: "privado", inputs_requeridos: preguntas, reglas_calculo: reglas });
+
+  /** Las rutas del modelo cuyo valor no llegó igual después de guardar. */
+  function perdidos(antes, despues) {
+    const mismo = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    const fuera = [];
+    for (const [regla, forma] of Object.entries(REGLAS_DE_CALCULO)) {
+      const a = antes[regla];
+      const b = despues[regla];
+      if (a === undefined) continue;
+      if (!a || typeof a !== "object") {
+        if (!mismo(a, b)) fuera.push(regla);
+        continue;
+      }
+      const items = forma.porCada ? Object.entries(a) : [[null, a]];
+      for (const [id, item] of items) {
+        const otro = (id ? (b || {})[id] : b) || {};
+        for (const campo of forma.porCada || forma.campos) {
+          if (item[campo] !== undefined && !mismo(item[campo], otro[campo])) fuera.push(id ? `${regla}.*.${campo}` : `${regla}.${campo}`);
+        }
+      }
+    }
+    return fuera;
+  }
+
+  it("los documentos de prueba usan todo lo que el modelo declara", () => {
+    // Si alguien suma un campo al modelo, tiene que sumarlo acá: si no, este
+    // chequeo no lo estaría mirando.
+    const usadas = new Set(Object.values(documentos).flatMap((r) => rutasDe(r)));
+    const sinProbar = MODELO.filter((r) => !usadas.has(r));
+    expect(sinProbar, sinProbar.length ? "\nSumalos a los documentos de este chequeo:\n" + sinProbar.join("\n") : "").toEqual([]);
+  });
+
+  it.each(Object.keys(documentos))("antigüedad %s: no se pierde nada al guardar", (nombre) => {
+    const doc = docDe(documentos[nombre]);
+    const guardado = formToConvenio(convenioToForm(doc), doc);
+    const fuera = perdidos(doc.reglas_calculo, guardado.reglas_calculo).filter((r) => !PENDIENTES_DEL_PANEL.includes(r));
+    expect(
+      fuera,
+      fuera.length
+        ? "\nEstos campos se pierden al guardar el convenio desde /admin:\n" + fuera.map((r) => "   reglas_calculo." + r).join("\n") +
+          "\n\nO el formulario los aprende a guardar (lib/convenioForm.js), o no se pueden ofrecer.\n"
+        : ""
+    ).toEqual([]);
+  });
+
+  it("los pendientes anotados siguen pendientes (si ya se guardan, sacarlos de la lista)", () => {
+    const seSiguenPerdiendo = new Set(
+      Object.values(documentos).flatMap((reglas) => {
+        const doc = docDe(reglas);
+        return perdidos(doc.reglas_calculo, formToConvenio(convenioToForm(doc), doc).reglas_calculo);
+      })
+    );
+    const yaSeGuardan = PENDIENTES_DEL_PANEL.filter((r) => !seSiguenPerdiendo.has(r));
+    expect(yaSeGuardan, yaSeGuardan.length ? "\nYa se guardan: sacalos de PENDIENTES_DEL_PANEL y de docs/criterio.md:\n" + yaSeGuardan.join("\n") : "").toEqual([]);
+  });
+});

@@ -8,6 +8,9 @@ import { convenioToForm, formToConvenio } from "../lib/convenioForm.js";
 import { procesarRecibo } from "../lib/motorLiquidacion.js";
 import convenioComercio from "./fixtures/patron/comercio-cct-130-75.convenio.json";
 import escalasComercio from "./fixtures/patron/comercio-cct-130-75.escalas.json";
+import camionerosVivo from "./fixtures/camioneros-cct-40-89.convenio.json";
+import gastronomicosVivo from "./fixtures/gastronomicos-cct-389-04.convenio.json";
+import comercioVivo from "./fixtures/comercio-cct-130-75.convenio.json";
 
 const money = (n) => Math.round(n * 100) / 100;
 const sortDeep = (x) => {
@@ -101,5 +104,30 @@ describe("Editor de convenios por formulario", () => {
     expect(nuevo.reglas_calculo.retenciones_sindicales["cuota_afiliado"].porcentaje).toBe(0.025);
     // Como hay una retención "solo_afiliado", debe existir el input de afiliación.
     expect(nuevo.inputs_requeridos.some((i) => i.id === "afiliado_sindicato")).toBe(true);
+  });
+});
+
+describe("abrir y guardar sin tocar nada, con los convenios de producción", () => {
+  // La red antes de sumarle campos al convenio (plan de A11–A14, 15/10/2026):
+  // al guardar, el formulario vuelve a armar varias reglas sólo con los campos
+  // que conoce, así que lo que no conoce se pierde. Hasta acá la ida y vuelta
+  // se probaba sólo con la foto congelada de Comercio.
+  //
+  // Las preguntas se comparan sin mirar el orden: el formulario las vuelve a
+  // armar, y Camioneros sale de /admin con las preguntas en otro orden que el
+  // cargado en Firestore. Eso cambia el orden en pantalla, no la cuenta. Lo que
+  // no puede cambiar es cuáles son ni qué dicen.
+  const comparable = (doc) => {
+    const preguntas = Object.fromEntries((doc.inputs_requeridos || []).map((i) => [i.id, i]));
+    return sortDeep({ ...doc, inputs_requeridos: preguntas });
+  };
+
+  it.each([
+    ["Camioneros", camionerosVivo],
+    ["Gastronómicos", gastronomicosVivo],
+    ["Comercio", comercioVivo],
+  ])("%s: el documento guardado es el mismo que se abrió", (_, doc) => {
+    const guardado = formToConvenio(convenioToForm(doc), doc);
+    expect(comparable(guardado)).toEqual(comparable(doc));
   });
 });

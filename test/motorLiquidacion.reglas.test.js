@@ -143,6 +143,26 @@ describe("aplica_sobre dejó de ser decorativo", () => {
       money(linea(sobreBasico, "Complemento de Servicio").monto)
     );
   });
+
+  it("antigüedad sobre básico más adicionales y presentismo sobre básico más antigüedad: frena", () => {
+    // El presentismo se calcula antes que esa antigüedad, así que no la puede
+    // incluir. Hasta el 15/10/2026 ningún test cubría este freno.
+    const antiguedadDiferida = { porcentaje_por_año: 0.01, aplica_sobre: "basico_mas_adicionales" };
+    expect(() =>
+      procesarRecibo(
+        conVariante({ antiguedad: antiguedadDiferida, presentismo: { ...base, aplica_sobre: "basico_mas_antiguedad" } }),
+        escalasGastro["2026-06"],
+        entradas({ antiguedad_años: 5 })
+      )
+    ).toThrow(/las dos cosas a la vez no se pueden/);
+    // Con el presentismo sobre el básico, la misma antigüedad se liquida.
+    const r = procesarRecibo(
+      conVariante({ antiguedad: antiguedadDiferida, presentismo: { ...base, aplica_sobre: "basico" } }),
+      escalasGastro["2026-06"],
+      entradas({ antiguedad_años: 5 })
+    );
+    expect(money(linea(r, "Presentismo").monto)).toBe(137668.1);
+  });
 });
 
 describe("los fallbacks que convertían un convenio incompleto en un Comercio disfrazado", () => {

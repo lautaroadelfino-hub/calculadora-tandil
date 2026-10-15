@@ -150,3 +150,25 @@ describe("la composición de las cargas", () => {
     expect(rubros.art.porcentajeDelCosto).toBeNull();
   });
 });
+
+describe("la hora extra al 100%", () => {
+  // Hasta el 15/10/2026 ningún test fijaba el monto de esta línea: la del 50%
+  // estaba cubierta y la del 100% sólo por textos. Es la red antes de tocar los
+  // recargos (punto A11 de la auditoría del 23/9/2026).
+  const money = (n) => Math.round(n * 100) / 100;
+  const escala = { mes_vigencia: "Julio 2026", categorias: { "Vendedor B": { basico: 1177947, no_remunerativo: 120000 } } };
+  const r = procesarRecibo(comercio, escala, {
+    categoria: "Vendedor B", carga_horaria: 48, antiguedad_años: 5, horas_extras_50: 0, horas_extras_100: 8, afiliado_sindicato: false,
+  }, null, opciones);
+
+  it("8 horas × valor hora × 2; el valor hora es básico + antigüedad + presentismo, sobre 200", () => {
+    const l = linea(r, "Horas Extras 100%");
+    expect(l.concepto).toBe("Horas Extras 100% (8 hs)");
+    expect(l.detalle).toMatchObject({ tipo: "hora_extra", cantidad: 8, recargo: 2, divisor: 200 });
+    // 1.177.947 + 58.897,35 + 103.066,24 = 1.339.910,59 → / 200 = 6.699,55
+    expect(money(l.detalle.baseHora)).toBe(1339910.59);
+    expect(money(l.detalle.valorHora)).toBe(6699.55);
+    expect(money(l.monto)).toBe(107192.85);
+    expect(explicarLinea(l)).toMatch(/8 horas × \$.* × 2 · valor hora: \$.* \/ 200 hs/);
+  });
+});
