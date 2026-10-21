@@ -133,6 +133,32 @@ describe.each(convenios)("$id", ({ convenio, escalas }) => {
       expect(r.costoEmpleador.costoLaboral).toBeCloseTo(r.totales.costoEmpleador, 6);
       for (const l of lineas) expect(l.rubro, `"${l.concepto}" sin rubro`).toBeTruthy();
     });
+
+    it("las líneas suman los totales: remunerativo, no remunerativo y retenciones, con varias entradas", () => {
+      // Un acumulador que se olvida de una línea deja el recibo mintiendo solo:
+      // la línea se ve, pero no está en el bruto ni paga aportes (la auditoría
+      // del 15/10/2026 lo probó con el importe fijo por mes). Se corre con
+      // entradas cargadas, porque con las iniciales no hay antigüedad, SAC,
+      // vacaciones ni horas extras.
+      const iniciales = valoresIniciales(convenio.inputs_requeridos);
+      const variantes = [
+        {},
+        { antiguedad_años: 10 },
+        { incluir_sac: true, dias_vacaciones: 14 },
+        { horas_extras_50: 8, horas_extras_100: 4 },
+        { carga_horaria: 24, antiguedad_años: 5, incluir_sac: true },
+        { carga_horaria: 24, horas_extras_50: 5, dias_vacaciones: 7, afiliado_sindicato: true },
+      ];
+      for (const cambios of variantes) {
+        const r = procesarRecibo(convenio, escalas[periodo], { ...iniciales, ...cambios }, null, {
+          tablaContribuciones: semillaContribuciones,
+        });
+        const suma = (tipo) => r.detalle.filter((l) => l.tipo === tipo).reduce((a, l) => a + l.monto, 0);
+        expect(r.totales.bruto, JSON.stringify(cambios)).toBeCloseTo(suma("remunerativo"), 6);
+        expect(r.totales.noRemunerativo, JSON.stringify(cambios)).toBeCloseTo(suma("no_remunerativo"), 6);
+        expect(r.totales.retenciones, JSON.stringify(cambios)).toBeCloseTo(suma("retencion"), 6);
+      }
+    });
   });
 });
 

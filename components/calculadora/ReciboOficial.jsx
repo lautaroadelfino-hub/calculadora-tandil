@@ -25,6 +25,7 @@ import {
   bloquesComposicion,
   porcionesDelCosto,
   lineasPorTipo,
+  notaAntiguedadVariable,
 } from "@/lib/reciboOficial";
 
 // Los colores de la torta, uno por porción y siempre el mismo (validados con
@@ -285,6 +286,7 @@ export default function ReciboOficial({ resultado, convenio, entradas, periodoId
   const { desconocidas } = lineasPorTipo(resultado.detalle);
   const composicion = bloquesComposicion(resultado);
   const torta = porcionesDelCosto(resultado);
+  const notaAntiguedad = notaAntiguedadVariable(resultado);
   const mesSinTabla = nombreDePeriodo(resultado.metodo && resultado.metodo.periodo);
 
   return (
@@ -360,6 +362,9 @@ export default function ReciboOficial({ resultado, convenio, entradas, periodoId
 
         {/* Haberes y aportes del trabajador */}
         <Tabla titulo="Haberes y descuentos del trabajador" filas={filasTrabajador(resultado.detalle)} vacio="El recibo no tiene líneas." />
+        {/* Sólo Camioneros con km y antigüedad: en el papel es la única explicación
+            de por qué la base del SAC y de la solidaria no es básico + antigüedad. */}
+        {notaAntiguedad && <p className="px-1.5 py-0.5 text-[9px] leading-tight text-slate-700">{notaAntiguedad}</p>}
 
         <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 border ${NEGRO} bg-slate-200 px-2 py-1 text-[12px] font-bold text-slate-900 -mt-px`}>
           <span className="uppercase">Composicion salarial:</span>

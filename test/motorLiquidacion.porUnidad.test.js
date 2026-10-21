@@ -163,6 +163,97 @@ describe("la antigüedad sobre básico más adicionales (ítem 6.1.5)", () => {
   });
 });
 
+describe("lo variable y su antigüedad, y el importe fijo por mes (decidido con el dueño el 15/10/2026)", () => {
+  const conSolidaria = JSON.parse(JSON.stringify(camioneros));
+  conSolidaria.reglas_calculo.retenciones_sindicales = {
+    solidaria: { label: "Solidaria (2%)", porcentaje: 0.02, base: "remunerativo_habitual" },
+  };
+  const basico = 1060010.29;
+  const km = 84.80265 * 500;
+
+  it("en jornada parcial, la antigüedad sobre los km no se lleva a jornada completa en la obra social", () => {
+    const r = procesarRecibo(conSolidaria, escalaJulio, entradas({ carga_horaria: 24, antiguedad_años: 10, km_recorridos: 500 }), null, opciones);
+    const habitual = (basico / 2) * 1.1; // básico de 24 hs + 10% del básico
+    const remunerativo = habitual + km * 1.1; // más los km y su antigüedad, como se cobraron
+    expect(money(r.metodo.antiguedadSobreVariables)).toBe(money(km * 0.1));
+    // La obra social va sobre lo cobrado más lo que le falta a lo fijo para las 48 hs.
+    expect(money(linea(r, "Obra Social (3%)").detalle.base)).toBe(money(remunerativo + habitual));
+    expect(money(linea(r, "Solidaria").monto)).toBe(money(habitual * 0.02));
+  });
+
+  it("un importe fijo por mes va como el presentismo: se proporciona y es remuneración habitual", () => {
+    const conPremio = JSON.parse(JSON.stringify(conSolidaria));
+    conPremio.reglas_calculo.adicionales_por_unidad.premio = { label: "Premio asistencia", valor: "premio_asistencia", unidad: "mes", naturaleza: "remunerativo" };
+    const escala = { ...escalaJulio, valores_del_periodo: { ...escalaJulio.valores_del_periodo, premio_asistencia: 60000 } };
+    const r = procesarRecibo(conPremio, escala, entradas({ carga_horaria: 24, antiguedad_años: 10, incluir_sac: true, dias_vacaciones: 14, horas_extras_50: 4 }), null, opciones);
+    const premio = linea(r, "Premio asistencia");
+    expect(money(premio.monto)).toBe(30000); // 60.000 × 24/48
+    expect(premio.detalle).toMatchObject({ tipo: "escala", base: 60000, factor: 0.5 });
+    // La antigüedad (6.1.5) también va sobre el premio, y esa parte es habitual.
+    expect(r.metodo.antiguedadSobreVariables).toBe(0);
+    const habitual = (basico / 2 + 30000) * 1.1;
+    expect(money(linea(r, "SAC").detalle.base)).toBe(money(habitual));
+    expect(money(linea(r, "Solidaria").monto)).toBe(money(habitual * 0.02));
+    expect(money(r.metodo.valorHora)).toBe(money(habitual / 100)); // 200 hs × 24/48
+    // Y la plata, no sólo las bases que el recibo declara: la auditoría del
+    // 15/10/2026 sacó el premio del SAC, del plus y de la obra social sin que
+    // fallara ningún test.
+    expect(money(linea(r, "SAC").monto)).toBe(money(habitual / 2));
+    expect(money(linea(r, "Plus vacacional").monto)).toBe(money((habitual / 150) * 14));
+    // La obra social: lo cobrado más lo que le falta a lo fijo para las 48 hs.
+    expect(money(linea(r, "Obra Social (3%)").detalle.base)).toBe(money(r.totales.bruto + habitual));
+    // El premio entra al bruto y paga aportes: el número, clavado.
+    expect(money(r.totales.bruto)).toBe(1018462.69);
+    expect(money(linea(r, "Jubilación").detalle.base)).toBe(1018462.69);
+  });
+
+  it("con la antigüedad sobre el básico (Comercio, Gastronómicos): se proporciona, es habitual y no genera antigüedad ni presentismo", () => {
+    const comoComercio = JSON.parse(JSON.stringify(conSolidaria));
+    comoComercio.reglas_calculo.antiguedad = { porcentaje_por_año: 0.01 };
+    comoComercio.reglas_calculo.presentismo = { porcentaje: 0.08333, aplica_sobre: "basico_mas_antiguedad" };
+    const mismasEntradas = entradas({ carga_horaria: 24, antiguedad_años: 10, incluir_sac: true, horas_extras_50: 4 });
+    const sinPremio = procesarRecibo(comoComercio, escalaJulio, mismasEntradas, null, opciones);
+    comoComercio.reglas_calculo.adicionales_por_unidad.premio = { label: "Premio asistencia", valor: "premio_asistencia", unidad: "mes", naturaleza: "remunerativo" };
+    const escala = { ...escalaJulio, valores_del_periodo: { ...escalaJulio.valores_del_periodo, premio_asistencia: 60000 } };
+    const r = procesarRecibo(comoComercio, escala, mismasEntradas, null, opciones);
+    expect(money(linea(r, "Premio asistencia").monto)).toBe(30000);
+    expect(linea(r, "Premio asistencia").detalle).toMatchObject({ tipo: "escala", base: 60000, factor: 0.5 });
+    // Ni la antigüedad ni el presentismo lo miran: van sobre el básico (y la antigüedad).
+    expect(linea(r, "Antigüedad").monto).toBe(linea(sinPremio, "Antigüedad").monto);
+    expect(money(linea(r, "Antigüedad").monto)).toBe(money((basico / 2) * 0.1));
+    expect(linea(r, "Presentismo").monto).toBe(linea(sinPremio, "Presentismo").monto);
+    // Pero sí es habitual: el SAC, la solidaria y el valor hora suben justo $30.000 de base.
+    const habitual = linea(sinPremio, "SAC").detalle.base + 30000;
+    expect(money(linea(r, "SAC").detalle.base)).toBe(money(habitual));
+    expect(money(linea(r, "SAC").monto)).toBe(money(habitual / 2));
+    expect(money(linea(r, "Solidaria").monto)).toBe(money(habitual * 0.02));
+    expect(money(r.metodo.valorHora)).toBe(money(habitual / 100));
+  });
+
+  it("premio por mes y kilómetros a la vez: la antigüedad se parte en la del fijo (habitual) y la de los km (variable)", () => {
+    const conPremio = JSON.parse(JSON.stringify(conSolidaria));
+    conPremio.reglas_calculo.adicionales_por_unidad.premio = { label: "Premio asistencia", valor: "premio_asistencia", unidad: "mes", naturaleza: "remunerativo" };
+    const escala = { ...escalaJulio, valores_del_periodo: { ...escalaJulio.valores_del_periodo, premio_asistencia: 60000 } };
+    const r = procesarRecibo(conPremio, escala, entradas({ carga_horaria: 24, antiguedad_años: 10, km_recorridos: 500, incluir_sac: true, horas_extras_50: 4 }), null, opciones);
+    const habitual = (basico / 2 + 30000) * 1.1;
+    expect(money(linea(r, "Antigüedad").monto)).toBe(money((basico / 2 + 30000 + km) * 0.1));
+    expect(money(r.metodo.antiguedadSobreVariables)).toBe(money(km * 0.1));
+    expect(money(linea(r, "SAC").detalle.base)).toBe(money(habitual));
+    expect(money(linea(r, "Solidaria").monto)).toBe(money(habitual * 0.02));
+    expect(money(r.metodo.valorHora)).toBe(money(habitual / 100));
+    // La obra social lleva a 48 hs sólo lo fijo (básico, premio y su antigüedad); los km y su antigüedad van como se cobraron.
+    expect(money(linea(r, "Obra Social (3%)").detalle.base)).toBe(money(r.totales.bruto + habitual));
+  });
+
+  it("el no remunerativo por mes sigue como estaba: entero, sin proporcionar (eso no se decidió)", () => {
+    const conSuma = JSON.parse(JSON.stringify(camioneros));
+    conSuma.reglas_calculo.adicionales_por_unidad.suma = { label: "Suma fija no remunerativa", valor: "suma_fija", unidad: "mes", naturaleza: "no_remunerativo", con_incidencia: true };
+    const escala = { ...escalaJulio, valores_del_periodo: { ...escalaJulio.valores_del_periodo, suma_fija: 20000 } };
+    const r = procesarRecibo(conSuma, escala, entradas({ carga_horaria: 24 }), null, opciones);
+    expect(money(linea(r, "Suma fija no remunerativa").monto)).toBe(20000);
+  });
+});
+
 describe("lo que frena en vez de adivinar", () => {
   it("si la escala no trae el importe del período", () => {
     const sinComida = { ...escalaJulio, valores_del_periodo: { viatico_especial: 8139.09, pernoctada: 1, km_hora_extra: 1, km_viatico: 1 } };

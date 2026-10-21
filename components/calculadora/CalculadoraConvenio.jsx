@@ -664,12 +664,16 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                             ? `por tramos del convenio (${(metodo.antiguedad.tramos || []).map((t) => `desde ${num(t.desde_años)} años: ${pct(t.porcentaje)}`).join("; ")}); con ${num(metodo.antiguedad.años)} años corresponde ${pct(metodo.antiguedad.porcentajeTotal)}`
                             : `${pct(metodo.antiguedad.porAño)} por año`}
                           , sobre {metodo.antiguedadSobre === "basico_mas_adicionales" ? "el básico más los adicionales remunerativos (los viáticos no)" : "el básico"}.
+                          {metodo.antiguedadSobreVariables > 0 &&
+                            ` La parte que sale de lo que se paga por kilómetro, día o viaje (${money(metodo.antiguedadSobreVariables)}) va como eso: paga aportes, pero no entra en el SAC, el plus vacacional, la solidaria ni el valor hora${metodo.jornadaDelPuesto < metodo.jornadaCompletaSemanal ? ", y no se lleva a jornada completa para la obra social" : ""}.`}
                         </li>
                       )}
                       {metodo.valorHora != null && (
                         <li>
-                          Valor hora: (básico + antigüedad + presentismo + adicionales fijos) / {num(metodo.horasMensualesDelPuesto)} hs = {money(metodo.valorHora)}.
-                          Los conceptos variables (kilómetros, SAC, vacaciones) no entran en el valor hora.
+                          {/* La base en pesos y no la fórmula: con km de por medio entra sólo la
+                              parte habitual de la antigüedad. La base es valor hora × horas. */}
+                          Valor hora: lo fijo del mes, {money(metodo.valorHora * metodo.horasMensualesDelPuesto)} / {num(metodo.horasMensualesDelPuesto)} hs = {money(metodo.valorHora)}.
+                          Los conceptos variables (kilómetros{metodo.antiguedadSobreVariables > 0 ? " y su antigüedad" : ""}, SAC, vacaciones) no entran en el valor hora.
                         </li>
                       )}
                       {metodo.noRemunerativoConIncidencia > 0 && (

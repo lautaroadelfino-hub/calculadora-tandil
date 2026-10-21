@@ -82,10 +82,33 @@ describe("Camioneros: canarios de agosto 2026", () => {
     expect(money(linea(r, "Horas extraordinarias por km").monto)).toBe(688597.52);
     expect(money(linea(r, "Viático por km").monto)).toBe(688597.52);
     expect(money(linea(r, "Antigüedad").monto)).toBe(192589.45); // 10% de (básico + 15% + km)
+    expect(money(r.metodo.antiguedadSobreVariables)).toBe(68859.75); // de eso, el 10% de los km
     expect(money(linea(r, "Cuota sindical").monto)).toBe(63554.52);
     expect(linea(r, "Contribución solidaria")).toBeUndefined();
     expect(money(r.totales.bruto)).toBe(2118483.98);
     expect(money(r.totales.neto)).toBe(2351607.44);
+  });
+
+  it("8.000 km, 10 años, no afiliado, con SAC, vacaciones y horas extras: la antigüedad sobre los km va como los km", () => {
+    // Decidido con el dueño el 15/10/2026: la antigüedad se calcula sobre todo
+    // lo remunerativo, km incluidos (6.1.5), y esa parte paga aportes; pero como
+    // los km, no es remuneración habitual (SAC, plus, solidaria, valor hora).
+    const r = procesarRecibo(convenio, agosto, {
+      ...porDefecto, antiguedad_años: 10, larga_distancia: true, km_recorridos: 8000, afiliado_sindicato: false, dias_trabajados: 0,
+      incluir_sac: true, dias_vacaciones: 14, horas_extras_50: 10,
+    }, null, opciones);
+    expect(money(linea(r, "Antigüedad").monto)).toBe(176450.8); // 10% de (básico + km)
+    expect(money(r.metodo.antiguedadSobreVariables)).toBe(68859.75); // 10% de los km
+    expect(money(linea(r, "Jubilación").detalle.base)).toBe(money(r.totales.bruto));
+    // La remuneración habitual: básico + 10% del básico.
+    const habitual = 1183501.48;
+    expect(money(linea(r, "SAC").detalle.base)).toBe(habitual);
+    expect(money(linea(r, "SAC").monto)).toBe(591750.74);
+    expect(money(linea(r, "Plus vacacional").monto)).toBe(110460.14); // habitual / 150 × 14
+    expect(money(r.metodo.valorHora)).toBe(6164.07); // habitual / 192
+    expect(money(linea(r, "Horas Extras 50%").monto)).toBe(92461.05);
+    expect(money(linea(r, "Contribución solidaria").detalle.base)).toBe(habitual);
+    expect(money(linea(r, "Contribución solidaria").monto)).toBe(23670.03);
   });
 
   it("Peón, 20 días, 3 pernoctes, 10 horas extras al 50%: la hora sale del divisor 192", () => {

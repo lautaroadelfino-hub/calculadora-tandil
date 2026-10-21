@@ -498,16 +498,18 @@ export default function ConveniosTab({ onConveniosChanged }) {
       {/* Adicionales por unidad: por día, por km, por viaje o por mes */}
       <div className="bg-white border border-slate-200 rounded-xl p-5">
         <div className="flex items-center justify-between mb-1">
-          <h3 className="text-sm font-bold text-slate-700">Adicionales por día, por kilómetro o por viaje</h3>
+          <h3 className="text-sm font-bold text-slate-700">Adicionales por día, por kilómetro, por viaje o por mes</h3>
           <button type="button" onClick={agregarPU} className="text-xs font-bold text-purple-700 hover:text-purple-900">+ Agregar adicional</button>
         </div>
         <p className="text-[11px] text-slate-400 mb-3">
-          Un importe que fija cada planilla, multiplicado por una cantidad que informa la persona: la comida, el viático
-          especial, la pernoctada y los kilómetros de Camioneros. El IMPORTE se carga por período en Escalas paritarias →
-          Valores del período, con la clave que pongas acá. La cantidad se pregunta en la calculadora.
+          Un importe que fija cada planilla. Por día, por km o por viaje se multiplica por la cantidad que la persona
+          contesta en la calculadora (la comida, el viático especial, la pernoctada y los kilómetros de Camioneros). Por
+          mes es un importe fijo, sin cantidad: remunerativo va como el presentismo (se proporciona por la jornada y suma
+          al aguinaldo); no remunerativo se paga entero. El IMPORTE se carga por período en Escalas paritarias → Valores
+          del período, con la clave que pongas acá.
         </p>
         {(form.porUnidad || []).length === 0 ? (
-          <p className="text-sm text-slate-400 py-3">Sin adicionales por unidad. Agregá uno si el convenio paga por día, por km o por viaje.</p>
+          <p className="text-sm text-slate-400 py-3">Sin adicionales por unidad. Agregá uno si el convenio paga por día, por km, por viaje o un importe fijo por mes.</p>
         ) : (
           <div className="space-y-3">
             {form.porUnidad.map((u, i) => (

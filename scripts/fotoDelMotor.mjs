@@ -15,6 +15,9 @@
 //   node scripts/fotoDelMotor.mjs --comparar respaldos/foto-motor/<archivo>.ndjson
 //       Saca la foto y la compara con esa. Sale con código 1 si hay diferencias.
 //   --datos respaldos/<carpeta>   Otro respaldo como fuente (ver DATOS_POR_DEFECTO).
+//   --ignorar recibo.metodo.<campo>   Al comparar, no mira ese campo (se puede repetir).
+//       Para cuando el cambio agrega un campo nuevo a propósito: sin esto, todos
+//       los recibos darían distintos por el campo nuevo y no se vería lo demás.
 //
 // Los datos de producción salen SIEMPRE de un respaldo fijo (respaldar.bat),
 // no de test/fixtures: un respaldo no se modifica nunca, así que dos fotos
@@ -43,6 +46,19 @@ const valorDe = (bandera) => {
 };
 const carpetaDatos = resolve(RAIZ, valorDe("--datos") || DATOS_POR_DEFECTO);
 const archivoAComparar = valorDe("--comparar");
+const camposIgnorados = args.flatMap((a, i) => (a === "--ignorar" && args[i + 1] ? [args[i + 1].split(".")] : []));
+
+/** Saca de una salida los campos que se pidió no mirar. */
+function sinIgnorados(salida) {
+  if (!camposIgnorados.length) return salida;
+  const copiaSalida = JSON.parse(JSON.stringify(salida));
+  for (const ruta of camposIgnorados) {
+    let nodo = copiaSalida;
+    for (const parte of ruta.slice(0, -1)) nodo = nodo && typeof nodo === "object" ? nodo[parte] : undefined;
+    if (nodo && typeof nodo === "object") delete nodo[ruta[ruta.length - 1]];
+  }
+  return copiaSalida;
+}
 
 const leerJson = (ruta) => JSON.parse(readFileSync(ruta, "utf8"));
 const sinRuta = ({ ruta, ...resto }) => resto;
@@ -191,6 +207,15 @@ function variantesDePrueba(produccion) {
       (e) => ({ ...e, valores_del_periodo: { ...(e.valores_del_periodo || {}), sint_mes: 60000, sint_dia: 5000, sint_viaje: 12000, sint_km: 55.5 } })
     ),
     variante("antiguedad-sobre-basico", camioneros, (r) => { r.antiguedad.aplica_sobre = "basico"; }),
+    // El estado al que va producción cuando el dueño destilde la casilla (decidido el 15/10/2026).
+    variante("nr-no-genera-adicionales", camioneros, (r) => { r.no_remunerativo_genera_adicionales = false; }),
+    // Un importe fijo por mes sobre un convenio con solidaria sobre el habitual, cruzado con los km.
+    variante(
+      "premio-por-mes",
+      camioneros,
+      (r) => { r.adicionales_por_unidad.sint_premio = { label: "Premio de prueba mensual", valor: "sint_premio", unidad: "mes", naturaleza: "remunerativo" }; },
+      (e) => ({ ...e, valores_del_periodo: { ...(e.valores_del_periodo || {}), sint_premio: 60000 } })
+    ),
     variante("nr-genera-adicionales", gastronomicos, (r) => { delete r.no_remunerativo_genera_adicionales; }),
     variante("antiguedad-lineal", gastronomicos, (r) => { r.antiguedad = { porcentaje_por_año: 0.01 }; }),
     variante("presentismo", gastronomicos, (r) => { r.presentismo = { porcentaje: 0.08333, aplica_sobre: "basico_mas_antiguedad" }; }),
@@ -378,11 +403,13 @@ if (archivoAComparar) {
   if (vieja.datos !== cabecera.datos) {
     console.log(`OJO: la foto vieja usó otros datos (${vieja.datos}); las diferencias pueden ser de datos y no del motor.`);
   }
-  const fotoVieja = new Map(resto.map((l) => { const { id, salida } = JSON.parse(l); return [id, salida]; }));
+  const fotoVieja = new Map(resto.map((l) => { const { id, salida } = JSON.parse(l); return [id, sinIgnorados(salida)]; }));
+  if (camposIgnorados.length) console.log(`Sin mirar: ${camposIgnorados.map((r) => r.join(".")).join(", ")}`);
   const distintos = [];
   for (const [id, texto] of fotoActual) {
+    const actual = sinIgnorados(JSON.parse(texto));
     if (!fotoVieja.has(id)) distintos.push({ id, que: ["caso nuevo (no estaba en la foto vieja)"] });
-    else if (JSON.stringify(fotoVieja.get(id)) !== texto) distintos.push({ id, que: diferencias(fotoVieja.get(id), JSON.parse(texto)) });
+    else if (JSON.stringify(fotoVieja.get(id)) !== JSON.stringify(actual)) distintos.push({ id, que: diferencias(fotoVieja.get(id), actual) });
   }
   for (const id of fotoVieja.keys()) if (!fotoActual.has(id)) distintos.push({ id, que: ["caso que ya no está"] });
   console.log(`\nComparada con ${archivoAComparar} (commit ${vieja.commit}): ${distintos.length} caso(s) distinto(s) de ${fotoActual.size}.`);

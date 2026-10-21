@@ -60,6 +60,23 @@ describe("la suma no remunerativa sin incidencia", () => {
     expect(linea(con, "Cuota Afiliado").monto).toBe(linea(sin, "Cuota Afiliado").monto);
   });
 
+  it("a media jornada y con SAC y vacaciones, tampoco se mete en ninguna base", () => {
+    // La auditoría del 15/10/2026 metió la suma en la remuneración habitual y en
+    // el ajuste de la obra social a jornada completa sin que ningún test lo
+    // viera: el par de arriba corre a jornada completa, donde ese ajuste es cero.
+    const entradasB = entradas({ carga_horaria: 24, incluir_sac: true, dias_vacaciones: 14 });
+    const conB = procesarRecibo(convenioComercio, conAsignacion, entradasB, null, opciones);
+    const sinB = procesarRecibo(convenioComercio, sinAsignacion, entradasB, null, opciones);
+    expect(money(conB.totales.neto - sinB.totales.neto)).toBe(12500); // prorrateada, y nada más
+    expect(conB.totales.bruto).toBe(sinB.totales.bruto); // no entra al SAC ni al plus vacacional
+    expect(conB.totales.retenciones).toBe(sinB.totales.retenciones);
+    expect(conB.totales.contribuciones).toBe(sinB.totales.contribuciones);
+    // No se lleva a jornada completa en la base de la obra social.
+    expect(linea(conB, "Obra Social (3%)").detalle.base).toBe(linea(sinB, "Obra Social (3%)").detalle.base);
+    expect(linea(conB, "SAC").monto).toBe(linea(sinB, "SAC").monto);
+    expect(linea(conB, "Plus vacacional").monto).toBe(linea(sinB, "Plus vacacional").monto);
+  });
+
   it("no genera antigüedad ni presentismo: los $120.000 sí, los $25.000 no", () => {
     expect(linea(con, "Antigüedad No Remunerativa").monto).toBe(linea(sin, "Antigüedad No Remunerativa").monto);
     expect(money(linea(con, "Antigüedad No Remunerativa").monto)).toBe(6000); // 5% de 120.000

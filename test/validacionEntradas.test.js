@@ -76,6 +76,15 @@ describe("lo que frena, y dice por qué", () => {
     expect(k.errores.km_recorridos).toMatch(/km en un mes/);
   });
 
+  it("una regla por mes con una pregunta de cantidad colgada no le saca el tope a la pregunta de otra regla", () => {
+    // Por mes no hay cantidad (el motor fija 1). Si el documento trae igual un
+    // `cantidad_de`, el tope de los días sigue siendo 31.
+    const conPremio = JSON.parse(JSON.stringify(camioneros));
+    conPremio.reglas_calculo.adicionales_por_unidad.premio = { label: "Premio", valor: "premio", unidad: "mes", naturaleza: "remunerativo", cantidad_de: "dias_trabajados" };
+    const r = normalizarEntradas(conPremio, base(camioneros, { dias_trabajados: 400 }), "2026-08");
+    expect(r.errores.dias_trabajados).toMatch(/máximo 31/);
+  });
+
   it("una ART del 500% es un error, no una cuota", () => {
     expect(normalizarEntradas(comercio, base(comercio, { art_alicuota: 500 }), "2026-09").errores.art_alicuota).toMatch(/30%/);
   });

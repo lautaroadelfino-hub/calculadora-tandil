@@ -15,6 +15,7 @@ import {
   porcionesDelCosto,
   encabezado,
   lineasPorTipo,
+  notaAntiguedadVariable,
   NOTA_SEGURIDAD_SOCIAL,
 } from "../lib/reciboOficial.js";
 import semilla from "../data/contribuciones.seed.json";
@@ -235,5 +236,29 @@ describe("el encabezado", () => {
   it("la zona acompaña a la categoría y un año se escribe en singular", () => {
     expect(encabezado(rComercio, { categoria: "Nivel 1", zona: "Escala A", antiguedad_años: 1 }, "2026-01")).toMatchObject({ mes: "enero", categoria: "Nivel 1 · Escala A", antiguedad: "1 año" });
     expect(encabezado(null, {}, "")).toMatchObject({ mes: "", año: "", antiguedad: "0 años" });
+  });
+});
+
+describe("el renglón al pie de la antigüedad sobre los km", () => {
+  const conKm = (extra = {}) =>
+    procesarRecibo(
+      camioneros,
+      escalasCamioneros["2026-08"],
+      { ...porDefectoCamioneros, antiguedad_años: 10, larga_distancia: true, km_recorridos: 8000, dias_trabajados: 0, ...extra },
+      null,
+      { ...opciones, periodo: "2026-08" }
+    );
+
+  it("sale sólo cuando parte de la antigüedad viene de lo pagado por km, día o viaje, con el importe", () => {
+    expect(notaAntiguedadVariable(conKm())).toBe(
+      "La antigüedad sobre lo pagado por km, día o viaje ($ 68.859,75) paga aportes, pero no entra en el SAC, el plus vacacional, la solidaria ni el valor hora."
+    );
+    expect(notaAntiguedadVariable(rCamioneros)).toBeNull(); // sin km
+    expect(notaAntiguedadVariable(rComercio)).toBeNull();
+    expect(notaAntiguedadVariable(null)).toBeNull();
+  });
+
+  it("en jornada parcial dice además que no se lleva a jornada completa para la obra social", () => {
+    expect(notaAntiguedadVariable(conKm({ carga_horaria: 22 }))).toMatch(/\(\$ 68\.859,75\) .*ni el valor hora, ni se lleva a jornada completa para la obra social\.$/);
   });
 });

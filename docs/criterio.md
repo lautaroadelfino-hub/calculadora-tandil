@@ -162,8 +162,13 @@ un dato que cambia por período clavado adentro del código.
    y probalo con un convenio que no lo tenga.
 5. **Escribí el test**, y después borrá a propósito la línea del motor que lee
    el campo: si el test sigue en verde, el test no sirve.
-6. **Verificá que nada se movió:** `npm test` y el canario de producción del
-   README (Vendedor B, 5 años, septiembre 2026 → **$1.251.841,10**).
+6. **Verificá que nada se movió:** `npm test`, el canario de producción del
+   README (Vendedor B, 5 años, septiembre 2026 → **$1.251.841,10**) y la foto
+   del motor: `node scripts/fotoDelMotor.mjs --comparar respaldos/foto-motor/<la última>.ndjson`
+   tiene que dar cero diferencias salvo lo decidido. La foto vive en
+   `respaldos/foto-motor/`, que está fuera de git: es una herramienta de esta
+   máquina (se regenera con un respaldo de Firestore), y Cloudflare no la corre,
+   sólo corre `npm test`. Lo que la foto cuida tiene que estar también en un test.
 
 ---
 
@@ -185,8 +190,12 @@ plus vacacional, premios y no remunerativos). En el motor esa base es
   `remunerativo_habitual`.
 - **Seguro de sepelio** (Camioneros 1,5%, Gastronómicos 1%): no se suma a la
   solidaria para el tope del 2%; es un seguro, no un aporte al sindicato.
-- **Presentismo:** integra la base habitual. Es un adicional mensual del
-  convenio, no un premio en el sentido del decreto.
+- **Presentismo, y cualquier adicional remunerativo de importe fijo por mes
+  que fije el convenio** (el premio asistencia de Camioneros, por ejemplo):
+  integran la base habitual. Son adicionales mensuales del convenio, no premios
+  en el sentido del decreto, aunque la paritaria los llame "premio". Así se lee
+  el paréntesis de arriba, y así lo aplica la decisión del 15/10/2026 de más
+  abajo.
 
 Fuentes: DDAS, PASBBA Abogados, Raskovsky & Asociados e Ignacio Online (julio
 de 2026).
@@ -204,6 +213,21 @@ Camioneros no entran en Ganancias.
 **Horas extras por km de Camioneros, decidido el 5/10/2026:** pagan aportes,
 pero no entran en el SAC, el plus vacacional ni la solidaria.
 
+**Antigüedad sobre lo que se paga por km, día o viaje, decidido el 15/10/2026:**
+se calcula (ítem 6.1.5 del 40/89) y va como eso: paga aportes, pero no entra en
+el SAC, el plus vacacional, la solidaria, el valor hora ni el ajuste de la obra
+social a jornada completa. En el recibo es una sola línea de antigüedad; "Cómo
+se hizo esta cuenta" dice cuánto es esa parte (y nombra el ajuste de la obra
+social sólo en jornada parcial, que es donde existe). El recibo impreso, donde
+ese bloque no sale, lleva un renglón al pie con el mismo importe. Por esto
+mismo la etiqueta de la base `remunerativo_habitual` dice "lo fijo del mes".
+
+**Adicional remunerativo de importe fijo por mes, decidido el 15/10/2026:** va
+como el presentismo. Se proporciona por la jornada y entra en el SAC, el plus
+vacacional, la solidaria, el valor hora y el ajuste de la obra social a jornada
+completa. Los no remunerativos por mes siguen como estaban (no se proporcionan):
+eso no se decidió.
+
 **Tope mínimo del art. 9 en jornadas cortas:** no se resuelve porque no se da.
 Desde 20 horas, el básico más bajo cargado (Camioneros, $949.566 a 44 hs) da
 unos $431.000, el triple de la base mínima.
@@ -213,7 +237,9 @@ unos $431.000, el triple de la base mínima.
 **Detracción de la Ley 27.541, decidido el 5/10/2026:** en el mes del SAC sube un 50%.
 
 **Valor de la hora extra, decidido el 5/10/2026:** básico + antigüedad +
-presentismo + adicionales remunerativos, sin los no remunerativos.
+presentismo + adicionales remunerativos, sin los no remunerativos. Desde el
+15/10/2026, con los adicionales fijos por mes y sin la antigüedad que sale de
+los km.
 
 **Obra social, decidido el 5/10/2026.** El 3% del trabajador y el 6% del
 empleador van siempre sobre la jornada completa de la categoría (art. 92 ter
@@ -232,15 +258,15 @@ una regla que nadie sigue.
 | Los recargos de la hora extra (1,5 y 2,0), el aguinaldo (50%), el plus vacacional (/150) y los aportes de ley (11%, 3%, 3%) son constantes con nombre en `parametrosLaborales.js`, pero **un convenio no puede declarar otros**. Hay convenios con el sábado al 100% y hay actividades con caja propia | Modelo incompleto |
 | La obra social va siempre sobre la jornada completa (decisión del 5/10/2026, art. 92 ter inc. 4 LCT); que su base **incluya el no remunerativo** sigue fijo. Los dos motores viejos lo tenían como opción y Comercio y Gastronómicos elegían valores **distintos** | Regla 2 |
 | Los adicionales de importe fijo van como "por unidad" con unidad `mes` y el importe en la escala del período; lo que todavía no existe es un adicional porcentual sobre otro adicional ("15% sobre el valor comida", ítem 5.3.11 del 40/89) ni los coeficientes zonales del sur (1,20 y 1,40) | Modelo incompleto |
+| Un adicional remunerativo de importe fijo por mes integra siempre la remuneración habitual (SAC, plus vacacional, solidaria, valor hora, obra social a jornada completa). El día que aparezca un premio que de verdad no sea normal y habitual, hace falta una palanca por regla (`integra_habitual: false`) con su casilla en /admin, porque la base de una retención es una sola palabra | Modelo incompleto |
 | Las bases de una contribución patronal son dos palabras (`remunerativo`, `remunerativo_mas_no_remunerativo`). Alcanzan para los convenios cargados; el día que uno tenga dos sumas no remunerativas con tratamiento distinto, la línea tiene que crecer | Modelo incompleto |
 | El panel no sabe guardar un adicional colgado de una pregunta que no sea la suya, ni uno que se active con el "no" (`depende_de`, `cuando`), ni una retención colgada de una pregunta: al guardar desde /admin se pierde. Ningún convenio cargado lo usa. `test/vocabulario.test.js` (chequeo 5) lo lleva anotado y avisa si aparece otro | Lo que se guarda tiene que ser lo que el motor lee |
-| La antigüedad de Camioneros se calcula también sobre las horas extras por km, y esa parte entra al SAC, al plus vacacional, a la solidaria, al valor de la hora extra y al ajuste de obra social de jornada parcial, aunque los km mismos no entran ahí (decisión del 5/10/2026). Está pendiente de decisión del dueño (15/10/2026); mientras tanto no hay test que lo fije, a propósito | Pendiente de decisión |
 | `firestore.rules` y la consola coinciden desde el 13/9/2026 (lectura sólo de lo que usa la calculadora; escribe sólo el usuario admin, por UID; el resto cerrado). Lo que sigue siendo cierto: **el archivo no se aplica solo**, y cada cambio hay que volver a pegarlo en la consola con la cuenta `info@liquidar.ar` | A recordar al agregar una colección |
 
 **Ya saldado (13 de septiembre de 2026, tercera pasada, por Camioneros):** los
 adicionales **por unidad** (`adicionales_por_unidad`: por día, por km, por viaje o
 por mes, remunerativos o no, con el importe en `valores_del_periodo` de la escala
-y la cantidad en una pregunta del convenio) y la antigüedad **sobre básico más
+y la cantidad en una pregunta del convenio; la unidad `mes` no lleva cantidad) y la antigüedad **sobre básico más
 adicionales** (`antiguedad.aplica_sobre`, ítem 6.1.5 del CCT 40/89). Un importe
 que la escala no trae frena: no se inventa.
 
@@ -250,7 +276,8 @@ con su nombre en el período): no genera antigüedad ni presentismo, no entra en
 ninguna base y va derecho al neto. Salió del acuerdo de Comercio de julio de
 2026, que paga $120.000 con incidencia y $25.000 sin ella el mismo mes. Y las
 retenciones sindicales pueden calcularse sobre la remuneración habitual
-(`remunerativo_habitual`, sin horas extras, SAC ni vacaciones), que es la base
+(`remunerativo_habitual`: lo fijo del mes, sin horas extras, SAC, vacaciones ni
+lo que se paga por km, día o viaje), que es la base
 de la contribución solidaria de UTHGRA con el tope del Decreto 612/26. Una base
 que el motor no conoce ahora frena, en vez de caer callada al remunerativo.
 
