@@ -48,6 +48,14 @@ describe("sitemap", () => {
     expect(entradas.find((e) => e.url.endsWith("/calcular/comercio-cct-130-75")).lastModified).toEqual(new Date("2026-09-01T00:00:00Z"));
   });
 
+  it("una escala publicada por adelantado no lleva la fecha de la calculadora al futuro", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado({ convenios: [doc("convenios", "comercio-cct-130-75", { activo: true, ultimo_periodo: "2099-12" })] }));
+    const antes = Date.now();
+    const calculadora = (await sitemap()).find((e) => e.url.endsWith("/calcular/comercio-cct-130-75"));
+    expect(calculadora.lastModified.getTime()).toBeGreaterThanOrEqual(antes);
+    expect(calculadora.lastModified.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
   it("no lista /empleador: el panel se retiró el 13/9/2026 y la URL sólo redirige", async () => {
     vi.stubGlobal("fetch", firestoreSimulado({}));
     const urls = (await sitemap()).map((e) => e.url);

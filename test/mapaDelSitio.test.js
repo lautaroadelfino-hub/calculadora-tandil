@@ -67,6 +67,19 @@ describe("armarMapaDelSitio", () => {
     expect(de("/novedades/camioneros-cct-40-89").lastModified).toBeUndefined();
   });
 
+  it("ninguna fecha de cambio pasa de hoy: una escala publicada por adelantado no manda a Google al futuro", () => {
+    const hoy = new Date("2026-10-22T12:00:00Z");
+    const adelantado = [
+      { id: "comercio-cct-130-75", activo: true, ultimo_periodo: "2026-11" },
+      { id: "camioneros-cct-40-89", activo: true, ultimo_periodo: "2026-09" },
+    ];
+    const futuro = armarMapaDelSitio({ convenios: adelantado, acuerdos, novedades, hoy });
+    const en = (ruta) => futuro.find((e) => e.url === `https://liquidar.ar${ruta}`);
+    expect(en("/calcular/comercio-cct-130-75").lastModified).toEqual(hoy);
+    expect(en("/calcular/camioneros-cct-40-89").lastModified).toEqual(new Date("2026-09-01T00:00:00Z"));
+    expect(futuro.every((e) => !e.lastModified || e.lastModified <= hoy)).toBe(true);
+  });
+
   it("prioridades entre 0 y 1 y URLs absolutas", () => {
     for (const e of mapa) {
       expect(e.url).toMatch(/^https:\/\/liquidar\.ar/);

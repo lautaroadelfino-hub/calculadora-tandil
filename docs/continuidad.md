@@ -119,6 +119,14 @@ perdió, con `--desde AAAA-MM-DD`. El Boletín limita los pedidos seguidos (HTTP
 429): si corta una corrida, lo leído queda guardado y lo que falta sigue en la
 siguiente; por eso sólo se bajan los avisos de ANSES, la SRT y ARCA.
 
+**Meses futuros:** un borrador de un mes que todavía no empezó (la circular de
+Comercio fija hasta noviembre) se publica cuando el dueño quiere, sin esperar
+al mes. El sitio arranca en el mes en curso o en el último anterior a él
+(`periodoPorDefecto`, en `lib/periodos.js`); el mes futuro queda en el
+desplegable para quien lo elija, y cuando llega pasa a ser el de arranque
+solo. El sitemap nunca lleva una fecha de cambio futura. La portada y la
+descripción para Google sí dicen "Escalas hasta Noviembre 2026": es verdad.
+
 **El FFEP:** sale en una Disposición de la SRT a mitad o fin del mismo mes.
 Hasta que sale, el borrador del mes lleva el último conocido, en rojo; el día
 28, si no salió ni está publicada la tabla, el vigía lo recuerda por Telegram.
