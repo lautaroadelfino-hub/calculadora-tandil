@@ -28,6 +28,10 @@ on:
         description: "Rellenar el Boletín Oficial desde AAAA-MM-DD"
         required: false
         default: ""
+      item:
+        description: "Leer sólo este aviso del Boletín Oficial (URL …/detalleAviso/primera/<id>/<AAAAMMDD>)"
+        required: false
+        default: ""
       ensayo:
         description: "Ensayo: no escribe ni avisa"
         type: boolean
@@ -81,6 +85,7 @@ jobs:
           # dentro de `run:`: así un texto raro no puede ejecutar nada.
           VIGIA_FUENTE: ${{ inputs.fuente }}
           VIGIA_DESDE: ${{ inputs.desde }}
+          VIGIA_ITEM: ${{ inputs.item }}
           VIGIA_ENSAYO: ${{ inputs.ensayo }}
           VIGIA_SEMBRAR: ${{ inputs.sembrar }}
         run: node scripts/vigia.mjs

@@ -11,6 +11,7 @@
 //   node scripts/vigia.mjs --ensayo               no escribe nada ni avisa: muestra qué haría
 //   node scripts/vigia.mjs --fuente boletinOficial   una sola fuente
 //   node scripts/vigia.mjs --desde 2026-09-25     rellena días pasados del Boletín Oficial
+//   node scripts/vigia.mjs --item <url>           lee un solo aviso del Boletín Oficial, pegado a mano
 //   node scripts/vigia.mjs --sembrar              primera corrida: marca visto lo que ya está publicado, sin borradores
 //   node scripts/vigia.mjs --probar-permisos      comprueba que la sesión del vigía NO pueda tocar lo público
 //   node scripts/vigia.mjs --solo-bajar           comprueba que las fuentes respondan desde acá
@@ -20,8 +21,13 @@
 // VIGIA_PASSWORD, TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID se pasan sólo para la
 // corrida (en Actions, desde Secrets). Ver scripts/vigia/entorno.mjs.
 //
-// Lote 1 (cimientos): sesión, estado, corridas, permisos, Telegram. Las fuentes
-// y los preparadores se suman en los lotes siguientes (ver docs/continuidad.md).
+// Los avisos de Telegram se encolan en el estado (vigia/estado →
+// avisosPendientes) antes de mandarse: si Telegram falla, la corrida termina en
+// rojo y lo que no salió se manda en la corrida siguiente. Nada se pierde en
+// silencio.
+//
+// Fuentes activas: Boletín Oficial (lote 2). Camioneros, FAECYS, UTHGRA y ARCA
+// se suman en los lotes siguientes (ver docs/continuidad.md).
 
 import { appendFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -37,6 +43,9 @@ const { clienteStorage } = await import("./vigia/storage.mjs");
 const telegram = await import("./vigia/telegram.mjs");
 const estadoMod = await import("./vigia/estado.mjs");
 const { pedir } = await import("./vigia/http.mjs");
+const { correrBoletinOficial } = await import("./vigia/correrBoletin.mjs");
+const { lineaDe } = await import("../lib/vigia/borradores.js");
+const { tituloDePeriodo } = await import("../lib/periodos.js");
 
 // --- Argumentos (línea de comandos o entradas del workflow) ----------------
 const args = process.argv.slice(2);
@@ -49,7 +58,7 @@ const opciones = {
   ensayo: args.includes("--ensayo") || esVerdadero(process.env.VIGIA_ENSAYO),
   fuente: valorDe("--fuente") || process.env.VIGIA_FUENTE || null,
   desde: valorDe("--desde") || process.env.VIGIA_DESDE || null,
-  item: valorDe("--item"),
+  item: valorDe("--item") || process.env.VIGIA_ITEM || null,
   comparar: valorDe("--comparar"),
   sembrar: args.includes("--sembrar") || esVerdadero(process.env.VIGIA_SEMBRAR),
   probarPermisos: args.includes("--probar-permisos"),
@@ -150,8 +159,27 @@ async function soloBajar() {
 }
 
 // --- La corrida normal --------------------------------------------------------
-// Lote 1: todavía sin fuentes. Deja constancia de la corrida y manda el "vivo".
-const FUENTES_ACTIVAS = [];
+const FUENTES_ACTIVAS = [
+  { nombre: "boletinOficial", correr: correrBoletinOficial, aceptaItem: true },
+];
+const TOPE_AVISOS_PENDIENTES = 50;
+
+// El FFEP sale en una Disposición de la SRT a mitad o fin del mismo mes. Si el
+// 28 todavía no se leyó y la tabla del mes no está publicada, se recuerda una
+// vez por mes.
+async function recordarFfep(firestore, estado, hoy, encolar) {
+  const mes = hoy.slice(0, 7);
+  if (Number(hoy.slice(8, 10)) < 28 || estado.ultimoAvisoFfep === mes) return;
+  const conocido = estado.ffepConocido || null;
+  if (conocido && conocido.periodo >= mes) return;
+  if (await firestore.leer(`parametros_contribuciones/${mes}`)) return;
+  encolar(
+    `Falta el FFEP de ${tituloDePeriodo(mes)}: el vigía no leyó la Disposición de la SRT y la tabla de ${tituloDePeriodo(mes)} no está publicada.` +
+    (conocido ? ` Último conocido: $${conocido.monto} de ${tituloDePeriodo(conocido.periodo)}.` : "") +
+    " Si ya salió, pasale el aviso con --item; si no, cargá el mes a mano en liquidar.ar/admin → Contribuciones."
+  );
+  estado.ultimoAvisoFfep = mes;
+}
 
 async function corrida() {
   if (!opciones.ensayo) exigir(entorno, ["telegramToken", "telegramChatId"]);
@@ -164,43 +192,96 @@ async function corrida() {
     fuentes: {}, borradores: [], avisosEnviados: 0, log: [],
   };
   const estado = await estadoMod.leerEstado(firestore);
-  registrar(`Corrida ${corridaDoc.id} (${modo}). Última corrida: ${estado.ultimaCorrida ? `${estado.ultimaCorrida.id}, ${estado.ultimaCorrida.resumen}` : "ninguna"}.`);
+  const escribir = !opciones.ensayo;
+  const guardarAvance = async () => { if (escribir) await estadoMod.guardarEstado(firestore, estado); };
+  const encolar = (texto) => { estado.avisosPendientes = [...(estado.avisosPendientes || []), texto].slice(-TOPE_AVISOS_PENDIENTES); };
+  const hoy = hoyArgentina();
+  registrar(`Corrida ${corridaDoc.id} (${modo}), hoy ${hoy}. Última corrida: ${estado.ultimaCorrida ? `${estado.ultimaCorrida.id}, ${estado.ultimaCorrida.resumen}` : "ninguna"}.`);
+  const sinMandar = (estado.avisosPendientes || []).length;
+  if (sinMandar) registrar(`${sinMandar} aviso(s) quedaron sin mandar en corridas anteriores; se mandan ahora.`);
 
-  const avisos = [];
-  const fuentesAcorrer = FUENTES_ACTIVAS.filter((f) => !opciones.fuente || f.nombre === opciones.fuente);
-  if (opciones.fuente && !fuentesAcorrer.length) registrar(`No existe la fuente "${opciones.fuente}" (todavía). Fuentes: ${FUENTES_ACTIVAS.map((f) => f.nombre).join(", ") || "ninguna"}.`);
+  const nombreFuente = opciones.fuente || (opciones.item ? "boletinOficial" : null);
+  const fuentesAcorrer = FUENTES_ACTIVAS.filter((f) => !nombreFuente || f.nombre === nombreFuente);
+  if (nombreFuente && !fuentesAcorrer.length) registrar(`No existe la fuente "${nombreFuente}" (todavía). Fuentes: ${FUENTES_ACTIVAS.map((f) => f.nombre).join(", ")}.`);
+  if (opciones.item && !fuentesAcorrer.some((f) => f.aceptaItem)) registrar("--item sólo sirve con el Boletín Oficial.");
+
   for (const fuente of fuentesAcorrer) {
-    corridaDoc.fuentes[fuente.nombre] = { estado: "saltada", items: 0, nuevos: 0, error: null };
+    const registro = { estado: "saltada", items: 0, nuevos: 0, alertas: 0, borradores: [], error: null };
+    corridaDoc.fuentes[fuente.nombre] = registro;
+    if (opciones.sembrar) {
+      registrar(`${fuente.nombre}: con --sembrar no se lee (esta fuente no tiene nada que sembrar).`);
+      continue;
+    }
+    registrar(`Fuente ${fuente.nombre}:`);
+    try {
+      const r = await fuente.correr({
+        firestore, estado, hoy, desde: opciones.desde, item: fuente.aceptaItem ? opciones.item : null,
+        escribir, registrar, corridaId: corridaDoc.id, guardarAvance,
+      });
+      registro.estado = "ok";
+      registro.items = r.items;
+      registro.nuevos = r.nuevos;
+      registro.alertas = r.alertas.length;
+      registro.borradores = r.borradores.map((b) => b.id);
+      for (const n of r.notas) registrar(`  ${n}`);
+      for (const b of r.borradores) {
+        corridaDoc.borradores.push({ id: b.id, accion: b.accion });
+        registrar(`  borrador ${b.accion}: ${b.id}`);
+        encolar(`${lineaDe(b.borrador)}\nRevisalo en liquidar.ar/admin → Bandeja`);
+      }
+      for (const a of r.alertas) encolar(`Boletín Oficial ${a.aviso.fecha} · ${a.norma}: ${a.temas.join(", ")}.\n${a.aviso.url}`);
+      estadoMod.registrarResultadoFuente(estado, fuente.nombre, { ok: true });
+    } catch (e) {
+      registro.estado = "fallo";
+      registro.error = String(e && e.message ? e.message : e).slice(0, 500);
+      registrar(`  ${fuente.nombre} FALLÓ: ${registro.error}`);
+      const { avisar } = estadoMod.registrarResultadoFuente(estado, fuente.nombre, { ok: false, error: e });
+      if (avisar) encolar(`El vigía no pudo leer ${fuente.nombre}: ${registro.error} (${estado.fuentes[fuente.nombre].fallasSeguidas} falla/s seguida/s).`);
+    }
   }
 
+  await recordarFfep(firestore, estado, hoy, encolar);
+
   // El "vigía vivo": una vez por mes, o cuando se pide. Con el mes argentino.
-  const mesActual = hoyArgentina().slice(0, 7);
+  const mesActual = hoy.slice(0, 7);
   if (opciones.avisarVivo || estado.ultimoAvisoVivo !== mesActual) {
-    avisos.push(`Vigía vivo (${hoyArgentina()}). Fuentes activas: ${FUENTES_ACTIVAS.length}. Última corrida: ${estado.ultimaCorrida ? estado.ultimaCorrida.id : "ninguna"}.`);
+    encolar(`Vigía vivo (${hoy}). Fuentes activas: ${FUENTES_ACTIVAS.map((f) => f.nombre).join(", ")}. Última corrida: ${estado.ultimaCorrida ? estado.ultimaCorrida.id : "ninguna"}.`);
     estado.ultimoAvisoVivo = mesActual;
   }
 
   const fin = new Date();
   corridaDoc.fin = fin.toISOString();
-  const resumen = `${fuentesAcorrer.length} fuente(s), ${corridaDoc.borradores.length} borrador(es), ${avisos.length} aviso(s)`;
-  estado.ultimaCorrida = { id: corridaDoc.id, inicio: corridaDoc.inicio, fin: corridaDoc.fin, ok: true, resumen };
+  const fallidas = Object.entries(corridaDoc.fuentes).filter(([, f]) => f.estado === "fallo").map(([n]) => n);
+  const pendientes = [...(estado.avisosPendientes || [])];
+  const resumen = `${fuentesAcorrer.length} fuente(s)${fallidas.length ? ` (falló ${fallidas.join(", ")})` : ""}, ${corridaDoc.borradores.length} borrador(es), ${pendientes.length} aviso(s)`;
+  estado.ultimaCorrida = { id: corridaDoc.id, inicio: corridaDoc.inicio, fin: corridaDoc.fin, ok: fallidas.length === 0, resumen };
 
   if (opciones.ensayo) {
-    registrar(`ENSAYO: no se escribe nada ni se avisa. Se habría guardado la corrida y mandado ${avisos.length} aviso(s):`);
-    for (const a of avisos) registrar(`  → ${a}`);
+    registrar(`ENSAYO: no se escribe nada ni se avisa. ${resumen}. Se habría(n) mandado ${pendientes.length} aviso(s):`);
+    for (const a of pendientes) registrar(`  → ${a.replace(/\n/g, " | ")}`);
     return 0;
   }
 
-  for (const texto of avisos) {
-    await telegram.enviar({ token: entorno.valores.telegramToken, chatId: entorno.valores.telegramChatId, texto });
+  let fallaTelegram = null;
+  for (const texto of pendientes) {
+    try {
+      await telegram.enviar({ token: entorno.valores.telegramToken, chatId: entorno.valores.telegramChatId, texto });
+    } catch (e) {
+      fallaTelegram = e;
+      break;
+    }
+    estado.avisosPendientes = (estado.avisosPendientes || []).filter((t) => t !== texto);
     corridaDoc.avisosEnviados += 1;
-    registrar(`Telegram: ${texto}`);
+    registrar(`Telegram: ${texto.split("\n")[0]}`);
   }
   corridaDoc.log = lineasDeLog.slice(-200);
   await estadoMod.registrarCorrida(firestore, corridaDoc);
   await estadoMod.guardarEstado(firestore, estado);
   const podadas = await estadoMod.podarCorridas(firestore);
   registrar(`Corrida guardada (${resumen}${podadas ? `; ${podadas} corrida(s) vieja(s) borrada(s)` : ""}).`);
+  if (fallaTelegram) {
+    throw new Error(`Telegram falló: ${fallaTelegram.message}. ${(estado.avisosPendientes || []).length} aviso(s) quedan pendientes para la próxima corrida.`);
+  }
   return 0;
 }
 

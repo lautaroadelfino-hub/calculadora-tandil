@@ -21,7 +21,9 @@ const correr = (args, env = {}) =>
     timeout: 60000,
   });
 
-describe("scripts/vigia.mjs", () => {
+// Arrancar node y cargar el script (con cheerio) lleva unos segundos en una
+// máquina cargada: más margen que los 5 segundos de vitest.
+describe("scripts/vigia.mjs", { timeout: 30000 }, () => {
   it("sin sesión frena con código 1 y nombra lo que falta, sin valores", () => {
     const r = correr(["--ensayo"]);
     expect(r.status).toBe(1);

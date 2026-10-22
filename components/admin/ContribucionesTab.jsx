@@ -6,15 +6,21 @@
 // detracción, sumas fijas universales, bases del art. 9 y los criterios
 // contables que el dueño puede cambiar sin desplegar.
 //
+// Cómo nace un mes: con un borrador de la Bandeja (el vigía lo armó con las
+// bases y el FFEP del Boletín Oficial) o con "Copiar del mes anterior" (la
+// última tabla cargada antes del período, con el nombre del mes nuevo). Las
+// dos cosas usan lib/vigia/contribuciones.js. La semilla
+// (data/contribuciones.seed.json) sólo sirve cuando la base está vacía.
+//
 // Toda la lógica (conversión, validación, unidades) vive en
 // lib/contribucionesForm.js, que tiene tests. Acá sólo hay pantalla.
-import { useState, useEffect } from "react";
-import { doc, setDoc, getDoc, collection, getDocs } from "firebase/firestore";
+import { useState, useEffect, useCallback } from "react";
+import { doc, getDoc, collection, getDocs, writeBatch } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import semilla from "@/data/contribuciones.seed.json";
-import { conFfepDelPeriodo, ultimoPeriodoConFfep } from "@/lib/ffep";
 import { aNumero as parseNum, formatearNumero as fmt } from "@/lib/numeros";
-import { esPeriodoValido } from "@/lib/periodos";
+import { esPeriodoValido, tituloDePeriodo } from "@/lib/periodos";
+import { armarTablaDelMes, copiarDelMesAnterior, lineasDePartes, lineasParaConfirmar } from "@/lib/vigia/contribuciones";
 import {
   tablaToForm, formToTabla, conceptoVacio, universalVacio, regimenVacio,
   UNIDADES, BASES_DE_CONTRIBUCION, CRITERIOS_CONTABLES,
@@ -24,13 +30,15 @@ import { RUBROS_DEL_COSTO_LABORAL } from "@/lib/vocabularioConvenios";
 
 const COLECCION = "parametros_contribuciones";
 
-export default function ContribucionesTab() {
+export default function ContribucionesTab({ borrador = null, onBorradorCerrado }) {
   const [periodoID, setPeriodoID] = useState("");
   const [form, setForm] = useState(() => tablaToForm({}));
   const [periodosCargados, setPeriodosCargados] = useState(null);
   const [guardando, setGuardando] = useState(false);
+  // De dónde salió lo que está en el formulario: { periodoBase, partes, borradorId, revisa }.
+  const [origen, setOrigen] = useState(null);
 
-  const cargarPeriodos = async () => {
+  const cargarPeriodos = useCallback(async () => {
     try {
       const snap = await getDocs(collection(db, COLECCION));
       const lista = [];
@@ -41,24 +49,77 @@ export default function ContribucionesTab() {
       console.error(e);
       setPeriodosCargados([]);
     }
-  };
-  useEffect(() => { cargarPeriodos(); }, []);
+  }, []);
+  useEffect(() => { cargarPeriodos(); }, [cargarPeriodos]);
 
-  // La semilla trae las alícuotas de julio 2026; el FFEP cambia todos los meses
-  // (Disposición SRT), así que se pone el del período que se está cargando.
-  const cargarOficiales = () => {
-    const periodo = periodoID || "2026-07";
-    setForm(tablaToForm(conFfepDelPeriodo(semilla, periodo)));
-    if (!periodoID) setPeriodoID(periodo);
+  const leerTabla = async (id) => {
+    const snap = await getDoc(doc(db, COLECCION, id));
+    return snap.exists() ? snap.data() : null;
+  };
+  const idsCargados = async () => {
+    const snap = await getDocs(collection(db, COLECCION));
+    const ids = [];
+    snap.forEach((d) => ids.push(d.id));
+    return ids.sort();
+  };
+  const ultimoAnteriorA = (ids, periodo) => ids.filter((id) => id < periodo).sort().pop() || null;
+
+  // El borrador se rearma al abrirlo contra el mes anterior VIGENTE: si el
+  // dueño corrigió ese mes después de que el borrador nació, no se publica una
+  // foto vieja. Una revisión se arma sobre lo publicado del mismo mes.
+  const abrirBorrador = useCallback(async (b) => {
+    try {
+      const partes = b.partes || {};
+      const ids = await idsCargados();
+      const periodoBase = b.revisa ? b.periodo : ultimoAnteriorA(ids, b.periodo);
+      const base = periodoBase ? await leerTabla(periodoBase) : null;
+      const datos = base
+        ? armarTablaDelMes(base, {
+          periodo: b.periodo,
+          bases: partes.bases_art9 ? partes.bases_art9.valor : null,
+          ffep: partes.ffep ? partes.ffep.valor : null,
+        })
+        : b.datos;
+      setPeriodoID(b.periodo);
+      setForm(tablaToForm(datos));
+      setOrigen({ periodoBase: base ? periodoBase : null, partes, borradorId: b.id, revisa: b.revisa || null });
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo abrir el borrador: " + (e.message || e));
+    }
+  }, []);
+  useEffect(() => { if (borrador) abrirBorrador(borrador); }, [borrador, abrirBorrador]);
+
+  const copiarAnterior = async () => {
+    if (!esPeriodoValido(periodoID)) {
+      return alert("Ingresá el período con formato AAAA-MM (ej: 2026-10). El mes va con dos dígitos.");
+    }
+    try {
+      const ids = await idsCargados();
+      const anterior = ultimoAnteriorA(ids, periodoID);
+      if (anterior) {
+        setForm(tablaToForm(copiarDelMesAnterior(await leerTabla(anterior), periodoID)));
+        setOrigen({ periodoBase: anterior, partes: null, borradorId: null, revisa: null });
+      } else if (ids.length === 0) {
+        setForm(tablaToForm(armarTablaDelMes(semilla, { periodo: periodoID })));
+        setOrigen({ periodoBase: "semilla", partes: null, borradorId: null, revisa: null });
+      } else {
+        alert(`No hay ningún período cargado antes de ${periodoID}. Elegí uno de los cargados para editarlo.`);
+      }
+    } catch (e) {
+      console.error(e);
+      alert("No se pudo copiar: " + (e.message || e));
+    }
   };
 
   const editarExistente = async (id) => {
     if (!id) return;
     try {
-      const snap = await getDoc(doc(db, COLECCION, id));
-      if (snap.exists()) {
+      const tabla = await leerTabla(id);
+      if (tabla) {
         setPeriodoID(id);
-        setForm(tablaToForm(snap.data()));
+        setForm(tablaToForm(tabla));
+        setOrigen(null);
       }
     } catch (e) {
       console.error(e);
@@ -107,7 +168,7 @@ export default function ContribucionesTab() {
 
   const guardar = async () => {
     if (!esPeriodoValido(periodoID)) {
-      return alert("Ingresá el período con formato AAAA-MM (ej: 2026-07). El mes va con dos dígitos.");
+      return alert("Ingresá el período con formato AAAA-MM (ej: 2026-10). El mes va con dos dígitos.");
     }
     let datos;
     try {
@@ -116,19 +177,35 @@ export default function ContribucionesTab() {
       if (e instanceof ErrorDeFormulario) return alert("Antes de guardar, revisá esto:\n\n" + e.message);
       throw e;
     }
-    if (!window.confirm(`¿Guardar la tabla de contribuciones del período "${periodoID}"?`)) return;
+    const lineas = lineasParaConfirmar({ datos, partes: origen ? origen.partes : null });
+    if (!window.confirm(`¿Guardar y publicar la tabla de contribuciones de ${tituloDePeriodo(periodoID)}?\n\n${lineas.join("\n")}`)) return;
     setGuardando(true);
     try {
-      await setDoc(doc(db, COLECCION, periodoID), datos);
-      alert(`¡Tabla de contribuciones guardada para ${periodoID}!`);
+      // La tabla y la marca del borrador van en el mismo batch: o se publican
+      // las dos cosas o ninguna.
+      const batch = writeBatch(db);
+      batch.set(doc(db, COLECCION, periodoID), datos);
+      const marcaBorrador = Boolean(borrador && origen && origen.borradorId === borrador.id);
+      if (marcaBorrador) {
+        const ahora = new Date().toISOString();
+        batch.update(doc(db, "borradores", borrador.id), {
+          estado: "publicado", publicadoEl: ahora, publicadoComo: `${COLECCION}/${periodoID}`, actualizadoEl: ahora,
+        });
+      }
+      await batch.commit();
+      alert(`Tabla de contribuciones de ${tituloDePeriodo(periodoID)} guardada.`);
       cargarPeriodos();
+      if (marcaBorrador) {
+        setOrigen(null);
+        if (onBorradorCerrado) onBorradorCerrado();
+      }
     } catch (e) {
       console.error(e);
       const texto = String(e.code || e.message || e);
       alert(
         "No se pudo guardar: " + (e.message || e.code || e) +
         (texto.includes("permission")
-          ? "\n\nSi dice 'permissions', falta pegar el bloque de parametros_contribuciones de firestore.rules en la consola de Firebase."
+          ? "\n\nSi dice 'permissions', falta pegar el bloque de parametros_contribuciones (y el de borradores) de firestore.rules en la consola de Firebase."
           : "")
       );
     } finally {
@@ -153,30 +230,28 @@ export default function ContribucionesTab() {
       {RUBROS_DEL_COSTO_LABORAL.map((r) => <option key={r.id} value={r.id}>{r.label}</option>)}
     </select>
   );
+  const linksDelOrigen = origen && origen.partes
+    ? Object.entries(origen.partes).filter(([, p]) => p && p.avisoUrl).map(([k, p]) => ({ href: p.avisoUrl, texto: p.norma || k }))
+    : [];
+  const textoDelOrigen = !origen ? ""
+    : origen.revisa ? `Revisión de ${tituloDePeriodo(periodoID)}, sobre lo publicado`
+      : origen.periodoBase === "semilla" ? "Armada desde la semilla"
+        : origen.periodoBase ? `Armada sobre ${tituloDePeriodo(origen.periodoBase)}`
+          : "Del borrador, tal cual";
 
   return (
     <div className="space-y-6">
       {/* Barra superior: período + acciones rápidas */}
       <div className="p-5 bg-indigo-50 border border-indigo-200 rounded-xl space-y-4">
-        <div>
-          <label className="block text-sm font-bold text-indigo-900 mb-2">Contribuciones patronales (nacional)</label>
-          <p className="text-xs text-indigo-800">
-            Desde el 01/06/2026 el recibo tiene que mostrar lo que paga el empleador por cada trabajador
-            (art. 140 inc. j) LCT, Decreto 407/2026). Esta tabla es lo que la calculadora usa para esa
-            sección. Cargá los valores oficiales, revisalos y guardá. Como con Ganancias, se usa el período
-            exacto o, si no existe, el más reciente anterior, y el recibo avisa cuál usó. El FFEP cambia
-            todos los meses: al cargar los valores oficiales se pone el del período (histórico en
-            data/ffep.json, de provinciart.com.ar/ffep, conocido hasta {ultimoPeriodoConFfep()}).
-          </p>
-        </div>
+        <label className="block text-sm font-bold text-indigo-900">Contribuciones patronales (nacional)</label>
         <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-3 items-end">
           <div>
             <label className="block text-xs font-bold text-indigo-900 mb-1">Período (AAAA-MM)</label>
-            <input value={periodoID} onChange={(e) => setPeriodoID(e.target.value)} placeholder="2026-07" className={`${inp} font-mono w-36`} />
+            <input value={periodoID} onChange={(e) => setPeriodoID(e.target.value)} placeholder="2026-10" className={`${inp} font-mono w-36`} />
           </div>
           <div className="flex flex-wrap gap-2 sm:justify-end">
-            <button type="button" onClick={cargarOficiales} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow-sm">
-              ✨ Cargar valores oficiales (alícuotas julio 2026, FFEP del período)
+            <button type="button" onClick={copiarAnterior} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow-sm">
+              Copiar del mes anterior
             </button>
             {periodosCargados?.length > 0 && (
               <select onChange={(e) => editarExistente(e.target.value)} value="" className="border border-indigo-300 rounded-lg px-3 py-2 text-xs bg-white text-indigo-800 font-semibold">
@@ -186,13 +261,25 @@ export default function ContribucionesTab() {
             )}
           </div>
         </div>
+        {origen && (
+          <p className="text-xs text-indigo-900">
+            {textoDelOrigen}
+            {origen.partes ? ` · ${lineasDePartes(origen.partes).join(" · ")}` : ""}
+            {linksDelOrigen.map((l) => (
+              <span key={l.href}>
+                {" · "}
+                <a href={l.href} target="_blank" rel="noopener noreferrer" className="underline">{l.texto}</a>
+              </span>
+            ))}
+          </p>
+        )}
       </div>
 
       {!hayDatos ? (
         <div className="text-center border-2 border-dashed border-slate-200 rounded-xl p-10 bg-white">
           <div className="text-3xl mb-2">🏢</div>
           <p className="text-sm text-slate-500 max-w-sm mx-auto">
-            Tocá <b>&quot;Cargar valores oficiales&quot;</b> para empezar con la tabla vigente, o elegí un período ya cargado para editarlo.
+            Elegí el período y tocá <b>&quot;Copiar del mes anterior&quot;</b>, o editá un período cargado.
           </p>
         </div>
       ) : (
@@ -200,7 +287,7 @@ export default function ContribucionesTab() {
           {/* Nombre del período */}
           <div className="bg-white border border-slate-200 rounded-xl p-5">
             <label className="block text-sm font-semibold text-slate-700 mb-1">Nombre del período (se muestra en la lista)</label>
-            <input value={form.vigencia} onChange={(e) => setForm((f) => ({ ...f, vigencia: e.target.value }))} placeholder="Julio 2026" className={inp} />
+            <input value={form.vigencia} onChange={(e) => setForm((f) => ({ ...f, vigencia: e.target.value }))} placeholder="Octubre 2026" className={inp} />
           </div>
 
           {/* Detracción y bases */}
@@ -365,7 +452,7 @@ export default function ContribucionesTab() {
           </div>
 
           <button type="button" onClick={guardar} disabled={guardando} className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-bold py-3.5 rounded-xl shadow-md text-base">
-            {guardando ? "Guardando…" : `Guardar tabla de ${periodoID || "contribuciones"}`}
+            {guardando ? "Guardando…" : `Guardar y publicar ${tituloDePeriodo(periodoID) || "la tabla"}`}
           </button>
         </>
       )}

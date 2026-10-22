@@ -100,12 +100,15 @@ Desde el 01/06/2026 el recibo muestra lo que paga el empleador por cada
 trabajador (art. 140 inc. j) LCT, Decreto 407/2026), antes del bruto. Para eso
 necesita la tabla del mes: alícuotas por régimen, detracción de la Ley 27.541,
 sumas fijas (FFEP y seguro colectivo de vida), bases del art. 9 y los criterios
-contables. `/admin` → pestaña **Contribuciones** → período `AAAA-MM` →
-**Cargar valores oficiales** → revisá los números → **Guardar**.
+contables. Cada mes llega preparado: `/admin` → **Bandeja** (el vigía lee el
+Boletín Oficial: las bases del art. 9 de la Resolución de ANSES y el FFEP de la
+Disposición de la SRT) → **Abrir** → revisá → **Guardar y publicar**. Si no
+llegó: pestaña **Contribuciones** → período `AAAA-MM` → **Copiar del mes
+anterior** → cambiá las bases y el FFEP → **Guardar y publicar**.
 
 Si un mes no tiene tabla, la calculadora usa la del mes anterior más cercano y
 lo avisa; si no hay ninguna anterior, el recibo sale **sin la sección del
-empleador** y lo dice en ámbar. Junio y julio de 2026 ya están cargados.
+empleador** y lo dice en ámbar. Junio a septiembre de 2026 ya están cargados.
 
 Los dos criterios contables de esa pestaña (topes del art. 9 en los aportes,
 SAC en la base patronal) arrancan **encendidos** por tu decisión del 13/9/2026.

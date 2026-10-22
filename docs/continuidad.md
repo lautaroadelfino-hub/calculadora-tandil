@@ -100,6 +100,31 @@ comentarios de `scripts/vigia/`.
 | Bot de Telegram | @BotFather, con la cuenta de Telegram del dueño | Los avisos. El token se regenera con `/revoke` en BotFather; el `chat.id` se lee en `https://api.telegram.org/bot<TOKEN>/getUpdates` después de mandarle `/start` al bot (dentro de las 24 horas) |
 | Secretos de GitHub Actions | GitHub → Settings → Secrets and variables → Actions | Secrets: `VIGIA_PASSWORD`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. Variables: `NEXT_PUBLIC_FIREBASE_API_KEY`, `VIGIA_EMAIL`. Nunca van en el código ni en `.env.local` |
 
+**Cómo se usa, cada mes:** `/admin` abre en la **Bandeja**. Cada borrador dice
+qué es (contribuciones de Noviembre 2026, por ejemplo), de dónde salió cada
+número (la Resolución de ANSES y la Disposición de la SRT, con el link al aviso)
+y qué le falta, en rojo ("el FFEP es el de Octubre 2026: todavía no salió la
+Disposición"). **Abrir** lleva a la pestaña de siempre con todo precargado;
+revisás y apretás **Guardar y publicar**: el confirm repite de dónde sale cada
+parte, y si editaste un número a mano, lo dice. **Descartar** lo saca de la
+lista y el vigía no lo vuelve a crear. La franja de arriba dice hace cuánto
+corrió el vigía: en rojo si pasaron más de 48 horas o una fuente viene fallando.
+
+Si un mes no llegó (el vigía no corría, el Boletín cambió), en la pestaña
+Contribuciones está **Copiar del mes anterior**: la última tabla cargada con el
+nombre del mes nuevo, para cambiarle las bases y el FFEP a mano. Un aviso suelto
+del Boletín se le puede dar al vigía con `node scripts/vigia.mjs --item <url del
+aviso>` (o la entrada "item" al correrlo a mano en Actions), y los días que se
+perdió, con `--desde AAAA-MM-DD`. El Boletín limita los pedidos seguidos (HTTP
+429): si corta una corrida, lo leído queda guardado y lo que falta sigue en la
+siguiente; por eso sólo se bajan los avisos de ANSES, la SRT y ARCA.
+
+**El FFEP:** sale en una Disposición de la SRT a mitad o fin del mismo mes.
+Hasta que sale, el borrador del mes lleva el último conocido, en rojo; el día
+28, si no salió ni está publicada la tabla, el vigía lo recuerda por Telegram.
+Los avisos de Telegram se encolan en `vigia/estado` antes de mandarse: si
+Telegram falla, salen en la corrida siguiente.
+
 **Comprobar que las reglas están bien pegadas:** `node scripts/vigia.mjs --probar-permisos`
 (con `VIGIA_EMAIL` y `VIGIA_PASSWORD` en la consola, sólo para esa corrida).
 Tiene que decir "Todo como tiene que ser": el vigía NO puede crear un convenio,

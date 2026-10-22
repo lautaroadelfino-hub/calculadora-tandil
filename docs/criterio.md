@@ -97,8 +97,9 @@ pone rojo, el que se equivocó es el cambio.
 ### 3. La calculadora no lee archivos de `data/`
 
 Los datos que el dueño actualiza viven en Firestore y se cargan desde `/admin`.
-Los archivos de `data/` sirven como **semilla**: el panel tiene un botón que los
-carga a la base, como ya hace la pestaña de Ganancias.
+Los archivos de `data/` sirven como **semilla** para la base vacía; después,
+cada mes se copia del anterior desde el panel o llega preparado por el vigía a
+la Bandeja (ver `docs/continuidad.md`, "El vigía").
 
 El motivo es el que da la medición: los datos que viajan adentro del código
 aparecen al instante (el Panel Empleador está visible a los 710 ms) pero
@@ -110,7 +111,9 @@ mantiene una persona que no programa, **la segunda gana siempre**.
 `data/` (`calculoEmpleador.js`) se retiró junto con el panel del empleador, y
 las bases del art. 9 y las alícuotas de las contribuciones pasaron a Firestore
 (colección `parametros_contribuciones`, pestaña Contribuciones), con
-`data/contribuciones.seed.json` como semilla y un botón que la carga.
+`data/contribuciones.seed.json` como semilla de la base vacía. Desde octubre de
+2026 las bases del art. 9 y el FFEP de cada mes los trae el vigía del Boletín
+Oficial (`scripts/vigia.mjs`) como borrador: nada más vive en el código.
 
 **Se controla solo:** `test/criterio.test.js` lee el código del motor y de
 los módulos que usa, y falla si alguno importa de `data/`.
@@ -149,9 +152,9 @@ un dato que cambia por período clavado adentro del código.
 - **¿Es de ley pero cambia por período** (bases del art. 9, alícuotas de las
   contribuciones, escala de Ganancias)? → es **dato del período**: va a
   Firestore con su pestaña en `/admin` (el patrón de Ganancias y de
-  Contribuciones), con una semilla en `data/` y un botón que la carga. La
-  pantalla se la pasa al motor como tabla; el motor no la busca. Pasos 1, 2, 5
-  y 6.
+  Contribuciones), con una semilla en `data/` sólo para la base vacía: el mes
+  siguiente se copia del anterior o lo prepara el vigía. La pantalla se la
+  pasa al motor como tabla; el motor no la busca. Pasos 1, 2, 5 y 6.
 
 1. **Declarala** en `lib/vocabularioConvenios.js`. Si no está ahí, no existe.
 2. **Que el motor la lea**, con el valor por defecto igual al comportamiento de
