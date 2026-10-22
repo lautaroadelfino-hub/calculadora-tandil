@@ -29,21 +29,51 @@ service firebase.storage {
           && request.auth.uid == "yx2H1OsUirUTvevmtTasVnSU5Zw1";
     }
 
+    // El vigía (scripts/vigia.mjs): la cuenta vigia@liquidar.ar. Reemplazar
+    // UID_DEL_VIGIA por el UID real, el mismo que en firestore.rules.
+    function esVigia() {
+      return request.auth != null
+          && request.auth.uid == "UID_DEL_VIGIA";
+    }
+
     function formatoPermitido() {
       return request.resource.contentType.matches(
         'application/pdf|image/jpeg|image/png|application/msword|application/vnd\\.openxmlformats-officedocument\\.wordprocessingml\\.document'
       );
     }
 
+    function pesaHasta10MB() {
+      return request.resource.size <= 10 * 1024 * 1024;
+    }
+
     // --- Archivos de los acuerdos --------------------------------------
+    // La descarga es pública. El vigía sólo puede CREAR acá, nunca pisar ni
+    // borrar, y sólo un PDF o JPG cuyo nombre siga el patrón del panel
+    // (<fecha>-<slug>.<ext>, lib/acuerdosPublicados.js): deja el archivo del
+    // acuerdo en su lugar definitivo y el administrador publica el documento
+    // desde la Bandeja.
     match /acuerdos/{convenioId}/{archivo} {
       allow read: if true;
       // create y update por separado de delete: al borrar, request.resource es
       // null y una condición sobre su tamaño haría fallar todos los borrados.
-      allow create, update: if esAdmin()
-          && request.resource.size <= 10 * 1024 * 1024
-          && formatoPermitido();
+      allow create: if (esAdmin() && pesaHasta10MB() && formatoPermitido())
+          || (esVigia() && pesaHasta10MB()
+              && request.resource.contentType.matches('application/pdf|image/jpeg')
+              && archivo.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}-[a-z0-9_]+\\.(pdf|jpg|jpeg)$'));
+      allow update: if esAdmin() && pesaHasta10MB() && formatoPermitido();
       allow delete: if esAdmin();
+    }
+
+    // --- Archivos de los borradores del vigía --------------------------
+    // Los JPG y PDF que el vigía bajó de las fuentes, para que el dueño los
+    // mire al lado del borrador. Los leen el administrador y el vigía; el
+    // sitio público nunca los muestra.
+    match /borradores/{convenioId}/{archivo=**} {
+      allow read: if esAdmin() || esVigia();
+      allow create, update: if (esAdmin() || esVigia())
+          && pesaHasta10MB()
+          && formatoPermitido();
+      allow delete: if esAdmin() || esVigia();
     }
 
     // --- Todo lo demás está cerrado ------------------------------------

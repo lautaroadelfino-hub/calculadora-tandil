@@ -50,3 +50,7 @@ next-env.d.ts
 
 # respaldos de Firestore (scripts/respaldar.mjs): viven en la máquina, no en el repo
 /respaldos/
+
+# el vigía (scripts/vigia.mjs): caché de las fuentes para ensayar y el log de cada corrida
+/.vigia-cache/
+/.vigia-log.txt

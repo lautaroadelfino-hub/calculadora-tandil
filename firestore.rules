@@ -40,6 +40,17 @@ service cloud.firestore {
           && request.auth.uid == "yx2H1OsUirUTvevmtTasVnSU5Zw1";
     }
 
+    // --- El vigía (scripts/vigia.mjs) ----------------------------------
+    // La cuenta vigia@liquidar.ar con la que corre el robot de novedades. Sólo
+    // puede escribir en sus propias colecciones (abajo): las públicas siguen
+    // siendo del administrador, así que aunque el código se equivoque no puede
+    // tocar una escala ni una tabla. Reemplazar UID_DEL_VIGIA por el UID real
+    // (Authentication -> Users) antes de pegar.
+    function esVigia() {
+      return request.auth != null
+          && request.auth.uid == "UID_DEL_VIGIA";
+    }
+
     // --- Convenios y sus escalas ---------------------------------------
     // Lectura pública: es lo que hace funcionar la calculadora sin registro.
     match /convenios/{convenioId} {
@@ -78,6 +89,37 @@ service cloud.firestore {
     match /acuerdos/{acuerdoId} {
       allow read: if true;
       allow write: if esAdmin();
+    }
+
+    // --- Borradores del vigía ------------------------------------------
+    // Lo que el vigía deja preparado y el administrador publica o descarta
+    // desde la Bandeja de /admin. Nadie más los lee. El vigía crea, y sólo
+    // puede actualizar un borrador mientras sigue abierto (pendiente o
+    // requiere_revision): nunca reabre uno descartado ni toca uno publicado.
+    // Borra sólo el administrador.
+    match /borradores/{borradorId} {
+      allow read: if esAdmin() || esVigia();
+      allow create: if esAdmin() || esVigia();
+      allow update: if esAdmin()
+          || (esVigia() && resource.data.estado in ["pendiente", "requiere_revision"]);
+      allow delete: if esAdmin();
+    }
+
+    // --- Memoria del vigía ---------------------------------------------
+    // vigia/estado (qué vio de cada fuente), vigia_corridas (una por corrida),
+    // vigia_tramos (los tramos de un acuerdo que cargó el dueño) y
+    // vigia_acuerdos_leidos (lo que el vigía leyó de cada documento).
+    match /vigia/{documento} {
+      allow read, write: if esAdmin() || esVigia();
+    }
+    match /vigia_corridas/{corridaId} {
+      allow read, write: if esAdmin() || esVigia();
+    }
+    match /vigia_tramos/{convenioId} {
+      allow read, write: if esAdmin() || esVigia();
+    }
+    match /vigia_acuerdos_leidos/{acuerdoId} {
+      allow read, write: if esAdmin() || esVigia();
     }
 
     // --- Todo lo demás está cerrado ------------------------------------
