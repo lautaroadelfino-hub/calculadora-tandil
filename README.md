@@ -160,7 +160,9 @@ npm run lint         # revisa el código
 ```
 
 También están `iniciar-calculadora.bat`, `probar-calculos.bat` y
-`respaldar.bat` para hacer lo mismo con doble clic.
+`respaldar.bat` para hacer lo mismo con doble clic, y `cargar-mes.bat` para
+publicar un mes desde una carpeta con sus CSV (tarea 1, "varios meses de
+una"): primero muestra qué haría y recién si decís que sí pide la contraseña.
 
 Hace falta un archivo `.env.local` con cuatro claves de Firebase. Son públicas
 por diseño (se ven en el navegador de cualquiera que entre al sitio), pero no

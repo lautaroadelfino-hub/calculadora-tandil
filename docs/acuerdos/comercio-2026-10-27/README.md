@@ -81,7 +81,9 @@ muestra qué haría y los avisos de la revisión (las 21 categorías suben 2,1%
 en octubre, 2,0% en noviembre y entre 3,5% y 3,6% en diciembre, porque se
 suman los $20.000 que dejan de ser no remunerativos). Con `--aplicar` al
 final pide la contraseña de admin y lo escribe todo de una: entra todo o no
-entra nada. Los nombres de los períodos y de la suma sin incidencia salen del
+entra nada. Sin terminal: doble clic en `cargar-mes.bat` (en la raíz del
+repo) y pegarle la ruta de esta carpeta cuando la pida; hace las dos cosas,
+el ensayo y, si decís que sí, la publicación. Los nombres de los períodos y de la suma sin incidencia salen del
 `carga.json`, así que no hay nada que tipear. Después, `node
 scripts/capturarFixtures.mjs comercio-cct-130-75` para que los tests vean los
 meses nuevos.
