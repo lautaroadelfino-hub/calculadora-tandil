@@ -114,6 +114,9 @@ Boletín Oficial: las bases del art. 9 de la Resolución de ANSES y el FFEP de l
 Disposición de la SRT) → **Abrir** → revisá → **Guardar y publicar**. Si no
 llegó: pestaña **Contribuciones** → período `AAAA-MM` → **Copiar del mes
 anterior** → cambiá las bases y el FFEP → **Guardar y publicar**.
+**Pendiente al 28/10/2026:** el vigía todavía no está configurado y su
+workflow está desactivado (qué falta, en `docs/continuidad.md`), así que por
+ahora nada llega a la Bandeja y se usa el camino de "si no llegó".
 
 Si un mes no tiene tabla, la calculadora usa la del mes anterior más cercano y
 lo avisa; si no hay ninguna anterior, el recibo sale **sin la sección del

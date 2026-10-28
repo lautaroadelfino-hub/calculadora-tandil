@@ -100,6 +100,21 @@ comentarios de `scripts/vigia/`.
 | Bot de Telegram | @BotFather, con la cuenta de Telegram del dueño | Los avisos. El token se regenera con `/revoke` en BotFather; el `chat.id` se lee en `https://api.telegram.org/bot<TOKEN>/getUpdates` después de mandarle `/start` al bot (dentro de las 24 horas) |
 | Secretos de GitHub Actions | GitHub → Settings → Secrets and variables → Actions | Secrets: `VIGIA_PASSWORD`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. Variables: `NEXT_PUBLIC_FIREBASE_API_KEY`, `VIGIA_EMAIL`. Nunca van en el código ni en `.env.local` |
 
+**Pendiente al 28/10/2026: el workflow está desactivado** (GitHub → Actions →
+Vigía → "Enable workflow" lo vuelve a encender) hasta terminar la puesta en
+marcha, que se hace a mano:
+
+1. Pegar `firestore.rules` y `storage.rules` en la consola de Firebase. Hasta
+   entonces la **Bandeja** de `/admin` muestra un error (lee colecciones que
+   las reglas viejas no conocen); el resto del panel y el sitio funcionan
+   igual. Se pueden pegar ya, con `UID_DEL_VIGIA` sin reemplazar.
+2. Crear el usuario `vigia@liquidar.ar` en Authentication, poner su UID donde
+   dice `UID_DEL_VIGIA` en las dos reglas, y volver a pegarlas.
+3. Crear el bot de Telegram y cargar en GitHub los tres secretos y las dos
+   variables de la tabla de arriba (hoy no hay ninguno).
+4. `node scripts/vigia.mjs --probar-permisos` tiene que decir "Todo como tiene
+   que ser". Recién entonces, activar el workflow.
+
 **Cómo se usa, cada mes:** `/admin` abre en la **Bandeja**. Cada borrador dice
 qué es (contribuciones de Noviembre 2026, por ejemplo), de dónde salió cada
 número (la Resolución de ANSES y la Disposición de la SRT, con el link al aviso)
