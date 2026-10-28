@@ -1,0 +1,136 @@
+{
+  "universales": [
+    {
+      "label": "FFEP (Fondo Fiduciario de Enfermedades Profesionales)",
+      "id": "ffep",
+      "monto": 1827,
+      "rubro": "art",
+      "unidad": "suma_fija"
+    },
+    {
+      "unidad": "suma_fija",
+      "label": "Seguro Colectivo de Vida Obligatorio",
+      "monto": 424.62,
+      "rubro": "otros",
+      "id": "scvo"
+    }
+  ],
+  "vigencia": "Junio 2026",
+  "regimenes": {
+    "servicios_comercio_grande": {
+      "label": "Servicios y comercio, empresas grandes (20,40%)",
+      "predeterminado": false,
+      "conceptos": [
+        {
+          "label": "SIPA (jubilación)",
+          "base": "remunerativo",
+          "id": "sipa",
+          "unidad": "porcentaje",
+          "alicuota": 0.1235,
+          "rubro": "seguridad_social",
+          "aplica_detraccion": true
+        },
+        {
+          "base": "remunerativo",
+          "unidad": "porcentaje",
+          "id": "inssjp",
+          "rubro": "inssjp",
+          "aplica_detraccion": true,
+          "alicuota": 0.0158,
+          "label": "INSSJP (PAMI)"
+        },
+        {
+          "aplica_detraccion": true,
+          "unidad": "porcentaje",
+          "alicuota": 0.054,
+          "label": "Asignaciones familiares",
+          "rubro": "seguridad_social",
+          "base": "remunerativo",
+          "id": "aaff"
+        },
+        {
+          "base": "remunerativo",
+          "rubro": "seguridad_social",
+          "label": "Fondo Nacional de Empleo",
+          "aplica_detraccion": true,
+          "id": "fne",
+          "unidad": "porcentaje",
+          "alicuota": 0.0107
+        },
+        {
+          "rubro": "obra_social",
+          "alicuota": 0.06,
+          "id": "obra_social",
+          "unidad": "porcentaje",
+          "aplica_detraccion": false,
+          "base": "remunerativo_mas_no_remunerativo",
+          "label": "Obra social (contribución 6%)"
+        }
+      ]
+    },
+    "resto_mipyme": {
+      "label": "Resto de actividades y MiPyME (18%)",
+      "conceptos": [
+        {
+          "unidad": "porcentaje",
+          "base": "remunerativo",
+          "rubro": "seguridad_social",
+          "aplica_detraccion": true,
+          "label": "SIPA (jubilación)",
+          "alicuota": 0.1077,
+          "id": "sipa"
+        },
+        {
+          "alicuota": 0.0158,
+          "rubro": "inssjp",
+          "aplica_detraccion": true,
+          "id": "inssjp",
+          "base": "remunerativo",
+          "unidad": "porcentaje",
+          "label": "INSSJP (PAMI)"
+        },
+        {
+          "alicuota": 0.047,
+          "label": "Asignaciones familiares",
+          "base": "remunerativo",
+          "aplica_detraccion": true,
+          "unidad": "porcentaje",
+          "rubro": "seguridad_social",
+          "id": "aaff"
+        },
+        {
+          "id": "fne",
+          "label": "Fondo Nacional de Empleo",
+          "alicuota": 0.0095,
+          "aplica_detraccion": true,
+          "unidad": "porcentaje",
+          "rubro": "seguridad_social",
+          "base": "remunerativo"
+        },
+        {
+          "label": "Obra social (contribución 6%)",
+          "base": "remunerativo_mas_no_remunerativo",
+          "alicuota": 0.06,
+          "id": "obra_social",
+          "aplica_detraccion": false,
+          "unidad": "porcentaje",
+          "rubro": "obra_social"
+        }
+      ],
+      "predeterminado": true
+    }
+  },
+  "criterios_contables": {
+    "tope_art9_en_aportes": true,
+    "sac_integra_base_contribuciones": true
+  },
+  "detraccion": {
+    "monto": 7003.68,
+    "norma": "Ley 27.541 art. 22 (detracción mensual por trabajador, sólo en SIPA, INSSJP, asignaciones familiares y FNE)",
+    "prorratea_por_jornada": true
+  },
+  "bases_art9": {
+    "maxima": 4414652.38,
+    "minima": 135837.4
+  }
+}

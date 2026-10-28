@@ -6,9 +6,11 @@ import { doc, getDoc, collection, getDocs, writeBatch } from "firebase/firestore
 import { db } from "@/lib/firebase";
 import { aNumero, formatearNumero } from "@/lib/numeros";
 import {
-  parsearCsvEscala, generarCsvEscala, plantillaEjemplo, tieneZonas, leerClave,
+  parsearCsvEscala, generarCsvEscala, plantillaEjemplo,
   validarPeriodo, revisarEscalaAntesDePublicar, valoresQueNecesita,
 } from "@/lib/escalaCsv";
+import { documentoDeEscala, convenioConEscala } from "@/lib/publicarEscala";
+import { tituloDePeriodo } from "@/lib/periodos";
 import { slug } from "@/lib/texto";
 
 export default function EscalasTab({ convenios }) {
@@ -119,6 +121,10 @@ export default function EscalasTab({ convenios }) {
         // arrancaba vacío, y si no se volvían a tipear los valores del período
         // el convenio quedaba sin recibo para todos (auditoría del 23/9/2026).
         setClavesPrevias([]);
+        // El nombre descriptivo sale del período ("Octubre 2026"). Antes
+        // quedaba el del mes buscado antes, y noviembre se publicaba como
+        // "Octubre 2026" si nadie lo tocaba (auditoría del 28/10/2026).
+        setMesVigencia(tituloDePeriodo(periodoID));
         const anterior = await buscarEscalaAnterior(periodoID);
         setEscalaAnterior(anterior);
         if (anterior) {
@@ -139,6 +145,7 @@ export default function EscalasTab({ convenios }) {
           alert(
             "No hay una escala cargada para " + periodoID + ". Te precargué la de " + anterior.periodo + " como punto de partida:" +
               " categorías, importes, valores del período y nombre de la suma sin incidencia." + String.fromCharCode(10, 10) +
+              "El nombre descriptivo ya dice \"" + tituloDePeriodo(periodoID) + "\". Si la suma sin incidencia no sigue este mes, borrale el nombre." + String.fromCharCode(10, 10) +
               "Subí el CSV con los importes nuevos y revisá los valores del período antes de publicar. Al publicar te muestro cuánto cambia cada categoría."
           );
         } else {
@@ -271,80 +278,12 @@ export default function EscalasTab({ convenios }) {
 
     try {
       const escalaRef = doc(db, "convenios", convenioSeleccionado, "escalas", periodoID);
-      const categoriasLimpias = {};
-      categoriasActuales.forEach((cat) => {
-        categoriasLimpias[cat] = {
-          basico: sueldos[cat]?.basico || 0,
-          no_remunerativo: sueldos[cat]?.no_remunerativo || 0,
-        };
-        // La suma sin incidencia se escribe sólo si la hay, para no ensuciar
-        // las escalas que no la usan con un campo en cero.
-        const sinIncidencia = Number(sueldos[cat]?.no_remunerativo_sin_incidencia) || 0;
-        if (sinIncidencia > 0) categoriasLimpias[cat].no_remunerativo_sin_incidencia = sinIncidencia;
-      });
-
-      const escalaDoc = { mes_vigencia: mesVigencia, categorias: categoriasLimpias };
-      if (nombreSinIncidencia.trim()) escalaDoc.nombre_sin_incidencia = nombreSinIncidencia.trim();
-      if (Object.keys(valoresDelPeriodo).length) escalaDoc.valores_del_periodo = valoresDelPeriodo;
-
-      // Magia para crear las zonas y actualizar categorías automáticamente en el convenio
       const convenioRef = doc(db, "convenios", convenioSeleccionado);
-      let inputsModificados = [...(convenioCompleto.inputs_requeridos || [])];
-
-      const indexCategoria = inputsModificados.findIndex((i) => i.id === "categoria");
-      if (indexCategoria !== -1) {
-        const catPuras = Array.from(new Set(categoriasActuales.map((c) => leerClave(c).categoria)));
-        const defaultActual = inputsModificados[indexCategoria].default;
-        // Antes sólo se pisaban las opciones y nunca el default, así que todo
-        // convenio nuevo quedaba con default "" y la calculadora tiraba
-        // "La categoría no existe" a quien no tocara el desplegable.
-        const defaultValido = catPuras.includes(defaultActual) ? defaultActual : catPuras[0] || "";
-        inputsModificados[indexCategoria] = {
-          ...inputsModificados[indexCategoria],
-          opciones: catPuras,
-          default: defaultValido,
-        };
-      }
-
-      // Antes se miraba sólo categoriasActuales[0]: si el orden alfabético
-      // ponía primero una fila sin zona, la columna se ignoraba entera.
-      if (tieneZonas(categoriasActuales)) {
-        const zonasPuras = Array.from(new Set(categoriasActuales.map((c) => leerClave(c).zona).filter(Boolean)));
-        const indexZona = inputsModificados.findIndex((i) => i.id === "zona");
-
-        if (indexZona !== -1) {
-          const defZona = zonasPuras.includes(inputsModificados[indexZona].default)
-            ? inputsModificados[indexZona].default
-            : zonasPuras[0] || "";
-          inputsModificados[indexZona] = { ...inputsModificados[indexZona], opciones: zonasPuras, default: defZona };
-        } else {
-          inputsModificados.unshift({
-            id: "zona",
-            tipo: "select",
-            label: "Zona / Escala",
-            default: zonasPuras[0],
-            opciones: zonasPuras,
-          });
-        }
-      }
-
-      // Se anota hasta qué período llegan las escalas. La portada lo usa para
-      // decir la verdad ("Escalas hasta septiembre 2026") en vez de afirmar que
-      // están actualizadas, que es lo que venía diciendo incluso con dos meses
-      // de atraso. Es un campo más en el setDoc que ya se hacía: cero consultas
-      // nuevas en la portada.
-      const periodoMasNuevo =
-        !convenioCompleto.ultimo_periodo || periodoID > convenioCompleto.ultimo_periodo
-          ? periodoID
-          : convenioCompleto.ultimo_periodo;
-      const nombreMasNuevo = periodoMasNuevo === periodoID ? mesVigencia : convenioCompleto.ultimo_periodo_nombre;
-
-      const convenioActualizado = {
-        ...convenioCompleto,
-        inputs_requeridos: inputsModificados,
-        ultimo_periodo: periodoMasNuevo,
-        ultimo_periodo_nombre: nombreMasNuevo || mesVigencia,
-      };
+      // Lo que se escribe (la escala, y las categorías, zonas y último
+      // período del convenio) lo arma lib/publicarEscala.js, que comparte con
+      // scripts/cargarMes.mjs: los dos publican exactamente lo mismo.
+      const escalaDoc = documentoDeEscala({ claves: categoriasActuales, sueldos, mesVigencia, nombreSinIncidencia, valoresDelPeriodo });
+      const convenioActualizado = convenioConEscala(convenioCompleto, categoriasActuales, periodoID, mesVigencia);
       // La escala y el convenio van en una sola escritura: si una de las dos
       // fallara, antes quedaba la base a mitad de camino.
       const lote = writeBatch(db);

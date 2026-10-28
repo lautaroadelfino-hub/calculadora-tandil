@@ -72,6 +72,15 @@ Los números se pueden escribir como quieras: `1.273.746,00`, `1273746`,
 `$ 1.273.746`. Lo que **no** se puede es dejar el básico vacío o poner texto:
 ahí te avisa con el número de fila en vez de guardar un cero.
 
+**Varios meses de una, desde la terminal.** Si los CSV ya están en una
+carpeta con un `carga.json` que dice a qué convenio y período va cada uno
+(como `docs/acuerdos/comercio-2026-10-27/`; el formato está en
+`lib/cargaDeMes.js`), `node scripts/cargarMes.mjs <carpeta>` muestra qué
+publicaría con las mismas revisiones del panel, y con `--aplicar` al final lo
+publica (pide la contraseña de admin, y entra todo o no entra nada). Si el
+`carga.json` trae el FFEP y las bases del art. 9 del mes, carga también la
+tabla de contribuciones (tarea 4) a partir de la última que haya.
+
 ### 2. Dar de alta un convenio nuevo
 
 1. `/admin` → pestaña **Convenios** → **+ Nuevo convenio**.
@@ -100,12 +109,15 @@ Desde el 01/06/2026 el recibo muestra lo que paga el empleador por cada
 trabajador (art. 140 inc. j) LCT, Decreto 407/2026), antes del bruto. Para eso
 necesita la tabla del mes: alícuotas por régimen, detracción de la Ley 27.541,
 sumas fijas (FFEP y seguro colectivo de vida), bases del art. 9 y los criterios
-contables. `/admin` → pestaña **Contribuciones** → período `AAAA-MM` →
-**Cargar valores oficiales** → revisá los números → **Guardar**.
+contables. Cada mes llega preparado: `/admin` → **Bandeja** (el vigía lee el
+Boletín Oficial: las bases del art. 9 de la Resolución de ANSES y el FFEP de la
+Disposición de la SRT) → **Abrir** → revisá → **Guardar y publicar**. Si no
+llegó: pestaña **Contribuciones** → período `AAAA-MM` → **Copiar del mes
+anterior** → cambiá las bases y el FFEP → **Guardar y publicar**.
 
 Si un mes no tiene tabla, la calculadora usa la del mes anterior más cercano y
 lo avisa; si no hay ninguna anterior, el recibo sale **sin la sección del
-empleador** y lo dice en ámbar. Junio y julio de 2026 ya están cargados.
+empleador** y lo dice en ámbar. Junio a septiembre de 2026 ya están cargados.
 
 Los dos criterios contables de esa pestaña (topes del art. 9 en los aportes,
 SAC en la base patronal) arrancan **encendidos** por tu decisión del 13/9/2026.
@@ -151,7 +163,9 @@ npm run lint         # revisa el código
 ```
 
 También están `iniciar-calculadora.bat`, `probar-calculos.bat` y
-`respaldar.bat` para hacer lo mismo con doble clic.
+`respaldar.bat` para hacer lo mismo con doble clic, y `cargar-mes.bat` para
+publicar un mes desde una carpeta con sus CSV (tarea 1, "varios meses de
+una"): primero muestra qué haría y recién si decís que sí pide la contraseña.
 
 Hace falta un archivo `.env.local` con cuatro claves de Firebase. Son públicas
 por diseño (se ven en el navegador de cualquiera que entre al sitio), pero no

@@ -79,6 +79,77 @@ los archivos de los acuerdos se bajan desde la consola (Storage → `acuerdos`).
 
 ## Cada cuánto
 
-- Respaldo: antes de cada carga de mes, y una vez por mes aunque no se cargue nada.
+- Respaldo: antes de cada carga de mes, y una vez por mes aunque no se cargue nada. Desde que corre el vigía (abajo), además, uno por día en GitHub Actions.
 - Dependencias: `npm audit` de vez en cuando; el 24/9/2026 quedó en cero.
 - Reglas de Firestore y de Storage: cada vez que cambia el archivo, volver a pegarlo en la consola.
+
+## El vigía (desde octubre de 2026)
+
+`scripts/vigia.mjs` corre todos los días a las 09:00 en GitHub Actions
+(`.github/workflows/vigia.yml`): hace un respaldo de Firestore (queda 14 días
+como *artifact* de la corrida), lee las fuentes (Boletín Oficial, Camioneros,
+FAECYS, UTHGRA, ARCA), deja lo nuevo como **borrador** en Firestore y avisa por
+Telegram. **No publica nada.** Lo que prepara se revisa y se publica desde la
+pestaña Bandeja de `/admin`. El plan completo está en
+`.claude/plans/` (sesión del 21/10/2026) y la forma de cada pieza, en los
+comentarios de `scripts/vigia/`.
+
+| Qué | Dónde | Para qué |
+|---|---|---|
+| Usuario `vigia@liquidar.ar` en Firebase Authentication | Consola de Firebase, con `info@liquidar.ar` | Es la sesión del robot. Las reglas (`firestore.rules`, `storage.rules`) la identifican por su UID y sólo le dejan escribir en `borradores`, `vigia`, `vigia_corridas`, `vigia_tramos`, `vigia_acuerdos_leidos` y en Storage `borradores/` (y crear archivos en `acuerdos/`). Aunque el código se equivoque, no puede tocar una escala ni una tabla |
+| Bot de Telegram | @BotFather, con la cuenta de Telegram del dueño | Los avisos. El token se regenera con `/revoke` en BotFather; el `chat.id` se lee en `https://api.telegram.org/bot<TOKEN>/getUpdates` después de mandarle `/start` al bot (dentro de las 24 horas) |
+| Secretos de GitHub Actions | GitHub → Settings → Secrets and variables → Actions | Secrets: `VIGIA_PASSWORD`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`. Variables: `NEXT_PUBLIC_FIREBASE_API_KEY`, `VIGIA_EMAIL`. Nunca van en el código ni en `.env.local` |
+
+**Cómo se usa, cada mes:** `/admin` abre en la **Bandeja**. Cada borrador dice
+qué es (contribuciones de Noviembre 2026, por ejemplo), de dónde salió cada
+número (la Resolución de ANSES y la Disposición de la SRT, con el link al aviso)
+y qué le falta, en rojo ("el FFEP es el de Octubre 2026: todavía no salió la
+Disposición"). **Abrir** lleva a la pestaña de siempre con todo precargado;
+revisás y apretás **Guardar y publicar**: el confirm repite de dónde sale cada
+parte, y si editaste un número a mano, lo dice. **Descartar** lo saca de la
+lista y el vigía no lo vuelve a crear. La franja de arriba dice hace cuánto
+corrió el vigía: en rojo si pasaron más de 48 horas o una fuente viene fallando.
+
+Si un mes no llegó (el vigía no corría, el Boletín cambió), en la pestaña
+Contribuciones está **Copiar del mes anterior**: la última tabla cargada con el
+nombre del mes nuevo, para cambiarle las bases y el FFEP a mano. Un aviso suelto
+del Boletín se le puede dar al vigía con `node scripts/vigia.mjs --item <url del
+aviso>` (o la entrada "item" al correrlo a mano en Actions), y los días que se
+perdió, con `--desde AAAA-MM-DD`. El Boletín limita los pedidos seguidos (HTTP
+429): si corta una corrida, lo leído queda guardado y lo que falta sigue en la
+siguiente; por eso sólo se bajan los avisos de ANSES, la SRT y ARCA.
+
+**Meses futuros:** un borrador de un mes que todavía no empezó (la circular de
+Comercio fija hasta noviembre) se publica cuando el dueño quiere, sin esperar
+al mes. El sitio arranca en el mes en curso o en el último anterior a él
+(`periodoPorDefecto`, en `lib/periodos.js`); el mes futuro queda en el
+desplegable para quien lo elija, y cuando llega pasa a ser el de arranque
+solo. El sitemap nunca lleva una fecha de cambio futura. La portada y la
+descripción para Google sí dicen "Escalas hasta Noviembre 2026": es verdad.
+
+**El FFEP:** sale en una Disposición de la SRT a mitad o fin del mismo mes.
+Hasta que sale, el borrador del mes lleva el último conocido, en rojo; el día
+28, si no salió ni está publicada la tabla, el vigía lo recuerda por Telegram.
+Los avisos de Telegram se encolan en `vigia/estado` antes de mandarse: si
+Telegram falla, salen en la corrida siguiente.
+
+**Comprobar que las reglas están bien pegadas:** `node scripts/vigia.mjs --probar-permisos`
+(con `VIGIA_EMAIL` y `VIGIA_PASSWORD` en la consola, sólo para esa corrida).
+Tiene que decir "Todo como tiene que ser": el vigía NO puede crear un convenio,
+una escala, una tabla ni un acuerdo, y SÍ puede escribir en lo suyo. Se corre
+también desde GitHub (Actions → Vigía → Run workflow) después de cada cambio de
+reglas.
+
+**Qué se rompe si...**
+- **Una fuente cambia su página:** el vigía avisa por Telegram ("cambió el
+  formato de …") la primera vez y después cada 7 días, y la Bandeja la marca en
+  rojo. Es un arreglo de código.
+- **GitHub apaga el cron:** lo hace cuando el repo lleva 60 días sin commits.
+  La señal es que deja de llegar el mensaje mensual "Vigía vivo" y la Bandeja
+  dice que la última corrida fue hace muchos días. Se reactiva en la pestaña
+  Actions del repo (el workflow aparece como deshabilitado, con un botón para
+  habilitarlo).
+- **Se pierde la contraseña del vigía:** se cambia desde la consola de
+  Firebase (Authentication → Users) y se actualiza el secreto en GitHub.
+- **Telegram no entrega:** la corrida termina en rojo y GitHub manda un mail (si
+  están prendidas las notificaciones de Actions). Revisar el token y el chat.

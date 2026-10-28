@@ -1,14 +1,21 @@
 "use client";
 // Panel de administración con secciones:
-//   Escalas paritarias · Convenios (reglas) · Ganancias · Contribuciones · Acuerdos · Novedades
+//   Bandeja · Escalas paritarias · Convenios (reglas) · Ganancias · Contribuciones · Acuerdos · Novedades
 // Cada sección vive en components/admin/*.jsx.
+//
+// La Bandeja es lo que el vigía (scripts/vigia.mjs) dejó preparado. "Abrir" un
+// borrador cambia a la pestaña que lo publica (lib/vigia/borradores.js,
+// pestañaDe) y se lo pasa como `borrador` para que la precargue; la pestaña lo
+// marca publicado en el mismo batch que el guardado y avisa acá para soltarlo.
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { collection, getDocs } from "firebase/firestore";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { db, auth } from "@/lib/firebase";
 import { marcarSesion, borrarMarcaDeSesion } from "@/lib/sesion";
+import { pestañaDe } from "@/lib/vigia/borradores";
 
+import BandejaTab from "@/components/admin/BandejaTab";
 import EscalasTab from "@/components/admin/EscalasTab";
 import ConveniosTab from "@/components/admin/ConveniosTab";
 import GananciasTab from "@/components/admin/GananciasTab";
@@ -17,6 +24,7 @@ import NovedadesTab from "@/components/admin/NovedadesTab";
 import AcuerdosTab from "@/components/admin/AcuerdosTab";
 
 const TABS = [
+  { id: "bandeja", label: "Bandeja", icon: "📥" },
   { id: "escalas", label: "Escalas paritarias", icon: "📊" },
   { id: "convenios", label: "Convenios", icon: "⚙️" },
   { id: "ganancias", label: "Ganancias", icon: "💰" },
@@ -31,7 +39,8 @@ export default function AdminPage() {
   const [verificando, setVerificando] = useState(true);
   const [accesoPermitido, setAccesoPermitido] = useState(false);
   const [convenios, setConvenios] = useState([]);
-  const [tabActiva, setTabActiva] = useState("escalas");
+  const [tabActiva, setTabActiva] = useState("bandeja");
+  const [borradorAbierto, setBorradorAbierto] = useState(null);
 
   useEffect(() => {
     if (!auth) return;
@@ -72,6 +81,18 @@ export default function AdminPage() {
     }
   };
 
+  const abrirBorrador = (b) => {
+    try {
+      const pestaña = pestañaDe(b.tipo);
+      setBorradorAbierto(b);
+      setTabActiva(pestaña);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+  const soltarBorrador = () => setBorradorAbierto(null);
+  const borradorPara = (tipo) => (borradorAbierto && borradorAbierto.tipo === tipo ? borradorAbierto : null);
+
   const cerrarSesion = async () => {
     try {
       await signOut(auth);
@@ -96,7 +117,7 @@ export default function AdminPage() {
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Panel de Administración</h1>
-          <p className="text-gray-500 text-sm mt-1">Escalas, convenios, impuestos, contribuciones patronales, acuerdos y novedades</p>
+          <p className="text-gray-500 text-sm mt-1">Bandeja, escalas, convenios, impuestos, contribuciones patronales, acuerdos y novedades</p>
         </div>
         <button
           onClick={cerrarSesion}
@@ -128,12 +149,15 @@ export default function AdminPage() {
 
       {/* Contenido de la pestaña activa */}
       <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-4 sm:p-6">
+        {tabActiva === "bandeja" && <BandejaTab convenios={convenios} onAbrir={abrirBorrador} />}
         {tabActiva === "escalas" && <EscalasTab convenios={convenios} />}
         {tabActiva === "convenios" && (
           <ConveniosTab convenios={convenios} onConveniosChanged={cargarConveniosActivos} />
         )}
         {tabActiva === "ganancias" && <GananciasTab />}
-        {tabActiva === "contribuciones" && <ContribucionesTab />}
+        {tabActiva === "contribuciones" && (
+          <ContribucionesTab borrador={borradorPara("contribuciones")} onBorradorCerrado={soltarBorrador} />
+        )}
         {tabActiva === "acuerdos" && <AcuerdosTab convenios={convenios} />}
         {tabActiva === "novedades" && <NovedadesTab convenios={convenios} />}
       </div>

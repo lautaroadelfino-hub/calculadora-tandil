@@ -4,7 +4,7 @@
 // del art. 9) y ahora una sola.
 
 import { describe, it, expect } from "vitest";
-import { elegirPeriodo, nombreDePeriodo, esPeriodoValido } from "../lib/periodos.js";
+import { elegirPeriodo, nombreDePeriodo, esPeriodoValido, periodoPorDefecto, periodoActual, mesSiguiente } from "../lib/periodos.js";
 import { procesarRecibo } from "../lib/motorLiquidacion.js";
 import convenioComercio from "./fixtures/patron/comercio-cct-130-75.convenio.json";
 import escalasComercio from "./fixtures/patron/comercio-cct-130-75.escalas.json";
@@ -57,6 +57,41 @@ describe("esPeriodoValido", () => {
     expect(esPeriodoValido("2026-7")).toBe(false);
     expect(esPeriodoValido("07-2026")).toBe(false);
     expect(esPeriodoValido(null)).toBe(false);
+  });
+});
+
+describe("periodoPorDefecto", () => {
+  // Los meses con escala cargada, incluido uno publicado por adelantado.
+  const cargados = ["2026-11", "2026-10", "2026-09", "2026-08"];
+
+  it("arranca en el mes en curso aunque haya uno futuro cargado", () => {
+    expect(periodoPorDefecto(cargados, "2026-10")).toBe("2026-10");
+    // Acepta la fecha entera.
+    expect(periodoPorDefecto(cargados, "2026-10-22")).toBe("2026-10");
+  });
+
+  it("si el mes en curso no está cargado, el último anterior a él", () => {
+    expect(periodoPorDefecto(["2026-11", "2026-08"], "2026-10")).toBe("2026-08");
+  });
+
+  it("cuando llega el mes, el futuro pasa a ser el de arranque sin tocar nada", () => {
+    expect(periodoPorDefecto(cargados, "2026-11")).toBe("2026-11");
+    expect(periodoPorDefecto(cargados, "2027-03")).toBe("2026-11");
+  });
+
+  it("si todos son futuros, el más cercano a hoy", () => {
+    expect(periodoPorDefecto(["2026-12", "2026-11"], "2026-10")).toBe("2026-11");
+  });
+
+  it("sin nada cargado, ninguno; los ids sin formato no cuentan", () => {
+    expect(periodoPorDefecto([], "2026-10")).toBeNull();
+    expect(periodoPorDefecto(undefined, "2026-10")).toBeNull();
+    expect(periodoPorDefecto(["2026-8", "cualquier-cosa"], "2026-10")).toBeNull();
+    expect(periodoPorDefecto(["2026-8", "2026-07"], "2026-10")).toBe("2026-07");
+  });
+
+  it("sin fecha usa el mes en curso: hoy nunca elige un mes futuro", () => {
+    expect(periodoPorDefecto(["2026-01", mesSiguiente(periodoActual())])).toBe("2026-01");
   });
 });
 

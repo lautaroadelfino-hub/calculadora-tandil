@@ -1,0 +1,100 @@
+# El vigía de novedades (scripts/vigia.mjs): todos los días a las 09:00 de
+# Argentina (12:00 UTC; GitHub puede demorarlo unos minutos) lee las fuentes,
+# deja borradores en Firestore y avisa por Telegram. No publica nada.
+#
+# Antes del vigía hace un respaldo de Firestore (scripts/respaldar.mjs) y lo
+# guarda 14 días como artifact de la corrida: es el "respaldar antes de cargar"
+# de docs/continuidad.md, todos los días y gratis.
+#
+# Los secretos viven sólo en Settings → Secrets and variables → Actions, y se
+# entregan únicamente al paso del vigía. El id del proyecto y el bucket son
+# públicos (viajan en el HTML del sitio). Los PR de forks no reciben secretos.
+#
+# GitHub desactiva el cron de un repo sin commits durante 60 días: el aviso
+# mensual "vigía vivo" y la franja de la Bandeja en /admin lo delatan, y se
+# reactiva con un clic en la pestaña Actions (ver docs/continuidad.md).
+name: Vigía
+
+on:
+  schedule:
+    - cron: "0 12 * * *"
+  workflow_dispatch:
+    inputs:
+      fuente:
+        description: "Sólo esta fuente (vacío = todas): boletinOficial, camioneros, faecys, uthgra, arca"
+        required: false
+        default: ""
+      desde:
+        description: "Rellenar el Boletín Oficial desde AAAA-MM-DD"
+        required: false
+        default: ""
+      item:
+        description: "Leer sólo este aviso del Boletín Oficial (URL …/detalleAviso/primera/<id>/<AAAAMMDD>)"
+        required: false
+        default: ""
+      ensayo:
+        description: "Ensayo: no escribe ni avisa"
+        type: boolean
+        default: false
+      sembrar:
+        description: "Primera corrida: marca visto lo ya publicado, sin crear borradores"
+        type: boolean
+        default: false
+
+concurrency:
+  group: vigia
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  vigia:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+
+      - name: Respaldo de Firestore
+        env:
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: liquidar-f01ab
+        run: node scripts/respaldar.mjs
+      - name: Guardar el respaldo 14 días
+        uses: actions/upload-artifact@v4
+        with:
+          name: respaldo-${{ github.run_id }}
+          path: respaldos/
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Vigía
+        env:
+          NEXT_PUBLIC_FIREBASE_PROJECT_ID: liquidar-f01ab
+          NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET: liquidar-f01ab.firebasestorage.app
+          NEXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NEXT_PUBLIC_FIREBASE_API_KEY }}
+          VIGIA_EMAIL: ${{ vars.VIGIA_EMAIL }}
+          VIGIA_PASSWORD: ${{ secrets.VIGIA_PASSWORD }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Las entradas del disparo manual llegan por variables de entorno, no
+          # dentro de `run:`: así un texto raro no puede ejecutar nada.
+          VIGIA_FUENTE: ${{ inputs.fuente }}
+          VIGIA_DESDE: ${{ inputs.desde }}
+          VIGIA_ITEM: ${{ inputs.item }}
+          VIGIA_ENSAYO: ${{ inputs.ensayo }}
+          VIGIA_SEMBRAR: ${{ inputs.sembrar }}
+        run: node scripts/vigia.mjs
+
+      - name: Guardar el log 14 días
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vigia-log-${{ github.run_id }}
+          path: .vigia-log.txt
+          retention-days: 14
+          if-no-files-found: ignore

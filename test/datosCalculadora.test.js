@@ -1,11 +1,13 @@
 // test/datosCalculadora.test.js
 // Lo que el servidor le entrega a la calculadora tiene que ser lo mismo que
-// antes armaba el navegador en cinco lecturas: el último período salvo que la
-// URL pida otro, la tabla exacta o la anterior, y un formulario que arranca
-// con los defaults del convenio, la ART típica y lo que traiga el link.
+// antes armaba el navegador en cinco lecturas: el período en curso (o el
+// último anterior a él; un mes publicado por adelantado queda para el
+// desplegable) salvo que la URL pida otro, la tabla exacta o la anterior, y un
+// formulario que arranca con los defaults del convenio, la ART típica y lo que
+// traiga el link.
 import { describe, it, expect, vi } from "vitest";
 import { cargarDatosDeCalculadora, valoresDeArranque, busquedaDesdeSearchParams, esIdDeConvenio } from "../lib/datosCalculadora.js";
-import { periodoDeTabla } from "../lib/periodos.js";
+import { periodoDeTabla, tituloDePeriodo } from "../lib/periodos.js";
 import { novedadesPublicadas } from "../lib/novedadesPublicadas.js";
 
 const convenio = {
@@ -23,12 +25,12 @@ const tablaContribuciones = {
   regimenes: { resto_mipyme: { nombre: "Resto", predeterminado: true }, servicios_grandes: { nombre: "Grandes" } },
 };
 
-/** Un Firestore de mentira: documentos por ruta y colecciones por ruta. */
-function ioFalso() {
+/** Un Firestore de mentira: documentos por ruta y colecciones por ruta, con una escala por mes pedido. */
+function ioFalso(meses = ["2026-07", "2026-08"]) {
+  const escalas = meses.map((m, i) => ({ id: m, mes_vigencia: tituloDePeriodo(m), categorias: { "Nivel 1": 100 + 10 * i } }));
   const documentos = {
     "convenios/prueba": convenio,
-    "convenios/prueba/escalas/2026-07": { mes_vigencia: "Julio 2026", categorias: { "Nivel 1": 100 } },
-    "convenios/prueba/escalas/2026-08": { mes_vigencia: "Agosto 2026", categorias: { "Nivel 1": 110 } },
+    ...Object.fromEntries(escalas.map(({ id, ...e }) => [`convenios/prueba/escalas/${id}`, e])),
     "parametros_contribuciones/2026-06": { ...tablaContribuciones, mes: "2026-06" },
     "parametros_contribuciones/2026-08": { ...tablaContribuciones, mes: "2026-08" },
     "parametros_ganancias/2026-01": { tramos: [1] },
@@ -43,12 +45,7 @@ function ioFalso() {
     }),
     listarColeccion: vi.fn(async (ruta) => {
       pedidas.push(`LISTA ${ruta}`);
-      if (ruta === "convenios/prueba/escalas") {
-        return [
-          { id: "2026-07", mes_vigencia: "Julio 2026" },
-          { id: "2026-08", mes_vigencia: "Agosto 2026" },
-        ];
-      }
+      if (ruta === "convenios/prueba/escalas") return escalas.map(({ id, mes_vigencia }) => ({ id, mes_vigencia }));
       return [];
     }),
     listarIds: vi.fn(async (ruta) => {
@@ -114,10 +111,38 @@ describe("cargarDatosDeCalculadora", () => {
     expect(d.valores).toMatchObject({ categoria: "Nivel 2", carga_horaria: "36", antiguedad_años: "5", regimen_contribuciones: "servicios_grandes" });
   });
 
-  it("si la URL pide un período que no está cargado, cae al último sin calcular sola", async () => {
-    const d = await cargarDatosDeCalculadora("prueba", "?periodo=2031-01", ioFalso());
+  it("si la URL pide un período que no está cargado, cae al de arranque y se calcula igual", async () => {
+    const d = await cargarDatosDeCalculadora("prueba", "?periodo=2031-01", ioFalso(), "2026-10");
     expect(d.periodoInicial).toBe("2026-08");
-    expect(d.autoCalcular).toBe(true); // la URL traía período: se recalcula igual con el último, como antes
+    expect(d.autoCalcular).toBe(true); // la URL traía período: se recalcula igual con el de arranque, como antes
+  });
+
+  it("un mes publicado por adelantado queda en el desplegable, pero se arranca en el mes en curso", async () => {
+    const io = ioFalso(["2026-09", "2026-10", "2026-11"]);
+    const d = await cargarDatosDeCalculadora("prueba", "", io, "2026-10");
+    expect(d.periodos.map((p) => p.id)).toEqual(["2026-11", "2026-10", "2026-09"]);
+    expect(d.periodoInicial).toBe("2026-10");
+    expect(Object.keys(d.escalas)).toEqual(["2026-10"]);
+    // Las tablas se eligen para el mes de arranque, no para el futuro.
+    expect(d.tablaContribuciones.periodo).toBe("2026-08");
+    expect(io.pedidas).toContain("convenios/prueba/escalas/2026-10");
+    expect(io.pedidas).not.toContain("convenios/prueba/escalas/2026-11");
+  });
+
+  it("quien pide el mes futuro en la URL lo tiene", async () => {
+    const d = await cargarDatosDeCalculadora("prueba", "?periodo=2026-11", ioFalso(["2026-10", "2026-11"]), "2026-10");
+    expect(d.periodoInicial).toBe("2026-11");
+    expect(Object.keys(d.escalas)).toEqual(["2026-11"]);
+  });
+
+  it("cuando llega el mes, arranca ahí sin que nadie toque nada", async () => {
+    const d = await cargarDatosDeCalculadora("prueba", "", ioFalso(["2026-10", "2026-11"]), "2026-11");
+    expect(d.periodoInicial).toBe("2026-11");
+  });
+
+  it("si el mes en curso no está cargado, el último anterior; si todos son futuros, el más cercano", async () => {
+    expect((await cargarDatosDeCalculadora("prueba", "", ioFalso(["2026-08", "2026-11"]), "2026-10")).periodoInicial).toBe("2026-08");
+    expect((await cargarDatosDeCalculadora("prueba", "", ioFalso(["2026-11", "2026-12"]), "2026-10")).periodoInicial).toBe("2026-11");
   });
 
   it("si falla una tabla opcional (Ganancias, contribuciones), la calculadora igual arranca sin ella", async () => {
