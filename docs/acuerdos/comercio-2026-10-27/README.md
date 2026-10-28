@@ -56,39 +56,46 @@ $120.000; el total no cambia, pero sí los aportes (Vendedor B, 48 h, 5 años:
 neto $1.322.327,58 en vez de $1.318.927,58). Octubre y noviembre no dependen
 de eso.
 
-## Cuándo subir cada mes
+## Los tres meses juntos
 
-La calculadora arranca siempre con el período **más nuevo que esté
-cargado**, sin mirar el calendario, y la tarjeta de la portada dice ese mes.
-Si se publica diciembre hoy, Comercio pasa a "Diciembre 2026" ya mismo y
-quien liquida octubre tiene que elegirlo en el desplegable. Por eso, y por
-la duda de los $20.000 de arriba: **octubre y noviembre ahora; diciembre el
-1/12**, o antes si FAECYS publica las planillas y confirman la incorporación.
+Se publican los tres de una (decisión del 28/10/2026). Conviene saber que la
+calculadora arranca siempre con el período **más nuevo que esté cargado**,
+sin mirar el calendario, y la tarjeta de la portada dice ese mes: con
+diciembre publicado, Comercio arranca en "Diciembre 2026" y quien liquida
+octubre lo elige en el desplegable. Si la planilla de FAECYS cambia
+diciembre, se corrige el CSV y se vuelve a correr la carga: reemplaza el mes.
 
 ## Cómo se carga
 
-Hacé un respaldo antes (`respaldar.bat`). Después, para cada mes, en
-`/admin` → **Escalas paritarias** → Empleados de Comercio.
+Hacé un respaldo antes (`respaldar.bat`). Lo que se publica está en
+`carga.json`: las tres escalas y la tabla de contribuciones de octubre (FFEP
+$1.971 y bases del art. 9 $146.759,98 / $4.769.631,49, Resolución ANSES
+284/2026, sobre la tabla de septiembre que ya está revisada). Desde la
+terminal, parado en el repo:
 
-**Ojo con el nombre del período:** al buscar un mes nuevo el panel precarga
-todo lo del mes anterior pero **no borra el nombre descriptivo** que quedó
-escrito. Si cargás octubre y noviembre en la misma sesión y te salteás ese
-paso, noviembre se publica como "Octubre 2026" y así aparece en la portada.
+```
+node scripts/cargarMes.mjs docs/acuerdos/comercio-2026-10-27
+```
 
-1. Período `2026-10` → **Buscar** (precarga septiembre) → **Subir CSV** →
-   `comercio-2026-10.csv`.
-2. Nombre del período: `Octubre 2026`.
-3. En el campo del nombre de la suma sin incidencia (debajo del período):
-   `Asignación Extraordinaria por Única Vez – Revisión Octubre 2026`.
-   Es como aparece en el recibo. El nombre es provisorio (en julio la planilla
-   decía "… – Revisión 2026"); cuando salga la nueva, usá el de ahí.
-4. **Guardar y publicar**. El panel avisa que las 21 categorías suben 2,1%:
-   es lo esperado.
-5. Lo mismo con `2026-11` / `Noviembre 2026` (el nombre de la suma viene
-   precargado de octubre; avisa que suben 2,0%) y `2026-12` /
-   `Diciembre 2026`. En diciembre no hay suma sin incidencia: **borrá el
-   nombre** que viene precargado de noviembre. Avisa que suben entre 3,5% y
-   3,6%, porque se suman los $20.000 que dejan de ser no remunerativos.
+muestra qué haría y los avisos de la revisión (las 21 categorías suben 2,1%
+en octubre, 2,0% en noviembre y entre 3,5% y 3,6% en diciembre, porque se
+suman los $20.000 que dejan de ser no remunerativos). Con `--aplicar` al
+final pide la contraseña de admin y lo escribe todo de una: entra todo o no
+entra nada. Los nombres de los períodos y de la suma sin incidencia salen del
+`carga.json`, así que no hay nada que tipear. Después, `node
+scripts/capturarFixtures.mjs comercio-cct-130-75` para que los tests vean los
+meses nuevos.
+
+El nombre de la suma ("Asignación Extraordinaria por Única Vez – Revisión
+Octubre 2026") es provisorio: en julio la planilla decía "… – Revisión 2026".
+Si la nueva le pone otro, se cambia en `carga.json` y se vuelve a correr.
+
+**A mano, desde `/admin`** (si no se puede usar la terminal): para cada mes,
+Escalas paritarias → Empleados de Comercio → período → Buscar → Subir CSV →
+revisar el nombre del período (desde el 28/10/2026 el panel lo propone solo)
+y el de la suma sin incidencia (en diciembre va vacío) → Guardar y publicar.
+La tabla de contribuciones de octubre: Contribuciones → `2026-10` → Cargar
+valores oficiales → poner las bases del art. 9 de octubre → Guardar.
 
 ## Para controlar en el sitio
 
@@ -111,13 +118,10 @@ cuota de $25.000 y los $20.000 que pasan al básico pagan aportes.
   escalas, comparar básico por básico. Si alguna difiere en más de $1, manda
   la planilla: se corrige el CSV y se vuelve a publicar ese mes. Lo primero
   a mirar: diciembre, los $20.000 y los $100.000.
-- **La tabla de contribuciones de octubre.** En la base hay hasta
-  septiembre; octubre cae en esa con aviso en el recibo. Se carga desde
-  Contribuciones → `2026-10` → Cargar valores oficiales → Guardar. El FFEP de
-  octubre todavía no salió (el último conocido es el de septiembre, $1.935,
-  Disposición SRT 9/2026): cuando la SRT lo publique, se agrega en
-  `data/ffep.json` y se vuelve a cargar la tabla. Lo mismo para noviembre y
-  diciembre a su tiempo.
+- **FFEP y bases del art. 9 de noviembre y diciembre.** Hasta que se
+  carguen, esos meses usan la tabla de octubre con aviso en el recibo. Cuando
+  la SRT y ANSES los publiquen: la fila en `data/ffep.json`, y un `carga.json`
+  sólo con `contribuciones` (o desde /admin → Contribuciones).
 - **Junio 2026 está mal en producción**, desde la carga del 20/5/2026:
   Personal Auxiliar B tiene el básico de abril ($1.102.315) y Auxiliar
   Especializado B tiene el que le correspondía a Personal Auxiliar B

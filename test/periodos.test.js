@@ -4,10 +4,24 @@
 // del art. 9) y ahora una sola.
 
 import { describe, it, expect } from "vitest";
-import { elegirPeriodo, nombreDePeriodo, esPeriodoValido } from "../lib/periodos.js";
+import { elegirPeriodo, nombreDePeriodo, esPeriodoValido, tituloDePeriodo } from "../lib/periodos.js";
 import { procesarRecibo } from "../lib/motorLiquidacion.js";
 import convenioComercio from "./fixtures/patron/comercio-cct-130-75.convenio.json";
 import escalasComercio from "./fixtures/patron/comercio-cct-130-75.escalas.json";
+
+describe("tituloDePeriodo", () => {
+  it('arma el nombre descriptivo que el panel guarda: "2026-10" -> "Octubre 2026"', () => {
+    expect(tituloDePeriodo("2026-10")).toBe("Octubre 2026");
+    expect(tituloDePeriodo("2027-01")).toBe("Enero 2027");
+  });
+
+  it("con algo que no es un período devuelve vacío, para que nadie publique un título inventado", () => {
+    expect(tituloDePeriodo("2026-9")).toBe("");
+    expect(tituloDePeriodo("2026-13")).toBe("");
+    expect(tituloDePeriodo("")).toBe("");
+    expect(tituloDePeriodo(null)).toBe("");
+  });
+});
 
 describe("elegirPeriodo", () => {
   const cargados = ["2026-01", "2026-07", "2025-07"]; // desordenados a propósito

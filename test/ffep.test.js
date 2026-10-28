@@ -29,11 +29,12 @@ describe("el histórico del FFEP", () => {
 });
 
 describe("el FFEP de un período", () => {
-  it("los meses cargados en producción: junio a septiembre 2026", () => {
+  it("los meses cargados en producción: junio a octubre 2026", () => {
     expect(ffepDelPeriodo("2026-06")).toBe(1827);
     expect(ffepDelPeriodo("2026-07")).toBe(1839);
     expect(ffepDelPeriodo("2026-08")).toBe(1905);
     expect(ffepDelPeriodo("2026-09")).toBe(1935);
+    expect(ffepDelPeriodo("2026-10")).toBe(1971);
   });
 
   it("un mes sin valor propio toma el anterior vigente (2022-05 usa el de 2022-04)", () => {

@@ -72,6 +72,15 @@ Los números se pueden escribir como quieras: `1.273.746,00`, `1273746`,
 `$ 1.273.746`. Lo que **no** se puede es dejar el básico vacío o poner texto:
 ahí te avisa con el número de fila en vez de guardar un cero.
 
+**Varios meses de una, desde la terminal.** Si los CSV ya están en una
+carpeta con un `carga.json` que dice a qué convenio y período va cada uno
+(como `docs/acuerdos/comercio-2026-10-27/`; el formato está en
+`lib/cargaDeMes.js`), `node scripts/cargarMes.mjs <carpeta>` muestra qué
+publicaría con las mismas revisiones del panel, y con `--aplicar` al final lo
+publica (pide la contraseña de admin, y entra todo o no entra nada). Si el
+`carga.json` trae el FFEP y las bases del art. 9 del mes, carga también la
+tabla de contribuciones (tarea 4) a partir de la última que haya.
+
 ### 2. Dar de alta un convenio nuevo
 
 1. `/admin` → pestaña **Convenios** → **+ Nuevo convenio**.

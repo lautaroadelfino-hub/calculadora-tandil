@@ -1,6 +1,6 @@
 {
   "_nota": "Suma fija mensual por trabajador del Fondo Fiduciario de Enfermedades Profesionales (FFEP), a cargo del empleador. Cambia todos los meses por Disposición de la SRT. Cada fila rige desde el período ARCA (F.931) indicado en `desde`, en adelante, hasta la fila siguiente. Para un mes se toma la fila con el `desde` más alto que no lo supere.",
-  "_fuente": "Resolución MTEySS 649/2022 y Disposiciones SRT mensuales; histórico publicado por Provincia ART en https://www.provinciart.com.ar/ffep (consultado el 11/10/2026).",
+  "_fuente": "Resolución MTEySS 649/2022 y Disposiciones SRT mensuales; histórico publicado por Provincia ART en https://www.provinciart.com.ar/ffep (consultado el 11/10/2026). Octubre 2026 ($1.971): Disposición SRT del mes, cargado el 28/10/2026.",
   "valores": [
     { "desde": "2021-03", "monto": 40 },
     { "desde": "2021-09", "monto": 45.07 },
@@ -58,6 +58,7 @@
     { "desde": "2026-06", "monto": 1827 },
     { "desde": "2026-07", "monto": 1839 },
     { "desde": "2026-08", "monto": 1905 },
-    { "desde": "2026-09", "monto": 1935 }
+    { "desde": "2026-09", "monto": 1935 },
+    { "desde": "2026-10", "monto": 1971 }
   ]
 }

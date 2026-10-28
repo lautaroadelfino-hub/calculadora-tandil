@@ -1,0 +1,28 @@
+{
+  "_nota": "Lo que publica `node scripts/cargarMes.mjs docs/acuerdos/comercio-2026-10-27`: las tres escalas del acuerdo del 27/10/2026 y la tabla de contribuciones de octubre. Ver README.md de esta carpeta y lib/cargaDeMes.js.",
+  "convenio": "comercio-cct-130-75",
+  "escalas": {
+    "2026-10": {
+      "csv": "comercio-2026-10.csv",
+      "mes_vigencia": "Octubre 2026",
+      "nombre_sin_incidencia": "Asignación Extraordinaria por Única Vez – Revisión Octubre 2026"
+    },
+    "2026-11": {
+      "csv": "comercio-2026-11.csv",
+      "mes_vigencia": "Noviembre 2026",
+      "nombre_sin_incidencia": "Asignación Extraordinaria por Única Vez – Revisión Octubre 2026"
+    },
+    "2026-12": {
+      "csv": "comercio-2026-12.csv",
+      "mes_vigencia": "Diciembre 2026"
+    }
+  },
+  "contribuciones": {
+    "2026-10": {
+      "_fuente": "FFEP: Disposición SRT de octubre 2026 (dato del 28/10/2026). Bases del art. 9: Resolución ANSES 284/2026, IPC de agosto 1,66%.",
+      "vigencia": "Octubre 2026",
+      "ffep": 1971,
+      "bases_art9": { "minima": 146759.98, "maxima": 4769631.49 }
+    }
+  }
+}
