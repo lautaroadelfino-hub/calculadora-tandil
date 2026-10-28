@@ -16,6 +16,9 @@ describe("iniciar sesión", () => {
   it("pide el token a Identity Toolkit y lo enmascara sólo en Actions", async () => {
     const fetchFn = vi.fn(async () => respuesta(200, { idToken: "eyJ.token", refreshToken: "refresco", localId: "uid-vigia", email: "vigia@liquidar.ar", expiresIn: "3600" }));
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
+    // Primero fuera de Actions. Hay que decirlo: este test también corre
+    // adentro de Actions, donde la variable ya viene puesta, y ahí fallaba.
+    delete process.env.GITHUB_ACTIONS;
     const sesion = await iniciarSesion({ apiKey: "AIza", email: "vigia@liquidar.ar", password: "secreta", fetchFn });
     expect(sesion).toEqual({ idToken: "eyJ.token", uid: "uid-vigia", email: "vigia@liquidar.ar", expiraEnSegundos: 3600 });
     expect(fetchFn.mock.calls[0][0]).toBe("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIza");
