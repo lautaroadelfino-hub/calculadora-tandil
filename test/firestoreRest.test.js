@@ -10,10 +10,38 @@ import {
   leerDocumento,
   listarColeccion,
   listarIds,
+  valorARest,
+  camposARest,
+  nombreDeDocumento,
 } from "../lib/firestoreRest.js";
 
 afterEach(() => {
   vi.unstubAllGlobals();
+});
+
+describe("la conversión al formato REST, para escribir (lib/firestoreValores.js: la usan el vigía y scripts/cargarMes.mjs)", () => {
+  it("vuelve igual después de ir y volver, con los mismos tipos que escribe el SDK", () => {
+    const doc = {
+      nombre: "Comercio", activo: true, nada: null, pct: 0.08333, entero: 1226349,
+      lista: ["A", 2, { x: 1.5 }], mapa: { basico: 100, sub: { ok: false } },
+    };
+    expect(camposDesdeRest(camposARest(doc))).toEqual(doc);
+    expect(valorARest(44)).toEqual({ integerValue: "44" });
+    expect(valorARest(0.5)).toEqual({ doubleValue: 0.5 });
+    expect(valorARest(undefined)).toEqual({ nullValue: null });
+  });
+
+  it("no manda claves con undefined; NaN e infinito viajan como texto y vuelven como número", () => {
+    expect(camposARest({ a: 1, b: undefined })).toEqual({ a: { integerValue: "1" } });
+    expect(valorARest(NaN)).toEqual({ doubleValue: "NaN" });
+    expect(valorDesdeRest(valorARest(Infinity))).toBe(Infinity);
+  });
+
+  it("arma el nombre completo del documento con la ruta tal cual, sin codificar", () => {
+    expect(nombreDeDocumento("/convenios/comercio-cct-130-75/escalas/2026-10/")).toMatch(
+      /^projects\/.+\/databases\/\(default\)\/documents\/convenios\/comercio-cct-130-75\/escalas\/2026-10$/
+    );
+  });
 });
 
 describe("la conversión del formato REST de Firestore", () => {
