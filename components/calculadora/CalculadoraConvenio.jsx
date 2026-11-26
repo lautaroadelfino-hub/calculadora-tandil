@@ -95,7 +95,7 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
   // undefined = todavía no se buscó; null = se buscó y no hay.
   const [tablaContribuciones, setTablaContribuciones] = useState(inicial.tablaContribuciones.datos);
   const [periodoContribuciones, setPeriodoContribuciones] = useState(inicial.tablaContribuciones.periodo);
-  // Para la calificación del pie del recibo (lib/calificaciones.js): cuántas
+  // Para la calificación del recibo (lib/calificaciones.js): cuántas
   // cuentas lleva en esta visita a la página, y si el recibo en pantalla lo
   // armó un link compartido o lo calculó la persona. "link" es sólo el recibo
   // que arma solo un link de "Copiar link" (trae la marca `via=link`): un F5,
@@ -642,6 +642,15 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                 </div>
                 </div>
 
+                {/* ¿Te sirvió? Una línea con estrellas debajo de los tres números,
+                    que es lo primero que se mira: al pie del recibo quedaba
+                    demasiado escondida (dueño, 26/11/2026). Sin insistir: ver
+                    lib/calificaciones.js (por qué no es un cartel, qué se guarda
+                    y para qué). Una tarjeta por recibo (`key`): si recalcula, lo
+                    que conteste ya no se pega al recibo anterior; si ya calificó,
+                    la tarjeta nueva no aparece. */}
+                <CalificarExperiencia key={calculosEnLaVisita} contexto={contextoDeCalificacion} />
+
                 {/* 1 a 5. El recibo, con el formato del Anexo III del Decreto
                     407/2026 (docs/decreto-407-2026-anexo-III.pdf): casillas,
                     costo total empleador, bruto, haberes y aportes, neto,
@@ -794,13 +803,6 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                   </button>
                 </div>
                 {copiado && <p role="status" className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2 [overflow-wrap:anywhere] print:hidden">{copiado}</p>}
-
-                {/* 7. ¿Te sirvió? Recién con el recibo a la vista, y sin insistir:
-                    ver lib/calificaciones.js (por qué no es un cartel, qué se
-                    guarda y para qué). Una tarjeta por recibo (`key`): si
-                    recalcula, lo que conteste ya no se pega al recibo anterior;
-                    si ya calificó, la tarjeta nueva no aparece. */}
-                <CalificarExperiencia key={calculosEnLaVisita} contexto={contextoDeCalificacion} />
               </div>
             </div>
           ) : (

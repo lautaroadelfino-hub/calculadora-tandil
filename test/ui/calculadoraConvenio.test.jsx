@@ -164,7 +164,7 @@ describe("la calculadora de Comercio", () => {
   it("'¿Te sirvió este cálculo?' aparece recién con el recibo, y una estrella la guarda con el contexto de la cuenta", async () => {
     const inicial = await cargarDatosDeCalculadora(ID);
     render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
-    expect(screen.queryByRole("group", { name: "¿Te sirvió este cálculo?" })).toBeNull();
+    expect(screen.queryByRole("radiogroup", { name: "¿Te sirvió este cálculo?" })).toBeNull();
 
     fireEvent.change(screen.getByLabelText("Período a liquidar"), { target: { value: "2026-09" } });
     fireEvent.change(screen.getByLabelText("Categoría"), { target: { value: "Vendedor B" } });
@@ -201,7 +201,7 @@ describe("la calculadora de Comercio", () => {
     await screen.findByText(/¡Gracias!/);
     fireEvent.change(screen.getByLabelText("Años de Antigüedad"), { target: { value: "6" } });
     fireEvent.click(botonCalcular());
-    await vi.waitFor(() => expect(screen.queryByRole("group", { name: "¿Te sirvió este cálculo?" })).toBeNull());
+    await vi.waitFor(() => expect(screen.queryByRole("radiogroup", { name: "¿Te sirvió este cálculo?" })).toBeNull());
     expect(enviarCalificacion).toHaveBeenCalledTimes(1);
   });
 
