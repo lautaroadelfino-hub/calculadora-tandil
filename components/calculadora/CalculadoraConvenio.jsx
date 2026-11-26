@@ -12,13 +12,13 @@
 import { useEffect, useRef, useState } from "react";
 import { leerDocumento } from "@/lib/firestoreRest";
 import { procesarRecibo } from "@/lib/motorLiquidacion";
-import { nombreDePeriodo, periodoDeTabla } from "@/lib/periodos";
+import { nombreDePeriodo, periodoDeTabla, mismoSemestre } from "@/lib/periodos";
 import { regimenPredeterminado } from "@/lib/contribucionesForm";
 import { normalizarEntradas, etiquetaDeCampo } from "@/lib/validacionEntradas";
 import ReportModal from "@/components/ReportModal";
 import ReciboOficial from "@/components/calculadora/ReciboOficial";
 import CalificarExperiencia from "@/components/calculadora/CalificarExperiencia";
-import { paramsDesdeEntradas } from "@/lib/permalink";
+import { paramsDesdeEntradas, conMarcaDeLink, llegoPorLinkCompartido } from "@/lib/permalink";
 
 const money = (n) =>
   "$" + Number(n || 0).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -96,10 +96,14 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
   const [tablaContribuciones, setTablaContribuciones] = useState(inicial.tablaContribuciones.datos);
   const [periodoContribuciones, setPeriodoContribuciones] = useState(inicial.tablaContribuciones.periodo);
   // Para la calificación del pie del recibo (lib/calificaciones.js): cuántas
-  // cuentas hizo en esta visita y si llegó por un link compartido, que arma el
-  // recibo solo. El contador sube junto con el recibo, en el mismo render.
+  // cuentas lleva en esta visita a la página, y si el recibo en pantalla lo
+  // armó un link compartido o lo calculó la persona. "link" es sólo el recibo
+  // que arma solo un link de "Copiar link" (trae la marca `via=link`): un F5,
+  // Atrás o una pestaña que el celular recargó también traen la simulación en
+  // la URL, pero sin la marca (revisión del 26/11/2026). Un recálculo es "manual".
   const [calculosEnLaVisita, setCalculosEnLaVisita] = useState(0);
-  const [origenDeLaVisita] = useState(inicial.autoCalcular ? "link" : "manual");
+  const [origenDelRecibo, setOrigenDelRecibo] = useState("manual");
+  const reciboAutomatico = useRef(false);
 
   // Lo que ya vino en el HTML (la escala y las tablas del período inicial) y lo
   // que se fue trayendo después: nada se pide dos veces.
@@ -167,13 +171,16 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
   useEffect(() => {
     if (autoCalcular && convenio && periodoSeleccionado && tablaContribuciones !== undefined) {
       setAutoCalcular(false);
+      reciboAutomatico.current = true;
       formRef.current?.requestSubmit();
     }
   }, [autoCalcular, convenio, periodoSeleccionado, tablaContribuciones]);
 
+  // El link que se comparte lleva la marca `via=link` (lib/permalink.js): así
+  // la calificación distingue al que lo recibió del que apretó F5.
   const linkDeLaSimulacion = () => {
     if (typeof window === "undefined" || !periodoUsado) return "";
-    return `${window.location.origin}${window.location.pathname}?${paramsDesdeEntradas(convenio, entradasUsadas || {}, periodoUsado)}`;
+    return `${window.location.origin}${window.location.pathname}?${conMarcaDeLink(paramsDesdeEntradas(convenio, entradasUsadas || {}, periodoUsado))}`;
   };
 
   const copiarLink = async () => {
@@ -205,6 +212,10 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
   const simularLiquidacion = async (e) => {
     e.preventDefault();
     setErrorCalculo(null);
+    // ¿Este recibo lo arma solo un link compartido? Se mira antes de que la
+    // URL se reescriba con la simulación (más abajo), que le saca la marca.
+    const deUnLink = reciboAutomatico.current && typeof window !== "undefined" && llegoPorLinkCompartido(window.location.search);
+    reciboAutomatico.current = false;
 
     // Primero se revisa lo cargado. Si algo no sirve, se dice cuál campo y por
     // qué, y el foco va al primero: nunca más un botón que no hace nada.
@@ -245,6 +256,7 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
         periodoContribuciones,
       });
       setCalculosEnLaVisita((n) => n + 1);
+      setOrigenDelRecibo(deUnLink ? "link" : "manual");
       setResultadoLiquidacion(reciboArmado);
       setEntradasUsadas({ ...valoresUsuario });
       setPeriodoUsado(periodoSeleccionado);
@@ -278,24 +290,29 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
         (k) => String(entradasUsadas?.[k] ?? "") !== String(valoresUsuario[k] ?? "")
       ));
   const hayErrores = Object.keys(errores).length > 0;
+  // ¿Las tablas de Ganancias son de otro SEMESTRE? Se cargan por semestre
+  // (2026-07 vale de julio a diciembre): que sean de otro mes no dice nada.
+  // Antes se comparaba el mes y noviembre avisaba "de otro semestre" con la
+  // tabla de julio, que es la que corresponde (revisión del 26/11/2026).
+  const gananciasDeOtroSemestre = Boolean(periodoGanancias && periodoUsado && !mismoSemestre(periodoGanancias, periodoUsado));
   // Lo que se guarda solo con la calificación (lib/calificaciones.js). Nada del
-  // sueldo: el convenio, el mes y la categoría calculados, cómo llegó, cuántas
-  // cuentas hizo y si el recibo traía alguno de los avisos de abajo (los avisos
-  // del motor, falta Ganancias o la tabla de contribuciones, o se usó la de
-  // otro mes), para ver si los datos que faltan bajan la nota.
+  // sueldo: el convenio, el mes y la categoría calculados, cómo se armó el
+  // recibo, cuántas cuentas lleva y si le faltaban datos: una tabla del mes que
+  // no está (Ganancias, contribuciones) o que se tomó de otro mes. Los avisos
+  // por lo que cargó la persona (horas de más, campos vacíos) no cuentan: no
+  // son datos que falten en el sitio.
   const contextoDeCalificacion = resultadoLiquidacion
     ? {
         convenioId,
         periodo: periodoUsado,
         categoria: entradasUsadas?.zona ? `${entradasUsadas.zona} · ${entradasUsadas?.categoria ?? ""}` : entradasUsadas?.categoria,
-        origen: origenDeLaVisita,
+        origen: origenDelRecibo,
         calculos: calculosEnLaVisita,
-        conAvisos:
-          (resultadoLiquidacion.avisos?.length ?? 0) > 0 ||
+        faltanDatos:
           !resultadoLiquidacion.ganancias ||
           !empleador ||
           Boolean(empleador.periodoTabla && metodo && empleador.periodoTabla !== metodo.periodo) ||
-          Boolean(resultadoLiquidacion.ganancias?.aplica && periodoGanancias && periodoGanancias !== periodoUsado),
+          Boolean(resultadoLiquidacion.ganancias?.aplica && gananciasDeOtroSemestre),
       }
     : null;
   // Lo que quedó marcado en el formulario y suma plata (asistencia perfecta,
@@ -519,7 +536,18 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
               {(hayErrores || errorCalculo) && (
                 <div role="alert" className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
                   {errorCalculo ? (
-                    <p>{errorCalculo}</p>
+                    <>
+                      <p>{errorCalculo}</p>
+                      {/* Sin recibo no hay botón de reportar abajo: que esté acá,
+                          que es justo cuando más hace falta. */}
+                      <button
+                        type="button"
+                        onClick={() => setShowReport(true)}
+                        className="mt-1.5 text-[12px] font-semibold text-rose-900 underline underline-offset-2 hover:text-rose-950"
+                      >
+                        Reportar error / sugerencia
+                      </button>
+                    </>
                   ) : (
                     <>
                       <p className="font-semibold">Revisá estos datos antes de calcular:</p>
@@ -653,8 +681,7 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                 )}
 
                 {resultadoLiquidacion.ganancias?.aplica &&
-                  periodoGanancias &&
-                  periodoGanancias !== periodoUsado && (
+                  gananciasDeOtroSemestre && (
                     <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-2">
                       <b>Ojo:</b> no hay tablas de Ganancias de {nombreDePeriodo(periodoUsado)}. Se usaron las de{" "}
                       {nombreDePeriodo(periodoGanancias)}, de otro semestre.
@@ -770,8 +797,10 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
 
                 {/* 7. ¿Te sirvió? Recién con el recibo a la vista, y sin insistir:
                     ver lib/calificaciones.js (por qué no es un cartel, qué se
-                    guarda y para qué). */}
-                <CalificarExperiencia contexto={contextoDeCalificacion} />
+                    guarda y para qué). Una tarjeta por recibo (`key`): si
+                    recalcula, lo que conteste ya no se pega al recibo anterior;
+                    si ya calificó, la tarjeta nueva no aparece. */}
+                <CalificarExperiencia key={calculosEnLaVisita} contexto={contextoDeCalificacion} />
               </div>
             </div>
           ) : (

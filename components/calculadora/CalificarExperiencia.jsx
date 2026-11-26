@@ -4,15 +4,21 @@
 // qué, por qué así y no con un cartel, y qué validan las reglas:
 // lib/calificaciones.js.
 //
-// El recorrido: la persona toca una estrella y la calificación queda guardada,
-// sin botón "Enviar" (el que no lo aprieta se pierde). Recién ahí aparece lo
-// opcional: qué falló si calificó con 3 o menos, quién es y un comentario.
-// Cada toque se guarda solo; el comentario, con su botón. Si cambia de
-// estrellas en el momento, se corrige la misma calificación, no se suma otra.
-// Los toques seguidos se juntan (`espera`) y se manda uno solo, en orden.
+// El recorrido: la persona toca una estrella y la calificación sale en ese
+// momento, sin botón "Enviar" (el que no lo aprieta se pierde) y sin esperar
+// (el que toca y cierra la pestaña también cuenta). Recién ahí aparece lo
+// opcional: qué falló si calificó con 3 o menos, para qué usó la calculadora
+// y un comentario. Cada toque corrige la misma calificación; los toques
+// seguidos se juntan (`espera`) y se mandan en orden, y lo que quede
+// pendiente se manda igual si la tarjeta desaparece o la página se cierra.
 //
 // No insiste: "Ahora no" la esconde por un tiempo, y después de calificar no
-// vuelve a aparecer (lib/calificaciones.js, DIAS_SIN_PREGUNTAR).
+// vuelve a aparecer (DIAS_SIN_PREGUNTAR). Hay una tarjeta por recibo: la
+// calculadora la vuelve a armar al recalcular, y si ya calificó no se muestra.
+//
+// Revisión del 26/11/2026: el id de la calificación se elige una sola vez, así
+// un reintento después de un corte no la duplica; si el alta había llegado y
+// se perdió la respuesta, el reintento la encuentra y sigue desde ahí.
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -29,11 +35,13 @@ import {
   debePreguntar,
   puedeCambiar,
   dispositivoDe,
+  entornoDe,
 } from "@/lib/calificaciones";
 
 const AHORA = () => new Date();
 const ESTRELLAS = [1, 2, 3, 4, 5];
 const NOMBRE_DE_LAS_ESTRELLAS = ["", "Muy mal", "Mal", "Más o menos", "Bien", "Muy bien"];
+const VENCIDA = "Pasó más de un día desde que calificaste y esto ya no se puede cambiar. Si querés contarnos algo más, usá \"Reportar error / sugerencia\".";
 
 function almacenDelNavegador() {
   try {
@@ -73,7 +81,7 @@ function Opcion({ activa, onClick, children }) {
 
 /**
  * @param contexto  lo que se guarda solo con la calificación: { convenioId,
- *   periodo, categoria, origen, conAvisos, calculos } (lib/calificaciones.js).
+ *   periodo, categoria, origen, faltanDatos, calculos } (lib/calificaciones.js).
  * @param enviar, almacen, ahora, espera  para los tests: a dónde se manda, dónde
  *   se recuerda, qué hora es y cuánto se espera para juntar toques.
  */
@@ -85,16 +93,21 @@ export default function CalificarExperiencia({ contexto, enviar = enviarCalifica
   const [motivos, setMotivos] = useState([]);
   const [perfil, setPerfil] = useState(null);
   const [comentario, setComentario] = useState("");
-  const [comentarioGuardado, setComentarioGuardado] = useState(false);
+  const [comentarioEnviado, setComentarioEnviado] = useState(""); // el que quedó guardado
+  const [avisoComentario, setAvisoComentario] = useState(null); // "guardado" | "borrado" | null
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
   // Lo último que contestó, para que cada envío mande lo más nuevo aunque se
-  // haya programado antes; y la calificación creada, si ya la hay.
+  // haya programado antes; el id elegido para el alta; la calificación ya
+  // creada, si la hay; y lo que hay escrito en la caja ahora.
   const respuestas = useRef({ estrellas: 0, motivos: [], perfil: null, comentario: "" });
+  const idDelAlta = useRef(null);
   const creada = useRef(null);
   const temporizador = useRef(null);
   const cola = useRef(Promise.resolve(true));
+  const ultimoFallo = useRef(false);
+  const textoEnLaCaja = useRef("");
   const contextoActual = useRef(contexto);
   useEffect(() => {
     contextoActual.current = contexto;
@@ -102,45 +115,52 @@ export default function CalificarExperiencia({ contexto, enviar = enviarCalifica
 
   const almacenReal = () => almacen ?? almacenDelNavegador();
 
-  // Si se pregunta o no, se decide en el navegador (el servidor no sabe qué
-  // contestó esta persona antes) y una sola vez.
-  useEffect(() => {
-    const registro = leerRegistro(almacen ?? almacenDelNavegador());
-    setFase((f) => (f === "cargando" ? (debePreguntar(registro, ahora()) ? "pregunta" : "oculta") : f));
-    return () => clearTimeout(temporizador.current);
-  }, [almacen, ahora]);
-
   /** Manda lo contestado: la primera vez crea la calificación; después la corrige. Devuelve si se guardó. */
   const guardar = () => {
     cola.current = cola.current.then(async () => {
       const r = respuestas.current;
       setGuardando(true);
       setError("");
+      const cambio = () =>
+        escrituraDeCambio({
+          id: (creada.current || {}).id || idDelAlta.current,
+          estrellas: r.estrellas,
+          motivos: r.estrellas <= PREGUNTA_MOTIVO_HASTA ? r.motivos : [],
+          perfil: r.perfil,
+          comentario: r.comentario,
+        });
       try {
         if (!creada.current) {
-          const id = nuevoIdDeCalificacion();
-          const ctx = { ...contextoActual.current, dispositivo: dispositivoDe(typeof window !== "undefined" ? window.innerWidth : 0) };
-          await enviar(escrituraNueva({ id, estrellas: r.estrellas, contexto: ctx }));
-          creada.current = { estado: "calificada", el: ahora().toISOString(), id };
+          idDelAlta.current = idDelAlta.current || nuevoIdDeCalificacion();
+          const ctx = {
+            ...contextoActual.current,
+            dispositivo: dispositivoDe(typeof window !== "undefined" ? window.innerWidth : 0),
+            entorno: typeof window !== "undefined" ? entornoDe(window.location.hostname) : "prueba",
+          };
+          try {
+            await enviar(escrituraNueva({ id: idDelAlta.current, estrellas: r.estrellas, contexto: ctx }));
+          } catch (e) {
+            // ¿Ya existía? Pasa si el alta anterior llegó y se perdió la
+            // respuesta: Firestore rechaza crearla de nuevo con el mismo id.
+            // Si corregirla funciona, estaba creada; si no, era otro error.
+            if (!e?.status) throw e;
+            await enviar(cambio()).catch(() => { throw e; });
+          }
+          creada.current = { estado: "calificada", el: ahora().toISOString(), id: idDelAlta.current };
           guardarRegistro(almacenReal(), creada.current);
           setFase((f) => (f === "pregunta" ? "guardada" : f));
         } else if (puedeCambiar(creada.current, ahora())) {
-          await enviar(
-            escrituraDeCambio({
-              id: creada.current.id,
-              estrellas: r.estrellas,
-              motivos: r.estrellas <= PREGUNTA_MOTIVO_HASTA ? r.motivos : [],
-              perfil: r.perfil,
-              comentario: r.comentario,
-            })
-          );
+          await enviar(cambio());
         } else {
-          setError("Ya pasó el rato para cambiar esta calificación, pero quedó guardada. ¡Gracias!");
+          setError(VENCIDA);
+          ultimoFallo.current = true;
           return false;
         }
+        ultimoFallo.current = false;
         return true;
       } catch (e) {
         setError(e?.message || "No pudimos guardar tu calificación. Probá de nuevo en un rato.");
+        ultimoFallo.current = true;
         return false;
       } finally {
         setGuardando(false);
@@ -149,9 +169,44 @@ export default function CalificarExperiencia({ contexto, enviar = enviarCalifica
     return cola.current;
   };
 
-  const programar = () => {
+  /** Lo que estaba esperando para juntarse con otros toques, que salga ya. */
+  const vaciarPendiente = () => {
+    if (temporizador.current === null) return;
     clearTimeout(temporizador.current);
-    temporizador.current = setTimeout(guardar, espera);
+    temporizador.current = null;
+    guardar();
+  };
+  const vaciarRef = useRef(vaciarPendiente);
+  useEffect(() => {
+    vaciarRef.current = vaciarPendiente;
+  });
+
+  // Si se pregunta o no, se decide en el navegador (el servidor no sabe qué
+  // contestó esta persona antes) y una sola vez. Lo pendiente se manda igual
+  // si la tarjeta desaparece (recalcular, ir a otra página) o la pestaña se
+  // cierra: el envío lleva `keepalive` (lib/calificaciones.js).
+  useEffect(() => {
+    const registro = leerRegistro(almacen ?? almacenDelNavegador());
+    setFase((f) => (f === "cargando" ? (debePreguntar(registro, ahora()) ? "pregunta" : "oculta") : f));
+    const alOcultar = () => vaciarRef.current();
+    if (typeof window !== "undefined") window.addEventListener("pagehide", alOcultar);
+    return () => {
+      if (typeof window !== "undefined") window.removeEventListener("pagehide", alOcultar);
+      vaciarRef.current();
+    };
+  }, [almacen, ahora]);
+
+  /** Junta los toques seguidos y manda uno solo. La primera estrella no espera. */
+  const programar = () => {
+    if (!creada.current && !idDelAlta.current) {
+      guardar();
+      return;
+    }
+    clearTimeout(temporizador.current);
+    temporizador.current = setTimeout(() => {
+      temporizador.current = null;
+      guardar();
+    }, espera);
   };
 
   const elegirEstrellas = (n) => {
@@ -175,16 +230,38 @@ export default function CalificarExperiencia({ contexto, enviar = enviarCalifica
     programar();
   };
 
+  /** Manda el comentario de la caja; con la caja vacía, borra el que se había mandado. Devuelve si se guardó. */
   const mandarComentario = async (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
     clearTimeout(temporizador.current);
-    respuestas.current = { ...respuestas.current, comentario };
+    temporizador.current = null;
+    const enviado = comentario;
+    respuestas.current = { ...respuestas.current, comentario: enviado };
     const ok = await guardar();
-    setComentarioGuardado(ok);
+    if (ok) setComentarioEnviado(enviado.trim() ? enviado : "");
+    // El aviso sólo si lo que quedó es lo que sigue en la caja (pudo seguir escribiendo).
+    if (ok && textoEnLaCaja.current === enviado) setAvisoComentario(enviado.trim() ? "guardado" : "borrado");
+    return ok;
+  };
+
+  const reintentar = () => {
+    clearTimeout(temporizador.current);
+    temporizador.current = null;
+    guardar();
+  };
+
+  /** Cierra la tarjeta. Si quedó un comentario escrito sin mandar, lo manda: "Listo" se lee como "ya está". */
+  const listo = async () => {
+    vaciarPendiente();
+    let ok;
+    if (comentario.trim() && comentario !== comentarioEnviado) ok = await mandarComentario();
+    else ok = ultimoFallo.current ? await guardar() : await cola.current;
+    if (ok !== false && !ultimoFallo.current) setFase("cerrada");
   };
 
   const descartar = () => {
     clearTimeout(temporizador.current);
+    temporizador.current = null;
     guardarRegistro(almacenReal(), { estado: "descartada", el: ahora().toISOString() });
     setFase("oculta");
   };
@@ -201,13 +278,14 @@ export default function CalificarExperiencia({ contexto, enviar = enviarCalifica
 
   const mostradas = previa || estrellas;
   const baja = estrellas > 0 && estrellas <= PREGUNTA_MOTIVO_HASTA;
+  const puedeBorrarComentario = Boolean(comentarioEnviado.trim()) && !comentario.trim();
 
   return (
     <section aria-label="Calificá este cálculo" className="rounded-xl border border-slate-200 bg-slate-50 p-4 print:hidden">
-      <fieldset>
+      <fieldset className="min-w-0">
         <legend className="text-sm font-semibold text-slate-800">¿Te sirvió este cálculo?</legend>
         {fase === "pregunta" && <p className="text-[12px] text-slate-500">Calificalo con un toque y nos ayudás a mejorar.</p>}
-        <div className="mt-2 flex items-center gap-0.5" onMouseLeave={() => setPrevia(0)}>
+        <div className="mt-2 flex flex-wrap items-center gap-x-0.5 gap-y-1" onMouseLeave={() => setPrevia(0)}>
           {ESTRELLAS.map((n) => (
             <label
               key={n}
@@ -226,10 +304,10 @@ export default function CalificarExperiencia({ contexto, enviar = enviarCalifica
               <span className="sr-only">{`${n} de 5 estrellas (${NOMBRE_DE_LAS_ESTRELLAS[n]})`}</span>
             </label>
           ))}
-          <span className="ml-2 min-w-[6rem] text-[12px] text-slate-600" aria-hidden="true">
+          <span className="ml-2 text-[12px] text-slate-600 sm:min-w-[6rem]" aria-hidden="true">
             {mostradas ? NOMBRE_DE_LAS_ESTRELLAS[mostradas] : ""}
           </span>
-          {guardando && <span className="text-[11px] text-slate-400">Guardando…</span>}
+          {guardando && <span className="basis-full text-[11px] text-slate-400 sm:basis-auto">Guardando…</span>}
         </div>
       </fieldset>
 
@@ -278,11 +356,12 @@ export default function CalificarExperiencia({ contexto, enviar = enviarCalifica
               value={comentario}
               onChange={(e) => {
                 setComentario(e.target.value);
-                setComentarioGuardado(false);
+                textoEnLaCaja.current = e.target.value;
+                setAvisoComentario(null);
               }}
               maxLength={MAX_COMENTARIO}
               rows={3}
-              placeholder={baja ? "Qué esperabas ver y qué te dio…" : "Qué te sirvió, qué te faltó…"}
+              placeholder={baja ? "Qué esperabas y qué pasó…" : "Qué te sirvió, qué te faltó…"}
               aria-describedby="calificar-comentario-nota"
               className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-400"
             />
@@ -291,24 +370,30 @@ export default function CalificarExperiencia({ contexto, enviar = enviarCalifica
               &quot;Reportar error / sugerencia&quot;.
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="submit"
-                disabled={!comentario.trim() || guardando}
-                className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Enviar comentario
-              </button>
-              <button
-                type="button"
-                onClick={() => setFase("cerrada")}
-                className="text-[12px] text-slate-600 underline underline-offset-2 hover:text-slate-900"
-              >
+              {puedeBorrarComentario ? (
+                <button
+                  type="submit"
+                  disabled={guardando}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-50"
+                >
+                  Borrar el comentario que mandé
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!comentario.trim() || guardando}
+                  className="rounded-lg bg-emerald-600 px-3 py-1.5 text-[12px] font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Enviar comentario
+                </button>
+              )}
+              <button type="button" onClick={listo} className="text-[12px] text-slate-600 underline underline-offset-2 hover:text-slate-900">
                 Listo
               </button>
             </div>
-            {comentarioGuardado && (
+            {avisoComentario && (
               <p role="status" className="text-[12px] text-emerald-800">
-                Comentario guardado. ¡Gracias!
+                {avisoComentario === "guardado" ? "Comentario guardado. ¡Gracias!" : "Listo, borramos tu comentario."}
               </p>
             )}
           </form>
@@ -318,8 +403,8 @@ export default function CalificarExperiencia({ contexto, enviar = enviarCalifica
       {error && (
         <p role="alert" className="mt-2 text-[12px] text-rose-700">
           {error}{" "}
-          {fase === "pregunta" && estrellas > 0 && (
-            <button type="button" onClick={guardar} className="font-semibold underline underline-offset-2">
+          {estrellas > 0 && error !== VENCIDA && (
+            <button type="button" onClick={reintentar} className="font-semibold underline underline-offset-2">
               Reintentar
             </button>
           )}

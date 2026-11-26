@@ -171,10 +171,12 @@ describe("la calculadora de Comercio", () => {
     fireEvent.click(botonCalcular());
     await screen.findByRole("heading", { name: "Simulación de recibo" });
     fireEvent.change(screen.getByLabelText("Años de Antigüedad"), { target: { value: "5" } });
+    expect(screen.getByText("Cambiaste datos.")).toBeTruthy();
     fireEvent.click(botonCalcular());
-    await screen.findByText(/^\s*Recibo calculado para/);
+    // El segundo recibo está listo cuando se va el aviso de datos cambiados.
+    await vi.waitFor(() => expect(screen.queryByText("Cambiaste datos.")).toBeNull());
 
-    fireEvent.click(screen.getByLabelText(/^5 de 5 estrellas/));
+    fireEvent.click(await screen.findByLabelText(/^5 de 5 estrellas/));
     await vi.waitFor(() => expect(enviarCalificacion).toHaveBeenCalledTimes(1), { timeout: 3000 });
     const campos = enviarCalificacion.mock.calls[0][0].writes[0].update.fields;
     expect(campos).toMatchObject({
@@ -185,12 +187,54 @@ describe("la calculadora de Comercio", () => {
       origen: { stringValue: "manual" },
       calculos: { integerValue: "2" },
       // El Firestore de mentira sólo tiene la tabla de contribuciones de julio:
-      // el recibo de septiembre avisa que usó la de otro mes.
-      conAvisos: { booleanValue: true },
+      // al recibo de septiembre le faltan datos (usó la de otro mes).
+      faltanDatos: { booleanValue: true },
+      // jsdom no es liquidar.ar.
+      entorno: { stringValue: "prueba" },
     });
     // Nada del sueldo viaja con la calificación.
     expect(Object.keys(campos).some((k) => /neto|bruto|antig|basico|importe/i.test(k))).toBe(false);
     expect(JSON.stringify(campos)).not.toContain("1251841");
+
+    // Recalcula después de calificar: la tarjeta es de cada recibo, y como ya
+    // calificó no vuelve a aparecer (lo que toque no se pega al recibo anterior).
+    await screen.findByText(/¡Gracias!/);
+    fireEvent.change(screen.getByLabelText("Años de Antigüedad"), { target: { value: "6" } });
+    fireEvent.click(botonCalcular());
+    await vi.waitFor(() => expect(screen.queryByRole("group", { name: "¿Te sirvió este cálculo?" })).toBeNull());
+    expect(enviarCalificacion).toHaveBeenCalledTimes(1);
+  });
+
+  it("'Abrió un link compartido' es sólo el recibo que arma un link de 'Copiar link'; un F5 con la simulación en la URL es 'a mano'", async () => {
+    const valores = { categoria: "Vendedor B", carga_horaria: 48, antiguedad_años: 5, horas_extras_50: 0, horas_extras_100: 0, afiliado_sindicato: false };
+    const query = paramsDesdeEntradas(comercio, valores, "2026-09");
+    const origenAlCalificar = async (busqueda) => {
+      window.localStorage.clear();
+      enviarCalificacion.mockClear();
+      window.history.replaceState(null, "", `/calcular/comercio-cct-130-75?${busqueda}`);
+      const inicial = await cargarDatosDeCalculadora(ID, `?${busqueda}`);
+      render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+      await screen.findByRole("heading", { name: "Simulación de recibo" });
+      fireEvent.click(screen.getByLabelText(/^4 de 5 estrellas/));
+      await vi.waitFor(() => expect(enviarCalificacion).toHaveBeenCalledTimes(1));
+      const origen = enviarCalificacion.mock.calls[0][0].writes[0].update.fields.origen.stringValue;
+      cleanup();
+      return origen;
+    };
+    expect(await origenAlCalificar(`${query}&via=link`)).toBe("link");
+    expect(await origenAlCalificar(query)).toBe("manual");
+  });
+
+  it("si no se puede calcular, el aviso trae 'Reportar error / sugerencia' (abajo del recibo no hay recibo)", async () => {
+    const inicial = await cargarDatosDeCalculadora(ID);
+    render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+    leerDocumento.mockRejectedValueOnce(new Error("No se pudo leer la base de datos (HTTP 503). Probá de nuevo en unos segundos."));
+    fireEvent.change(screen.getByLabelText("Período a liquidar"), { target: { value: "2026-05" } });
+    fireEvent.click(botonCalcular());
+    const aviso = await screen.findByText(/No se pudo leer la base de datos/);
+    const boton = within(aviso.closest('[role="alert"]')).getByRole("button", { name: "Reportar error / sugerencia" });
+    fireEvent.click(boton);
+    expect(await screen.findByRole("dialog", { name: "Reportar error / sugerencia" })).toBeTruthy();
   });
 
   it("nunca imprime 'undefined' ni 'NaN', antes ni después de calcular", async () => {

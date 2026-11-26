@@ -9,13 +9,21 @@
 // calificaciones, una diferencia entre grupos no dice nada (se marca).
 //
 // Las preguntas que responde, en el orden de la pantalla: ¿cómo venimos y
-// hacia dónde va? (semana a semana: una caída después de cargar un mes o de
-// publicar es la alarma); ¿qué falla? (los motivos de las calificaciones
-// bajas); ¿dónde? (convenio, celular o computadora, link o a mano, recibos con
-// avisos); ¿para quién? (perfil); y el detalle, en los comentarios.
+// hacia dónde va? (semana a semana, incluidas las semanas en cero: una semana
+// sin ninguna después de semanas con datos es la alarma de que la tarjeta dejó
+// de guardar; una caída después de cargar un mes o de publicar, la de que algo
+// quedó mal); ¿qué falla? (los motivos de las bajas); ¿dónde? (convenio,
+// celular o computadora, link o a mano, recibos a los que les faltaban datos);
+// ¿para quién? (perfil); y el detalle, en los comentarios.
+//
+// Las calificaciones de prueba (hechas desde la PC o una preview, con
+// `entorno: "prueba"`) no entran en los números salvo que se pida. Y como
+// cualquiera puede crear calificaciones sin sesión (lib/calificaciones.js),
+// el panel tiene con qué limpiar: Borrar en cada una, y borrar de una todas
+// las que muestra el filtro.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { collection, deleteDoc, doc, getDocs, limit, orderBy, query } from "firebase/firestore";
+import { collection, doc, getDocs, limit, orderBy, query, writeBatch, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
   COLECCION,
@@ -25,7 +33,8 @@ import {
   PREGUNTA_MOTIVO_HASTA,
   resumenDeCalificaciones,
   calificacionesACsv,
-  aFecha,
+  fechaArgentina,
+  esPrueba,
 } from "@/lib/calificaciones";
 
 const RANGOS = [
@@ -35,20 +44,25 @@ const RANGOS = [
 ];
 /** Cuántas se leen como máximo. Si algún día se llega, el panel lo dice. */
 const TOPE = 5000;
+/** Cuántas se listan de entrada en "Todas las calificaciones". */
+const LISTADAS = 50;
+/** Firestore acepta hasta 500 escrituras por lote. */
+const POR_LOTE = 450;
 const DIA_MS = 24 * 60 * 60 * 1000;
 
 const NOMBRE_DE_PERFIL = Object.fromEntries(PERFILES.map((p) => [p.id, p.texto]));
 const NOMBRE_DE_MOTIVO = Object.fromEntries(MOTIVOS.map((m) => [m.id, m.texto]));
 const NOMBRE_DE_DISPOSITIVO = { movil: "Celular", escritorio: "Computadora" };
 const NOMBRE_DE_ORIGEN = { manual: "Calculó a mano", link: "Abrió un link compartido" };
+const NOMBRE_DE_DATOS = { faltaban: "Le faltaban datos", completos: "Con todos los datos" };
 
 const pct = (x) => (x == null ? "—" : `${Math.round(x * 100)}%`);
 const uno = (x) => (x == null ? "—" : x.toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
-const fecha = (v) => {
-  const d = aFecha(v);
-  return d ? d.toLocaleString("es-AR", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
-};
 const estrellitas = (n) => "★".repeat(n) + "☆".repeat(5 - n);
+const fechaCorta = (v) => {
+  const f = fechaArgentina(v);
+  return f ? `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(2, 4)} ${f.slice(11)}` : "—";
+};
 
 function Tarjeta({ titulo, valor, nota }) {
   return (
@@ -73,7 +87,7 @@ function Barra({ etiqueta, total, max }) {
   );
 }
 
-function TablaDeGrupos({ titulo, filas, nombre = (k) => k }) {
+function TablaDeGrupos({ titulo, filas, nombre = (k) => k, marca = () => null }) {
   if (!filas.length) return null;
   return (
     <div>
@@ -89,10 +103,12 @@ function TablaDeGrupos({ titulo, filas, nombre = (k) => k }) {
         </thead>
         <tbody>
           {filas.map((f) => (
-            <tr key={f.clave} className="border-t border-slate-100">
+            <tr key={f.clave} className={`border-t border-slate-100 ${marca(f) === "alarma" ? "bg-rose-50" : ""}`}>
               <td className="py-1 text-slate-700">
                 {nombre(f.clave)}
-                {f.total < MINIMO_PARA_COMPARAR && <span className="ml-1 text-[11px] text-amber-700">(pocas para comparar)</span>}
+                {marca(f) === "alarma" && <span className="ml-1 text-[11px] font-semibold text-rose-700">ninguna: ¿la tarjeta guarda?</span>}
+                {marca(f) === "en curso" && <span className="ml-1 text-[11px] text-slate-500">(en curso)</span>}
+                {f.total > 0 && f.total < MINIMO_PARA_COMPARAR && <span className="ml-1 text-[11px] text-amber-700">(pocas para comparar)</span>}
               </td>
               <td className="py-1 text-right tabular-nums">{f.total}</td>
               <td className="py-1 text-right tabular-nums">{uno(f.promedio)}</td>
@@ -105,17 +121,48 @@ function TablaDeGrupos({ titulo, filas, nombre = (k) => k }) {
   );
 }
 
+function Calificacion({ c, nombreDeConvenio, onBorrar, borrando }) {
+  return (
+    <li className="rounded-lg border border-slate-200 p-3 text-[12px]">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-500">
+        <span className="text-amber-500" aria-label={`${c.estrellas} estrellas`}>{estrellitas(c.estrellas)}</span>
+        <span>{fechaCorta(c.creadoEl)}</span>
+        <span>· {nombreDeConvenio(c.convenioId)} {c.periodo}</span>
+        {c.categoria && <span>· {c.categoria}</span>}
+        {c.perfil && <span>· {NOMBRE_DE_PERFIL[c.perfil] || c.perfil}</span>}
+        {c.dispositivo && <span>· {NOMBRE_DE_DISPOSITIVO[c.dispositivo] || c.dispositivo}</span>}
+        {c.faltanDatos && <span>· le faltaban datos</span>}
+        {esPrueba(c) && <span className="rounded bg-slate-200 px-1.5 text-[10px] font-semibold uppercase text-slate-600">prueba</span>}
+        <button
+          type="button"
+          onClick={() => onBorrar(c)}
+          disabled={borrando}
+          className="ml-auto text-[11px] font-semibold text-rose-600 hover:text-rose-800 disabled:opacity-50"
+        >
+          Borrar
+        </button>
+      </div>
+      {Array.isArray(c.motivos) && c.motivos.length > 0 && (
+        <div className="mt-1 text-slate-600">Qué falló: {c.motivos.map((m) => NOMBRE_DE_MOTIVO[m] || m).join(", ")}</div>
+      )}
+      {c.comentario && <p className="mt-1 whitespace-pre-wrap text-slate-800">{c.comentario}</p>}
+    </li>
+  );
+}
+
 export default function CalificacionesTab({ convenios = [] }) {
   const [lista, setLista] = useState(null);
   const [error, setError] = useState("");
   const [rango, setRango] = useState("90");
   const [convenioId, setConvenioId] = useState("");
-  const [borrando, setBorrando] = useState(null);
+  const [incluirPruebas, setIncluirPruebas] = useState(false);
+  const [listadas, setListadas] = useState(LISTADAS);
+  const [borrando, setBorrando] = useState(false);
+  // La hora de la última lectura: el corte de "últimos N días" y la semana en
+  // curso se cuentan desde ahí (se actualiza con "Actualizar").
+  const [leidoEl, setLeidoEl] = useState(null);
 
-  const nombreDeConvenio = useCallback(
-    (id) => convenios.find((c) => c.id === id)?.nombre || id,
-    [convenios]
-  );
+  const nombreDeConvenio = useCallback((id) => convenios.find((c) => c.id === id)?.nombre || id, [convenios]);
 
   const cargar = useCallback(async () => {
     setError("");
@@ -131,44 +178,81 @@ export default function CalificacionesTab({ convenios = [] }) {
           : "No se pudieron leer las calificaciones: " + (e?.message || e)
       );
     }
+    setLeidoEl(new Date());
   }, []);
 
   useEffect(() => {
     cargar();
   }, [cargar]);
 
-  const elegidas = useMemo(() => (lista || []).filter((c) => !convenioId || c.convenioId === convenioId), [lista, convenioId]);
   const desde = useMemo(() => {
     const dias = RANGOS.find((r) => r.id === rango)?.dias;
-    // La fecha de corte se recalcula al cambiar el rango (o al volver a la pestaña).
-    return dias ? new Date(Date.now() - dias * DIA_MS) : null;
-  }, [rango]);
-  const r = useMemo(() => resumenDeCalificaciones(elegidas, { desde }), [elegidas, desde]);
+    return dias && leidoEl ? new Date(leidoEl.getTime() - dias * DIA_MS) : null;
+  }, [rango, leidoEl]);
+
+  const delConvenio = useMemo(() => (lista || []).filter((c) => !convenioId || c.convenioId === convenioId), [lista, convenioId]);
+  const r = useMemo(
+    () => resumenDeCalificaciones(delConvenio, { desde, hasta: leidoEl || undefined, incluirPruebas }),
+    [delConvenio, desde, leidoEl, incluirPruebas]
+  );
   const maxEstrellas = Math.max(1, ...Object.values(r.porEstrellas));
   const maxMotivo = Math.max(1, ...r.motivos.map((m) => m.total));
+  // Una semana en cero después de semanas con datos (y que no sea la que está en curso) es la alarma.
+  const primeraConDatos = r.porSemana.findIndex((s) => s.total > 0);
+  const marcaDeSemana = (s) => {
+    if (s.enCurso) return "en curso";
+    const i = r.porSemana.indexOf(s);
+    return s.total === 0 && primeraConDatos !== -1 && i > primeraConDatos ? "alarma" : null;
+  };
 
   const descargarCsv = () => {
-    const filas = elegidas.filter((c) => !desde || (aFecha(c.creadoEl) && aFecha(c.creadoEl) >= desde));
-    const blob = new Blob(["﻿" + calificacionesACsv(filas)], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["﻿" + calificacionesACsv(r.calificaciones)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `calificaciones_${convenioId || "todas"}_${rango}.csv`;
+    a.download = `calificaciones_${convenioId || "todas"}_${rango}${incluirPruebas ? "_con-pruebas" : ""}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const borrar = async (c) => {
-    if (!window.confirm(`¿Borrar esta calificación (${c.estrellas} estrellas, ${fecha(c.creadoEl)})? No se puede deshacer.`)) return;
-    setBorrando(c.id);
+  const sacarDeLaLista = (ids) => {
+    const fuera = new Set(ids);
+    setLista((xs) => (xs || []).filter((x) => !fuera.has(x.id)));
+  };
+
+  const borrarUna = async (c) => {
+    if (!window.confirm(`¿Borrar esta calificación (${c.estrellas} estrellas, ${fechaCorta(c.creadoEl)})? No se puede deshacer.`)) return;
+    setBorrando(true);
     try {
       await deleteDoc(doc(db, COLECCION, c.id));
-      setLista((xs) => (xs || []).filter((x) => x.id !== c.id));
+      sacarDeLaLista([c.id]);
     } catch (e) {
       console.error(e);
       alert("No se pudo borrar: " + (e?.message || e));
     } finally {
-      setBorrando(null);
+      setBorrando(false);
+    }
+  };
+
+  /** Borra de una todas las que muestra el filtro (para limpiar pruebas o calificaciones falsas). */
+  const borrarFiltradas = async () => {
+    const ids = r.calificaciones.map((c) => c.id);
+    if (!ids.length) return;
+    const filtro = `${RANGOS.find((x) => x.id === rango)?.texto.toLowerCase()}, ${convenioId ? nombreDeConvenio(convenioId) : "todos los convenios"}${incluirPruebas ? ", con las de prueba" : ""}`;
+    if (!window.confirm(`¿Borrar las ${ids.length} calificaciones que muestra el filtro (${filtro})? No se puede deshacer.\n\nConviene descargar el CSV antes.`)) return;
+    setBorrando(true);
+    try {
+      for (let i = 0; i < ids.length; i += POR_LOTE) {
+        const lote = writeBatch(db);
+        for (const id of ids.slice(i, i + POR_LOTE)) lote.delete(doc(db, COLECCION, id));
+        await lote.commit();
+        sacarDeLaLista(ids.slice(i, i + POR_LOTE));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("No se pudieron borrar todas: " + (e?.message || e) + ". Las que se borraron ya no aparecen.");
+    } finally {
+      setBorrando(false);
     }
   };
 
@@ -180,7 +264,8 @@ export default function CalificacionesTab({ convenios = [] }) {
         <div>
           <h3 className="text-lg font-bold text-slate-800">Calificaciones de la gente</h3>
           <p className="text-[12px] text-slate-500">
-            Lo que contestaron en &quot;¿Te sirvió este cálculo?&quot;, al pie del recibo. Sin datos del sueldo ni de la persona.
+            Lo que contestaron en &quot;¿Te sirvió este cálculo?&quot;, al pie del recibo. Sin datos del sueldo; los comentarios los
+            escribe cada uno y pueden traer datos personales: si ves alguno, borralo.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -195,6 +280,10 @@ export default function CalificacionesTab({ convenios = [] }) {
               <option key={c.id} value={c.id}>{c.nombre || c.id}</option>
             ))}
           </select>
+          <label className="flex items-center gap-1.5 text-[12px] text-slate-600">
+            <input type="checkbox" checked={incluirPruebas} onChange={(e) => setIncluirPruebas(e.target.checked)} />
+            Incluir pruebas ({r.pruebas})
+          </label>
           <button type="button" onClick={cargar} className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50">Actualizar</button>
           <button type="button" onClick={descargarCsv} disabled={!r.total} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">
             Descargar CSV
@@ -221,7 +310,7 @@ export default function CalificacionesTab({ convenios = [] }) {
 
           <p className="text-[11px] text-slate-500">
             Califica sobre todo quien quedó muy conforme o muy disconforme: compará grupos y semanas más que el promedio. Con menos de{" "}
-            {MINIMO_PARA_COMPARAR} calificaciones, una diferencia no dice nada.
+            {MINIMO_PARA_COMPARAR} calificaciones, una diferencia no dice nada. Las fechas y las semanas van en hora argentina.
           </p>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -242,17 +331,22 @@ export default function CalificacionesTab({ convenios = [] }) {
             </div>
           </div>
 
-          <TablaDeGrupos titulo="Semana a semana (desde el lunes)" filas={r.porSemana.slice(-12).reverse()} nombre={(k) => `Semana del ${k.split("-").reverse().join("/")}`} />
+          <TablaDeGrupos
+            titulo="Semana a semana (de lunes a domingo)"
+            filas={[...r.porSemana].reverse().slice(0, 16)}
+            nombre={(k) => `Semana del ${k.split("-").reverse().join("/")}`}
+            marca={marcaDeSemana}
+          />
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {!convenioId && <TablaDeGrupos titulo="Por convenio" filas={r.porConvenio} nombre={nombreDeConvenio} />}
-            <TablaDeGrupos titulo="Quién calcula" filas={r.porPerfil} nombre={(k) => NOMBRE_DE_PERFIL[k] || k} />
+            <TablaDeGrupos titulo="Para qué la usan" filas={r.porPerfil} nombre={(k) => NOMBRE_DE_PERFIL[k] || k} />
             <TablaDeGrupos titulo="Desde dónde" filas={r.porDispositivo} nombre={(k) => NOMBRE_DE_DISPOSITIVO[k] || k} />
-            <TablaDeGrupos titulo="Cómo llegó al recibo" filas={r.porOrigen} nombre={(k) => NOMBRE_DE_ORIGEN[k] || k} />
+            <TablaDeGrupos titulo="Cómo se armó el recibo" filas={r.porOrigen} nombre={(k) => NOMBRE_DE_ORIGEN[k] || k} />
             <TablaDeGrupos
-              titulo="Recibos con avisos (falta una tabla, se usó la de otro mes…)"
-              filas={r.porAvisos}
-              nombre={(k) => (k === "con avisos" ? "Con avisos" : k === "sin avisos" ? "Sin avisos" : k)}
+              titulo="¿Le faltaban datos al recibo? (una tabla del mes que no está, o que se tomó de otro mes)"
+              filas={r.porFaltanDatos}
+              nombre={(k) => NOMBRE_DE_DATOS[k] || k}
             />
           </div>
 
@@ -263,32 +357,41 @@ export default function CalificacionesTab({ convenios = [] }) {
             ) : (
               <ul className="space-y-2">
                 {r.comentarios.map((c) => (
-                  <li key={c.id} className="rounded-lg border border-slate-200 p-3 text-[12px]">
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-slate-500">
-                      <span className="text-amber-500" aria-label={`${c.estrellas} estrellas`}>{estrellitas(c.estrellas)}</span>
-                      <span>{fecha(c.creadoEl)}</span>
-                      <span>· {nombreDeConvenio(c.convenioId)} {c.periodo}</span>
-                      {c.categoria && <span>· {c.categoria}</span>}
-                      {c.perfil && <span>· {NOMBRE_DE_PERFIL[c.perfil] || c.perfil}</span>}
-                      {c.dispositivo && <span>· {NOMBRE_DE_DISPOSITIVO[c.dispositivo] || c.dispositivo}</span>}
-                      <button
-                        type="button"
-                        onClick={() => borrar(c)}
-                        disabled={borrando === c.id}
-                        className="ml-auto text-[11px] font-semibold text-rose-600 hover:text-rose-800 disabled:opacity-50"
-                      >
-                        Borrar
-                      </button>
-                    </div>
-                    {Array.isArray(c.motivos) && c.motivos.length > 0 && (
-                      <div className="mt-1 text-slate-600">Qué falló: {c.motivos.map((m) => NOMBRE_DE_MOTIVO[m] || m).join(", ")}</div>
-                    )}
-                    <p className="mt-1 whitespace-pre-wrap text-slate-800">{c.comentario}</p>
-                  </li>
+                  <Calificacion key={c.id} c={c} nombreDeConvenio={nombreDeConvenio} onBorrar={borrarUna} borrando={borrando} />
                 ))}
               </ul>
             )}
           </div>
+
+          <details className="rounded-xl border border-slate-200 p-3">
+            <summary className="cursor-pointer text-[13px] font-semibold text-slate-700">
+              Todas las calificaciones del filtro ({r.calificaciones.length}), para revisar o limpiar
+            </summary>
+            <p className="mt-2 text-[11px] text-slate-500">
+              Cualquiera puede calificar sin registrarse, así que alguien podría cargar calificaciones falsas: si ves una tanda rara
+              (muchas iguales en pocos minutos), filtrala y borrala. Las de prueba se pueden borrar igual.
+            </p>
+            <ul className="mt-2 space-y-2">
+              {r.calificaciones.slice(0, listadas).map((c) => (
+                <Calificacion key={c.id} c={c} nombreDeConvenio={nombreDeConvenio} onBorrar={borrarUna} borrando={borrando} />
+              ))}
+            </ul>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              {r.calificaciones.length > listadas && (
+                <button type="button" onClick={() => setListadas((n) => n + LISTADAS)} className="text-[12px] font-semibold text-slate-700 underline">
+                  Mostrar {Math.min(LISTADAS, r.calificaciones.length - listadas)} más
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={borrarFiltradas}
+                disabled={borrando || !r.calificaciones.length}
+                className="rounded-lg border border-rose-300 bg-white px-3 py-1.5 text-[12px] font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+              >
+                Borrar las {r.calificaciones.length} del filtro
+              </button>
+            </div>
+          </details>
         </>
       )}
     </div>
