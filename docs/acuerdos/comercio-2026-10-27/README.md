@@ -148,10 +148,11 @@ difiere en más de $1, así que no hubo nada que corregir.
   la [CAC el 5/11](https://www.cac.com.ar/noticias/se-homologo-el-ultimo-acuerdo-paritario-para-empleados-de-comercio-3)
   y está en esta carpeta (`comercio-homologacion-2026-11-03.pdf`). FAECYS
   [la subió el 3/11](https://www.faecys.org.ar/14433-2/) sin número ni
-  firma. Al 26/11/2026 todavía no estaba en el Boletín Oficial. Falta
-  cargarla: tipo homologación, fecha 2026-11-03, título "Homologación del
-  acuerdo del 27 de octubre de 2026", con ese PDF y la nota de la CAC como
-  fuente. El acuerdo (2026-10-27) y las escalas de octubre 2026 a mayo 2027
+  firma. Al 26/11/2026 todavía no estaba en el Boletín Oficial. **Cargada
+  el 26/11/2026** (tipo homologación, fecha 2026-11-03, con ese PDF y la
+  nota de la CAC como fuente), en
+  [/acuerdos/comercio-cct-130-75/homologacion-del-acuerdo-del-27-de-octubre-de-2026](https://liquidar.ar/acuerdos/comercio-cct-130-75/homologacion-del-acuerdo-del-27-de-octubre-de-2026).
+  El acuerdo (2026-10-27) y las escalas de octubre 2026 a mayo 2027
   (2026-10-01) ya están ahí desde el 29/10/2026, con los PDF de FAECYS. De
   paso: la homologación del acuerdo de julio (Disposición 964/2026, que la
   pestaña ya muestra con fecha 5/8/2026) recién salió en el

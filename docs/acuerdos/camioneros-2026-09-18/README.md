@@ -13,7 +13,7 @@ de Camiones:
   recapturaron.
 - **Noviembre 2026**, `camioneros-2026-11.csv`: la planilla N° 248, vigente
   desde el 1/11/2026 y publicada el 8/11/2026 en
-  [camioneros-ba.org.ar](https://www.camioneros-ba.org.ar/index.php/gremiales/salarios/ultima-escala-salarial)
+  [camioneros-ba.org.ar](https://www.camioneros-ba.org.ar/index.php/gremiales/salarios/escalas-salariales/2026-nueva-escala-salarial-noviembre-2026)
   (en la lista de escalas, "Nueva Escala salarial Noviembre 2026" lleva a la
   página "Última escala salarial"). La Federación publicó la misma escala
   el 18/11/2026 como
@@ -186,12 +186,15 @@ Guardar y publicar.
 247 como fuente), el acuerdo (acuerdo, 2026-09-18, vigencia "septiembre 2026
 a febrero 2027") y su homologación (homologación, 2026-10-06, la Disposición
 DI-2026-1277), estas dos con los PDF de la Federación de "Fuentes", arriba.
-Cada mes que siga lleva su entrada de escala, como octubre. **Falta la de
-noviembre:** "Escala salarial noviembre 2026" (escala, 2026-11-01,
-vigencia "noviembre 2026", con `camioneros-escala-2026-11.pdf` de esta
-carpeta y la página
-[Última escala salarial](https://www.camioneros-ba.org.ar/index.php/gremiales/salarios/ultima-escala-salarial)
-como fuente).
+Cada mes que siga lleva su entrada de escala, como octubre. La de
+noviembre se cargó el 26/11/2026: "Escala salarial noviembre 2026" (escala,
+2026-11-01, vigencia "noviembre 2026", con `camioneros-escala-2026-11.pdf`
+de esta carpeta), en
+[/acuerdos/camioneros-cct-40-89/escala-salarial-noviembre-2026](https://liquidar.ar/acuerdos/camioneros-cct-40-89/escala-salarial-noviembre-2026).
+De fuente lleva la página propia de la planilla 248
+(`/escalas-salariales/2026-nueva-escala-salarial-noviembre-2026`), que
+existe aunque la lista enlace a "Última escala salarial": esa otra cambia
+cada mes.
 
 ## Para controlar en el sitio
 
