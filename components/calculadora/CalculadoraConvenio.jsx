@@ -17,6 +17,7 @@ import { regimenPredeterminado } from "@/lib/contribucionesForm";
 import { normalizarEntradas, etiquetaDeCampo } from "@/lib/validacionEntradas";
 import ReportModal from "@/components/ReportModal";
 import ReciboOficial from "@/components/calculadora/ReciboOficial";
+import CalificarExperiencia from "@/components/calculadora/CalificarExperiencia";
 import { paramsDesdeEntradas } from "@/lib/permalink";
 
 const money = (n) =>
@@ -94,6 +95,11 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
   // undefined = todavía no se buscó; null = se buscó y no hay.
   const [tablaContribuciones, setTablaContribuciones] = useState(inicial.tablaContribuciones.datos);
   const [periodoContribuciones, setPeriodoContribuciones] = useState(inicial.tablaContribuciones.periodo);
+  // Para la calificación del pie del recibo (lib/calificaciones.js): cuántas
+  // cuentas hizo en esta visita y si llegó por un link compartido, que arma el
+  // recibo solo. El contador sube junto con el recibo, en el mismo render.
+  const [calculosEnLaVisita, setCalculosEnLaVisita] = useState(0);
+  const [origenDeLaVisita] = useState(inicial.autoCalcular ? "link" : "manual");
 
   // Lo que ya vino en el HTML (la escala y las tablas del período inicial) y lo
   // que se fue trayendo después: nada se pide dos veces.
@@ -238,6 +244,7 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
         tablaContribuciones: tablaContribuciones === undefined ? null : tablaContribuciones,
         periodoContribuciones,
       });
+      setCalculosEnLaVisita((n) => n + 1);
       setResultadoLiquidacion(reciboArmado);
       setEntradasUsadas({ ...valoresUsuario });
       setPeriodoUsado(periodoSeleccionado);
@@ -271,6 +278,26 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
         (k) => String(entradasUsadas?.[k] ?? "") !== String(valoresUsuario[k] ?? "")
       ));
   const hayErrores = Object.keys(errores).length > 0;
+  // Lo que se guarda solo con la calificación (lib/calificaciones.js). Nada del
+  // sueldo: el convenio, el mes y la categoría calculados, cómo llegó, cuántas
+  // cuentas hizo y si el recibo traía alguno de los avisos de abajo (los avisos
+  // del motor, falta Ganancias o la tabla de contribuciones, o se usó la de
+  // otro mes), para ver si los datos que faltan bajan la nota.
+  const contextoDeCalificacion = resultadoLiquidacion
+    ? {
+        convenioId,
+        periodo: periodoUsado,
+        categoria: entradasUsadas?.zona ? `${entradasUsadas.zona} · ${entradasUsadas?.categoria ?? ""}` : entradasUsadas?.categoria,
+        origen: origenDeLaVisita,
+        calculos: calculosEnLaVisita,
+        conAvisos:
+          (resultadoLiquidacion.avisos?.length ?? 0) > 0 ||
+          !resultadoLiquidacion.ganancias ||
+          !empleador ||
+          Boolean(empleador.periodoTabla && metodo && empleador.periodoTabla !== metodo.periodo) ||
+          Boolean(resultadoLiquidacion.ganancias?.aplica && periodoGanancias && periodoGanancias !== periodoUsado),
+      }
+    : null;
   // Lo que quedó marcado en el formulario y suma plata (asistencia perfecta,
   // larga distancia): se lista entre los supuestos para que no pase callado.
   const supuestos = (convenio.inputs_requeridos || [])
@@ -740,6 +767,11 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                   </button>
                 </div>
                 {copiado && <p role="status" className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2 [overflow-wrap:anywhere] print:hidden">{copiado}</p>}
+
+                {/* 7. ¿Te sirvió? Recién con el recibo a la vista, y sin insistir:
+                    ver lib/calificaciones.js (por qué no es un cartel, qué se
+                    guarda y para qué). */}
+                <CalificarExperiencia contexto={contextoDeCalificacion} />
               </div>
             </div>
           ) : (

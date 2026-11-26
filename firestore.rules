@@ -18,6 +18,9 @@ rules_version = '2';
 //   - se lee sin registro sólo lo que el sitio necesita: los convenios y sus
 //     escalas, las tablas de Ganancias, las de contribuciones, las novedades y
 //     los acuerdos. Todo lo demás está cerrado hasta que se abra a propósito acá;
+//   - sin registro se puede escribir una sola cosa: crear una calificación de
+//     la tarjeta del recibo (y completarla en los 30 minutos siguientes), con
+//     una forma validada campo por campo (ver "Calificaciones", abajo);
 //   - escribe únicamente el administrador, identificado por el UID de su
 //     usuario de Firebase Authentication (desde el 11/10/2026; antes era por el
 //     mail, y cambiar el mail obligaba a republicar las reglas).
@@ -120,6 +123,53 @@ service cloud.firestore {
     }
     match /vigia_acuerdos_leidos/{acuerdoId} {
       allow read, write: if esAdmin() || esVigia();
+    }
+
+    // --- Calificaciones de la gente (lib/calificaciones.js) -------------
+    // La tarjeta "¿Te sirvió este cálculo?" del pie del recibo (desde el
+    // 26/11/2026). Es lo único que alguien sin sesión puede escribir, y por eso
+    // se valida todo: cualquiera puede CREAR una calificación con esta forma
+    // exacta (y de un convenio que existe), y cambiar lo que contestó
+    // (estrellas, motivos, perfil y comentario) durante 30 minutos desde que la
+    // creó. Para cambiarla hay que conocer su id, que es al azar y sólo lo sabe
+    // el navegador que la creó. Nadie más que el administrador las lee o las
+    // borra. Las horas las pone el servidor (`request.time`), no el navegador.
+    // Las listas, los largos y los 30 minutos son los de lib/calificaciones.js:
+    // si se cambian allá, se cambian acá y se vuelve a pegar en la consola.
+    function calificacionValida(d) {
+      return d.keys().hasAll(['estrellas', 'convenioId', 'periodo', 'creadoEl'])
+          && d.keys().hasOnly(['estrellas', 'motivos', 'perfil', 'comentario', 'convenioId', 'periodo',
+                               'categoria', 'dispositivo', 'origen', 'conAvisos', 'calculos',
+                               'creadoEl', 'actualizadoEl'])
+          && d.estrellas is int && d.estrellas >= 1 && d.estrellas <= 5
+          && d.convenioId is string && d.convenioId.matches('^[a-z0-9-]{1,60}$')
+          && d.periodo is string && d.periodo.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
+          && (!('motivos' in d) || (d.motivos is list && d.motivos.size() >= 1 && d.motivos.size() <= 5
+                && d.motivos.toSet().size() == d.motivos.size()
+                && d.motivos.hasOnly(['numero_no_cierra', 'falta_categoria_o_concepto', 'dificil_de_usar', 'datos_viejos', 'otro'])))
+          && (!('perfil' in d) || d.perfil in ['empleado', 'empleador', 'contador_rrhh', 'otro'])
+          && (!('comentario' in d) || (d.comentario is string && d.comentario.size() >= 1 && d.comentario.size() <= 1000))
+          && (!('categoria' in d) || (d.categoria is string && d.categoria.size() >= 1 && d.categoria.size() <= 150))
+          && (!('dispositivo' in d) || d.dispositivo in ['movil', 'escritorio'])
+          && (!('origen' in d) || d.origen in ['manual', 'link'])
+          && (!('conAvisos' in d) || d.conAvisos is bool)
+          && (!('calculos' in d) || (d.calculos is int && d.calculos >= 1 && d.calculos <= 999))
+          && d.creadoEl is timestamp
+          && (!('actualizadoEl' in d) || d.actualizadoEl is timestamp);
+    }
+
+    match /calificaciones/{calificacionId} {
+      allow read, delete: if esAdmin();
+      allow create: if calificacionId.matches('^[A-Za-z0-9]{20}$')
+          && calificacionValida(request.resource.data)
+          && request.resource.data.creadoEl == request.time
+          && !('actualizadoEl' in request.resource.data)
+          && exists(/databases/$(database)/documents/convenios/$(request.resource.data.convenioId));
+      allow update: if request.time < resource.data.creadoEl + duration.value(30, 'm')
+          && request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['estrellas', 'motivos', 'perfil', 'comentario', 'actualizadoEl'])
+          && request.resource.data.actualizadoEl == request.time
+          && calificacionValida(request.resource.data);
     }
 
     // --- Todo lo demás está cerrado ------------------------------------

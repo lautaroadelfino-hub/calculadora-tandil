@@ -38,7 +38,14 @@ vi.mock("@/lib/firestoreRest", async () => {
   };
 });
 
+// La calificación del pie del recibo tampoco sale a la red: se mira qué se mandaría.
+vi.mock("@/lib/calificaciones", async (importOriginal) => ({
+  ...(await importOriginal()),
+  enviarCalificacion: vi.fn(async () => {}),
+}));
+
 import CalculadoraConvenio from "../../components/calculadora/CalculadoraConvenio.jsx";
+import { enviarCalificacion } from "@/lib/calificaciones";
 import { cargarDatosDeCalculadora } from "../../lib/datosCalculadora.js";
 import { leerDocumento } from "../../lib/firestoreRest.js";
 import { procesarRecibo } from "../../lib/motorLiquidacion.js";
@@ -54,6 +61,8 @@ const ultimoPeriodo = Object.keys(escalas).sort().pop();
 afterEach(cleanup);
 beforeEach(() => {
   leerDocumento.mockClear();
+  enviarCalificacion.mockClear();
+  window.localStorage.clear(); // que ningún test herede "ya calificó" de otro
   window.history.replaceState(null, "", "/calcular/comercio-cct-130-75");
 });
 
@@ -150,6 +159,38 @@ describe("la calculadora de Comercio", () => {
     await screen.findByRole("heading", { name: "Simulación de recibo" });
     expect(importeDeFranja("Sueldo neto $")).toBe("$ 1.251.841,10");
     expect(screen.getByLabelText("Años de Antigüedad").value).toBe("5");
+  });
+
+  it("'¿Te sirvió este cálculo?' aparece recién con el recibo, y una estrella la guarda con el contexto de la cuenta", async () => {
+    const inicial = await cargarDatosDeCalculadora(ID);
+    render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+    expect(screen.queryByRole("group", { name: "¿Te sirvió este cálculo?" })).toBeNull();
+
+    fireEvent.change(screen.getByLabelText("Período a liquidar"), { target: { value: "2026-09" } });
+    fireEvent.change(screen.getByLabelText("Categoría"), { target: { value: "Vendedor B" } });
+    fireEvent.click(botonCalcular());
+    await screen.findByRole("heading", { name: "Simulación de recibo" });
+    fireEvent.change(screen.getByLabelText("Años de Antigüedad"), { target: { value: "5" } });
+    fireEvent.click(botonCalcular());
+    await screen.findByText(/^\s*Recibo calculado para/);
+
+    fireEvent.click(screen.getByLabelText(/^5 de 5 estrellas/));
+    await vi.waitFor(() => expect(enviarCalificacion).toHaveBeenCalledTimes(1), { timeout: 3000 });
+    const campos = enviarCalificacion.mock.calls[0][0].writes[0].update.fields;
+    expect(campos).toMatchObject({
+      estrellas: { integerValue: "5" },
+      convenioId: { stringValue: ID },
+      periodo: { stringValue: "2026-09" },
+      categoria: { stringValue: "Vendedor B" },
+      origen: { stringValue: "manual" },
+      calculos: { integerValue: "2" },
+      // El Firestore de mentira sólo tiene la tabla de contribuciones de julio:
+      // el recibo de septiembre avisa que usó la de otro mes.
+      conAvisos: { booleanValue: true },
+    });
+    // Nada del sueldo viaja con la calificación.
+    expect(Object.keys(campos).some((k) => /neto|bruto|antig|basico|importe/i.test(k))).toBe(false);
+    expect(JSON.stringify(campos)).not.toContain("1251841");
   });
 
   it("nunca imprime 'undefined' ni 'NaN', antes ni después de calcular", async () => {

@@ -30,7 +30,7 @@ algo de acá no se entiende, está mal escrito: avisá.
 
 ---
 
-## Las cuatro tareas que vas a hacer siempre
+## Las tareas que vas a hacer siempre
 
 ### 1. Cargar la escala de un mes (lo más frecuente)
 
@@ -130,6 +130,54 @@ La obra social (3% del trabajador y 6% del empleador) va siempre sobre la
 jornada completa de la categoría (art. 92 ter inc. 4 LCT), por tu decisión del
 5/10/2026. No es un interruptor; por eso la calculadora acepta desde 20 horas
 semanales.
+
+### 5. Mirar qué opina la gente (calificaciones)
+
+Al pie de cada recibo aparece **"¿Te sirvió este cálculo?"**, con 5 estrellas.
+No es un cartel ni aparece por tiempo: está ahí recién cuando hay recibo. Con un
+toque en las estrellas la calificación queda guardada. Después, y todo
+opcional, pregunta qué falló (si puso 3 o menos), para qué usó la calculadora y
+un comentario. Si la persona califica, no se le vuelve a preguntar por 4 meses;
+si toca "Ahora no", por uno.
+
+**Qué se guarda:** las estrellas y lo que conteste, más el contexto, que se toma
+solo: convenio, mes y categoría calculados, si estaba en el celular o la
+computadora, si calculó a mano o abrió un link compartido, si el recibo traía
+avisos (falta una tabla, se usó la de otro mes) y cuántas cuentas hizo en la
+visita. **Ningún importe del sueldo ni dato de la persona.** El comentario le
+pide que no escriba datos personales; si alguien los escribe igual, se borra
+desde el panel.
+
+**Dónde se ve:** `/admin` → pestaña **Calificaciones**. Arriba, el porcentaje
+de 4 y 5 estrellas (la medida principal) y el promedio. Abajo, en este orden:
+qué falló en las bajas, semana a semana, por convenio, quién calcula, desde
+dónde, cómo llegó y con o sin avisos; después los comentarios, cada uno con su
+contexto y un botón **Borrar**. **Descargar CSV** baja todo para Excel.
+
+**Cómo leerlo sin engañarse:** califica sobre todo el que quedó muy contento o
+muy enojado, así que importan más las comparaciones y la tendencia que el
+promedio. Con menos de 20 calificaciones en un grupo, una diferencia no dice
+nada (el panel lo marca). Lo que más conviene mirar:
+
+- **"El número no me cierra"** concentrado en un convenio o una categoría:
+  revisar esa escala o esas reglas.
+- **La nota baja la semana en que se cargó un mes** o se publicó un cambio:
+  algo puede haber quedado mal.
+- **"Los datos no están al día"**, o recibos **con avisos** que califican
+  peor: cargar las tablas del mes a tiempo.
+- **Celular peor que computadora**: revisar la pantalla chica.
+
+Quien no llega a calcular (por un error) no ve la tarjeta: para eso sigue
+"Reportar error / sugerencia", que manda un mail.
+
+**Antes de que funcione hay que pegar las reglas** (ver `firestore.rules`, más
+abajo): las calificaciones son lo único que alguien sin sesión puede escribir
+en la base, y las reglas validan cada campo. Sin el bloque de
+"calificaciones" en la consola, la tarjeta dice "No pudimos guardar tu
+calificación" y la pestaña, que no puede leerlas. Si algún día se cambian
+los motivos o los perfiles, se cambian en `lib/calificaciones.js` **y** en
+`firestore.rules` (un test avisa si no coinciden) y se vuelven a pegar las
+reglas.
 
 ---
 
@@ -247,7 +295,10 @@ mandale esa hoja primero.
 - **`firestore.rules` está en el repo pero NO se aplica solo.** Desde el
   13/9/2026 (10:56) la consola y el archivo dicen lo mismo: se lee sin registro
   sólo lo que la calculadora usa, y escribe únicamente el usuario con el que
-  entrás a /admin, identificado por su UID; todo lo demás está cerrado. Si
+  entrás a /admin, identificado por su UID; todo lo demás está cerrado. La
+  única excepción, desde el 26/11/2026, son las calificaciones del pie del
+  recibo (tarea 5): cualquiera puede crear una, con la forma exacta que valida
+  el archivo, y nadie más que vos las lee. Si
   alguna vez cambiás el archivo, hay que volver a pegarlo en la consola
   (Firestore Database → Reglas → Publicar) con la cuenta de Google dueña del
   proyecto, que es `info@liquidar.ar`. Cambiar el mail o la contraseña del
