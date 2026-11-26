@@ -18,7 +18,11 @@ de Camiones:
   página "Última escala salarial"). La Federación publicó la misma escala
   el 18/11/2026 como
   [Planilla 11/26](https://www.fedcam.org.ar/index.php/gremiales/planillas-de-sueldos/planillas-de-sueldos/534-planilla-de-sueldos-noviembre-2026-2).
-  **Lista para subir** desde el 26/11/2026.
+  **Está publicada en el sitio desde el 26/11/2026**, después del respaldo
+  `respaldos/2026-11-26-132708`. Se cargó desde `/admin` (Escalas
+  paritarias: Buscar, Subir CSV, los 12 valores del período), no con
+  `cargarMes.mjs`, y lo que quedó en la base es idéntico, campo por campo, a
+  lo que escribiría este `carga.json`. Los fixtures ya se recapturaron.
 
 `camioneros-escala-2026-10.pdf` y `camioneros-escala-2026-11.pdf` son las
 dos hojas de cada planilla, tal como las publicó el sindicato (en JPG), para
@@ -210,9 +214,8 @@ Ganancias jul–dic 2026 (en ninguno de los tres casos corresponde Ganancias):
 El neto del conductor sube 1,55% y no 2,8% porque en octubre ya no están los
 $18.000 de septiembre. En noviembre todo sube 1,7%. Noviembre se calculó el
 26/11/2026 con la escala de esta carpeta y la tabla de contribuciones de
-`docs/acuerdos/contribuciones-2026-11` (la misma cuenta da octubre igual que
-la tabla de arriba): hasta que esa tabla se publique, el sitio usa la de
-octubre para noviembre, y el neto de estos tres casos no cambia por eso.
+noviembre (`docs/acuerdos/contribuciones-2026-11`), las dos publicadas ese
+día; la misma cuenta da octubre igual que la tabla de arriba.
 
 ## Pendiente
 

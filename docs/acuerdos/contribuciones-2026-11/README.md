@@ -16,7 +16,11 @@ detracción de la Ley 27.541 ($7.003,68), el seguro colectivo de vida
 "Copiar del mes anterior" de la pestaña Contribuciones
 (`armarTablaDelMes`, en `lib/vigia/contribuciones.js`).
 
-Hasta que se publique, noviembre usa la tabla de octubre y el recibo lo avisa.
+**Está publicada en el sitio desde el 26/11/2026**, después del respaldo
+`respaldos/2026-11-26-132708`. Se cargó desde `/admin` (Contribuciones:
+Copiar del mes anterior, FFEP y bases), no con `cargarMes.mjs`, y lo que
+quedó en la base es idéntico, campo por campo, a lo que escribiría este
+`carga.json`.
 
 ## De dónde salen los números
 

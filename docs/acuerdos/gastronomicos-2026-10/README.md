@@ -8,6 +8,12 @@ el acta del primer tramo fija para ese caso. Decisión del dueño del
 noviembre con la escala de septiembre, que trae una suma no remunerativa que
 ya no corresponde.
 
+**Están publicadas en el sitio desde el 26/11/2026**, después del respaldo
+`respaldos/2026-11-26-132708`. Se cargaron desde `/admin` (Escalas
+paritarias: Buscar y Subir CSV, octubre y después noviembre), no con
+`cargarMes.mjs`, y lo que quedó en la base es idéntico, campo por campo, a
+lo que escribiría este `carga.json`. Los fixtures ya se recapturaron.
+
 ## Qué dice el acta
 
 Acta Acuerdo Paritaria 2026/2027 UTHGRA–FEHGRA, CCT 389/04, firmada el
