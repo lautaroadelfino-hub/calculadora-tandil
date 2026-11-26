@@ -55,7 +55,15 @@ delegar. Escrita el 24/9/2026 a partir de la auditoría integral del 23/9.
   Pages" en GitHub (Settings → Applications: que no esté suspendida y tenga
   acceso al repo) y, en Cloudflare, Workers & Pages → calculadora-tandil →
   Settings → Builds (repositorio conectado y despliegues automáticos
-  prendidos).
+  prendidos). **Lo que pasó esa vez (resuelto el 26/11/2026):** Cloudflare
+  mostraba "Este proyecto está desconectado de tu cuenta de Git" porque la
+  app de GitHub tenía acceso a "Solo repositorios seleccionados" y el único
+  era `Fuerte-Code`: al configurar ese otro proyecto se reemplazó la lista en
+  vez de sumarle uno. Se volvió a agregar `calculadora-tandil` (GitHub →
+  Settings → Applications → Cloudflare Workers and Pages → Configure; pide
+  confirmar con un código por mail). Al conectar otro repositorio a
+  Cloudflare, **agregarlo a la lista, nunca dejar uno solo**. Después de
+  reconectar no se publica nada hasta el próximo push.
 - **Se pierde la contraseña de `admin@liquidar.ar`:** se cambia desde la
   consola de Firebase (Authentication → Users) con `info@liquidar.ar`.
 - **Se pierde el acceso a `info@liquidar.ar`:** es el único acceso a la
