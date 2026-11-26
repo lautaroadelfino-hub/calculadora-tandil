@@ -4,8 +4,8 @@ Los tres CSV de esta carpeta son las escalas de Comercio (CCT 130/75) de
 octubre, noviembre y diciembre de 2026, listas para subir en `/admin` →
 **Escalas paritarias**. Están calculadas desde la escala de septiembre que hoy
 está en producción, con la misma cuenta que usó la planilla firmada del
-acuerdo de julio. FAECYS todavía no publicó las planillas del acuerdo nuevo:
-cuando salgan, hay que compararlas (ver "Pendiente").
+acuerdo de julio. FAECYS publicó las planillas del acuerdo nuevo el
+28/10/2026 y coinciden (ver "Contra la circular de FAECYS").
 
 ## Qué dice el acuerdo
 
@@ -118,12 +118,18 @@ README), calculado con el motor sobre estas escalas:
 Diciembre da un neto menor que noviembre aunque el bruto sube: se va la
 cuota de $25.000 y los $20.000 que pasan al básico pagan aportes.
 
+## Contra la circular de FAECYS
+
+FAECYS publicó las escalas el 28/10/2026
+([circular](https://www.faecys.org.ar/circular-escalas-acuerdo-octubre-2026-cct-130/),
+de octubre 2026 a mayo 2027). Comparadas el 29/10/2026 con lo publicado en
+el sitio: de los 63 básicos (21 categorías por 3 meses), 22 difieren en $1
+exacto, por redondeo, y las sumas no remunerativas son iguales. Diciembre
+queda confirmado: $20.000 al básico y $100.000 no remunerativos. Ninguno
+difiere en más de $1, así que no hubo nada que corregir.
+
 ## Pendiente
 
-- **Las planillas firmadas.** Cuando FAECYS publique la circular con las
-  escalas, comparar básico por básico. Si alguna difiere en más de $1, manda
-  la planilla: se corrige el CSV y se vuelve a publicar ese mes. Lo primero
-  a mirar: diciembre, los $20.000 y los $100.000.
 - **FFEP y bases del art. 9 de noviembre y diciembre.** Hasta que se
   carguen, esos meses usan la tabla de octubre con aviso en el recibo. Cuando
   la SRT y ANSES los publiquen en el Boletín Oficial, el vigía los deja
@@ -136,13 +142,36 @@ cuota de $25.000 y los $20.000 que pasan al básico pagan aportes.
   Personal Auxiliar B ≈ $1.137.677 y Auxiliar Especializado B ≈ $1.153.743.
   Sólo afecta las liquidaciones de junio; se corrige desde /admin con la
   circular de abril a julio a la vista.
-- **El acuerdo en la pestaña Acuerdos**, con el PDF de FAECYS: título
-  "Acuerdo paritario del 27 de octubre de 2026 (octubre, noviembre y
-  diciembre 2026)", tipo acuerdo, fecha 2026-10-27, vigencia "octubre a
-  diciembre 2026". Y la homologación, cuando salga.
+- **La homologación en la pestaña Acuerdos.** Salió: Disposición
+  DI-2026-1424-APN-DNRYRT#MCH del 3/11/2026, que homologa el acuerdo y las
+  escalas sin tocar ningún importe. La copia firmada y numerada la publicó
+  la [CAC el 5/11](https://www.cac.com.ar/noticias/se-homologo-el-ultimo-acuerdo-paritario-para-empleados-de-comercio-3)
+  y está en esta carpeta (`comercio-homologacion-2026-11-03.pdf`). FAECYS
+  [la subió el 3/11](https://www.faecys.org.ar/14433-2/) sin número ni
+  firma. Al 26/11/2026 todavía no estaba en el Boletín Oficial. **Cargada
+  el 26/11/2026** (tipo homologación, fecha 2026-11-03, con ese PDF y la
+  nota de la CAC como fuente), en
+  [/acuerdos/comercio-cct-130-75/homologacion-del-acuerdo-del-27-de-octubre-de-2026](https://liquidar.ar/acuerdos/comercio-cct-130-75/homologacion-del-acuerdo-del-27-de-octubre-de-2026).
+  El acuerdo (2026-10-27) y las escalas de octubre 2026 a mayo 2027
+  (2026-10-01) ya están ahí desde el 29/10/2026, con los PDF de FAECYS. De
+  paso: la homologación del acuerdo de julio (Disposición 964/2026, que la
+  pestaña ya muestra con fecha 5/8/2026) recién salió en el
+  [Boletín Oficial del 25/11/2026](https://www.boletinoficial.gob.ar/detalleAviso/primera/350793/20261125),
+  por si se quiere poner ese link como fuente.
 - **Recapturar los fixtures** después de publicar
   (`node scripts/capturarFixtures.mjs comercio-cct-130-75`), para que los
-  tests sobre datos actuales vean los meses nuevos.
+  tests sobre datos actuales vean los meses nuevos. **Antes hay que ajustar
+  5 tests**: probado el 26/11/2026, con octubre a diciembre en los fixtures
+  fallan dos de `test/cargaDeMes.test.js` y dos de
+  `test/publicarEscala.test.js`, que usan las escalas de Comercio como
+  ejemplo y dan por hecho que el último mes cargado es septiembre ("publicar
+  2026-10 es un mes nuevo"), y uno de `test/ui/calculadoraConvenio.test.jsx`,
+  que espera que la calculadora arranque en el último mes cargado
+  (diciembre) cuando arranca en el mes en curso (noviembre), como dice
+  "Meses futuros" en `docs/continuidad.md`. Ninguno es un número del motor:
+  los cuatro primeros tienen que usar las escalas hasta septiembre y el de
+  la calculadora, la regla del mes en curso con una fecha fija. Por eso los
+  fixtures de Comercio siguen en septiembre.
 
 ## Auditoría del 28/10/2026, antes de subir
 

@@ -1,0 +1,44 @@
+{
+  "_nota": "Lo que publica `node scripts/cargarMes.mjs docs/acuerdos/camioneros-2026-09-18`: las escalas de Camioneros del acuerdo del 18/9/2026 que ya salieron, octubre 2026 (planilla N° 247) y noviembre 2026 (planilla N° 248) del Sindicato de Choferes de Camiones. Volver a correrla reemplaza octubre por lo mismo. Ver README.md de esta carpeta y lib/cargaDeMes.js.",
+  "convenio": "camioneros-cct-40-89",
+  "escalas": {
+    "2026-10": {
+      "_fuente": "Planilla N° 247, vigente desde el 1/10/2026, publicada el 14/10/2026 en camioneros-ba.org.ar (hoja 1: básicos; hoja 2: otras remuneraciones y viáticos, zona general; cartilla ampliatoria: referencia 304). Sin suma no remunerativa: los $18.000 de septiembre fueron por única vez.",
+      "csv": "camioneros-2026-10.csv",
+      "mes_vigencia": "Octubre 2026",
+      "valores_del_periodo": {
+        "comida": 17231.89,
+        "viatico_especial": 8646.93,
+        "pernoctada": 20070.36,
+        "km_viatico": 90.09389,
+        "km_hora_extra": 90.09389,
+        "permanencia_fuera_residencia": 60813.81,
+        "simple_presencia": 31876.66,
+        "cruce_frontera": 41880.15,
+        "ingreso_egreso_tierra_del_fuego": 47754.51,
+        "adicional_bitrenes": 727717.74,
+        "plus_vacacional_dia": 26305.99,
+        "choferes_larga_distancia_5_11_3a2": 354552.98
+      }
+    },
+    "2026-11": {
+      "_fuente": "Planilla N° 248, vigente desde el 1/11/2026, publicada el 08/11/2026 en camioneros-ba.org.ar (el ítem 'Nueva Escala salarial Noviembre 2026' de la lista de escalas lleva a la página 'Última escala salarial'). Hoja 1: básicos; hoja 2: otras remuneraciones y viáticos, zona general; cartilla ampliatoria N° 248: referencia 304. Igual al centavo a la Planilla 11/26 de la Federación (fedcam.org.ar, 18/11/2026). Todo es octubre + 1,7%, con las grúas en cadena. Sin suma no remunerativa.",
+      "csv": "camioneros-2026-11.csv",
+      "mes_vigencia": "Noviembre 2026",
+      "valores_del_periodo": {
+        "comida": 17524.83,
+        "viatico_especial": 8793.93,
+        "pernoctada": 20411.56,
+        "km_viatico": 91.62549,
+        "km_hora_extra": 91.62549,
+        "permanencia_fuera_residencia": 61847.64,
+        "simple_presencia": 32418.56,
+        "cruce_frontera": 42592.11,
+        "ingreso_egreso_tierra_del_fuego": 48566.34,
+        "adicional_bitrenes": 740088.94,
+        "plus_vacacional_dia": 26753.19,
+        "choferes_larga_distancia_5_11_3a2": 360580.38
+      }
+    }
+  }
+}

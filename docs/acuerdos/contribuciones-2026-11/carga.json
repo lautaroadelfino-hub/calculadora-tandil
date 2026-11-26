@@ -1,0 +1,11 @@
+{
+  "_nota": "Lo que publica `node scripts/cargarMes.mjs docs/acuerdos/contribuciones-2026-11`: la tabla de contribuciones patronales de noviembre 2026, que es la de octubre con el FFEP y las bases del art. 9 de noviembre. Ver README.md de esta carpeta y lib/cargaDeMes.js.",
+  "contribuciones": {
+    "2026-11": {
+      "_fuente": "FFEP: Disposición SRT 11/2026 (DI-2026-11-APN-GCP#SRT, Boletín Oficial del 25/11/2026): $2.010 para el devengado de noviembre 2026. Bases del art. 9 de la Ley 24.241: Resolución ANSES 304/2026 (Boletín Oficial del 28/10/2026): $149.592,45 y $4.861.685,38 desde el devengado de noviembre 2026. Leídas el 26/11/2026 con los lectores del vigía (lib/vigia/boletin.js).",
+      "vigencia": "Noviembre 2026",
+      "ffep": 2010,
+      "bases_art9": { "minima": 149592.45, "maxima": 4861685.38 }
+    }
+  }
+}

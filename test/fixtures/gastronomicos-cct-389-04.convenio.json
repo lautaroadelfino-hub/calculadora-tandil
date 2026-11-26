@@ -1,44 +1,87 @@
 {
+  "ultimo_periodo_nombre": "Noviembre 2026",
+  "activo": true,
+  "inputs_requeridos": [
+    {
+      "opciones": [
+        "Escala A",
+        "Escala B"
+      ],
+      "tipo": "select",
+      "id": "zona",
+      "label": "Zona / Escala",
+      "default": "Escala A"
+    },
+    {
+      "label": "Categoría (Nivel Profesional)",
+      "tipo": "select",
+      "opciones": [
+        "Nivel 1 (Peón - Lavacopas)",
+        "Nivel 2 (Mozo Mostrador - Cadete)",
+        "Nivel 3 (Ayudante Cocina - Comis)",
+        "Nivel 4 (Mucama - Medio Oficial)",
+        "Nivel 5 (Cajero - Comis Cocina)",
+        "Nivel 6 (Mozo - Maître)",
+        "Nivel 7 (Jefe Brigada - Recepción)"
+      ],
+      "id": "categoria",
+      "default": "Nivel 1 (Peón - Lavacopas)"
+    },
+    {
+      "label": "Horas Semanales (Jornada)",
+      "default": 48,
+      "tipo": "number",
+      "id": "carga_horaria"
+    },
+    {
+      "label": "Años de Antigüedad",
+      "id": "antiguedad_años",
+      "default": 0,
+      "tipo": "number"
+    },
+    {
+      "label": "Horas Extras al 50%",
+      "default": 0,
+      "tipo": "number",
+      "id": "horas_extras_50"
+    },
+    {
+      "label": "Horas Extras al 100%",
+      "default": 0,
+      "tipo": "number",
+      "id": "horas_extras_100"
+    },
+    {
+      "tipo": "boolean",
+      "default": false,
+      "id": "afiliado_sindicato",
+      "label": "Afiliado a UTHGRA (2.5%)"
+    },
+    {
+      "origen": "adicional",
+      "label": "¿Tuvo asistencia perfecta este mes?",
+      "id": "asistencia_perfecta",
+      "default": true,
+      "tipo": "boolean"
+    }
+  ],
   "sector": "privado",
+  "cct": "389/04",
   "reglas_calculo": {
-    "retenciones_sindicales": {
-      "uthgra_sepelio": {
-        "porcentaje": 0.01,
-        "base": "remunerativo_mas_no_remunerativo",
-        "label": "Seguro de Vida y Sepelio (1%)"
-      },
-      "contribucion_solidaria_uthgra_2": {
-        "label": "Contribución Solidaria UTHGRA (2%)",
-        "base": "remunerativo_habitual",
-        "porcentaje": 0.02,
-        "condicion": "solo_no_afiliado"
-      },
-      "uthgra_afiliado": {
-        "base": "remunerativo_mas_no_remunerativo",
-        "porcentaje": 0.025,
-        "condicion": "solo_afiliado",
-        "label": "Cuota Afiliado UTHGRA (2.5%)"
-      }
-    },
-    "art": {
-      "alicuota_tipica": 0.05
-    },
     "adicionales_remunerativos": {
-      "complemento_servicio": {
-        "aplica_sobre": "basico",
-        "porcentaje": 0.12,
-        "label": "Complemento de Servicio (12%)"
-      },
       "asistencia_perfecta": {
+        "porcentaje": 0.1,
         "aplica_sobre": "basico",
-        "label": "Asistencia Perfecta (10%)",
         "depende_de": "asistencia_perfecta",
-        "porcentaje": 0.1
+        "label": "Asistencia Perfecta (10%)"
+      },
+      "complemento_servicio": {
+        "porcentaje": 0.12,
+        "label": "Complemento de Servicio (12%)",
+        "aplica_sobre": "basico"
       }
     },
-    "no_remunerativo_genera_adicionales": false,
     "antiguedad": {
-      "modo": "tramos",
       "tramos": [
         {
           "desde_años": 1,
@@ -65,92 +108,49 @@
           "desde_años": 11
         },
         {
-          "desde_años": 13,
-          "porcentaje": 0.08
+          "porcentaje": 0.08,
+          "desde_años": 13
         },
         {
           "porcentaje": 0.1,
           "desde_años": 15
         },
         {
-          "porcentaje": 0.12,
-          "desde_años": 17
+          "desde_años": 17,
+          "porcentaje": 0.12
         },
         {
           "porcentaje": 0.14,
           "desde_años": 19
         }
-      ]
+      ],
+      "modo": "tramos"
+    },
+    "retenciones_sindicales": {
+      "uthgra_afiliado": {
+        "base": "remunerativo_mas_no_remunerativo",
+        "label": "Cuota Afiliado UTHGRA (2.5%)",
+        "condicion": "solo_afiliado",
+        "porcentaje": 0.025
+      },
+      "uthgra_sepelio": {
+        "porcentaje": 0.01,
+        "base": "remunerativo_mas_no_remunerativo",
+        "label": "Seguro de Vida y Sepelio (1%)"
+      },
+      "contribucion_solidaria_uthgra_2": {
+        "base": "remunerativo_habitual",
+        "condicion": "solo_no_afiliado",
+        "label": "Contribución Solidaria UTHGRA (2%)",
+        "porcentaje": 0.02
+      }
+    },
+    "no_remunerativo_genera_adicionales": false,
+    "art": {
+      "alicuota_tipica": 0.05
     }
   },
-  "activo": true,
-  "id": "gastronomicos-cct-389-04",
-  "ultimo_periodo_nombre": "Septiembre 2026",
-  "ultimo_periodo": "2026-09",
-  "inputs_requeridos": [
-    {
-      "label": "Zona / Escala",
-      "default": "Escala A",
-      "id": "zona",
-      "tipo": "select",
-      "opciones": [
-        "Escala A",
-        "Escala B"
-      ]
-    },
-    {
-      "default": "Nivel 1 (Peón - Lavacopas)",
-      "tipo": "select",
-      "id": "categoria",
-      "opciones": [
-        "Nivel 1 (Peón - Lavacopas)",
-        "Nivel 2 (Mozo Mostrador - Cadete)",
-        "Nivel 3 (Ayudante Cocina - Comis)",
-        "Nivel 4 (Mucama - Medio Oficial)",
-        "Nivel 5 (Cajero - Comis Cocina)",
-        "Nivel 6 (Mozo - Maître)",
-        "Nivel 7 (Jefe Brigada - Recepción)"
-      ],
-      "label": "Categoría (Nivel Profesional)"
-    },
-    {
-      "default": 48,
-      "label": "Horas Semanales (Jornada)",
-      "tipo": "number",
-      "id": "carga_horaria"
-    },
-    {
-      "default": 0,
-      "id": "antiguedad_años",
-      "tipo": "number",
-      "label": "Años de Antigüedad"
-    },
-    {
-      "label": "Horas Extras al 50%",
-      "default": 0,
-      "id": "horas_extras_50",
-      "tipo": "number"
-    },
-    {
-      "label": "Horas Extras al 100%",
-      "default": 0,
-      "id": "horas_extras_100",
-      "tipo": "number"
-    },
-    {
-      "label": "Afiliado a UTHGRA (2.5%)",
-      "tipo": "boolean",
-      "id": "afiliado_sindicato",
-      "default": false
-    },
-    {
-      "origen": "adicional",
-      "label": "¿Tuvo asistencia perfecta este mes?",
-      "tipo": "boolean",
-      "default": true,
-      "id": "asistencia_perfecta"
-    }
-  ],
   "nombre": "Gastronómicos (UTHGRA)",
-  "cct": "389/04"
+  "ultimo_periodo": "2026-11",
+  "id": "gastronomicos-cct-389-04"
 }

@@ -1,0 +1,16 @@
+{
+  "_nota": "Lo que publica `node scripts/cargarMes.mjs docs/acuerdos/gastronomicos-2026-10`: las escalas de Gastronómicos (CCT 389/04) de octubre y noviembre 2026 que fija la cláusula SEGUNDO del acta UTHGRA–FEHGRA del 24/7/2026 mientras no haya acuerdo nuevo: los básicos de septiembre más 8,03%, sin suma no remunerativa. Ver README.md de esta carpeta y lib/cargaDeMes.js.",
+  "convenio": "gastronomicos-cct-389-04",
+  "escalas": {
+    "2026-10": {
+      "_fuente": "Acta Acuerdo Paritaria 2026/2027 UTHGRA–FEHGRA, CCT 389/04 (24/7/2026, RE-2026-72653200-APN-CGDTEYS#MCH), cláusula SEGUNDO: sin acuerdo al 15/10/2026, desde el 1/10/2026 rigen como básicos los de septiembre + 8,03%. Redondeado al peso; los 14 coinciden con el Anexo I de octubre 2026 de UTHGRA Tucumán (CCT 758/19, mismos básicos y misma cláusula).",
+      "csv": "gastronomicos-2026-10.csv",
+      "mes_vigencia": "Octubre 2026"
+    },
+    "2026-11": {
+      "_fuente": "Igual que octubre: al 26/11/2026 UTHGRA y FEHGRA no firmaron acuerdo nuevo, así que siguen rigiendo los básicos de la cláusula SEGUNDO.",
+      "csv": "gastronomicos-2026-11.csv",
+      "mes_vigencia": "Noviembre 2026"
+    }
+  }
+}
