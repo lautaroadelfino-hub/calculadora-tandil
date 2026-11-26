@@ -1,6 +1,6 @@
 "use client";
 // Panel de administración con secciones:
-//   Bandeja · Escalas paritarias · Convenios (reglas) · Ganancias · Contribuciones · Acuerdos · Novedades
+//   Bandeja · Escalas paritarias · Convenios (reglas) · Ganancias · Contribuciones · Acuerdos · Novedades · Calificaciones
 // Cada sección vive en components/admin/*.jsx.
 //
 // La Bandeja es lo que el vigía (scripts/vigia.mjs) dejó preparado. "Abrir" un
@@ -22,6 +22,7 @@ import GananciasTab from "@/components/admin/GananciasTab";
 import ContribucionesTab from "@/components/admin/ContribucionesTab";
 import NovedadesTab from "@/components/admin/NovedadesTab";
 import AcuerdosTab from "@/components/admin/AcuerdosTab";
+import CalificacionesTab from "@/components/admin/CalificacionesTab";
 
 const TABS = [
   { id: "bandeja", label: "Bandeja", icon: "📥" },
@@ -31,6 +32,7 @@ const TABS = [
   { id: "contribuciones", label: "Contribuciones", icon: "🏢" },
   { id: "acuerdos", label: "Acuerdos", icon: "📄" },
   { id: "novedades", label: "Novedades", icon: "📰" },
+  { id: "calificaciones", label: "Calificaciones", icon: "⭐" },
 ];
 
 export default function AdminPage() {
@@ -117,7 +119,7 @@ export default function AdminPage() {
       <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-800">Panel de Administración</h1>
-          <p className="text-gray-500 text-sm mt-1">Bandeja, escalas, convenios, impuestos, contribuciones patronales, acuerdos y novedades</p>
+          <p className="text-gray-500 text-sm mt-1">Bandeja, escalas, convenios, impuestos, contribuciones patronales, acuerdos, novedades y calificaciones</p>
         </div>
         <button
           onClick={cerrarSesion}
@@ -160,6 +162,7 @@ export default function AdminPage() {
         )}
         {tabActiva === "acuerdos" && <AcuerdosTab convenios={convenios} />}
         {tabActiva === "novedades" && <NovedadesTab convenios={convenios} />}
+        {tabActiva === "calificaciones" && <CalificacionesTab convenios={convenios} />}
       </div>
     </div>
   );
