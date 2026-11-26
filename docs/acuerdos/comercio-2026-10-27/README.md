@@ -142,13 +142,35 @@ difiere en más de $1, así que no hubo nada que corregir.
   Personal Auxiliar B ≈ $1.137.677 y Auxiliar Especializado B ≈ $1.153.743.
   Sólo afecta las liquidaciones de junio; se corrige desde /admin con la
   circular de abril a julio a la vista.
-- **La homologación en la pestaña Acuerdos**, cuando salga: tipo
-  homologación, con la fecha de la Disposición. El acuerdo (2026-10-27) y
-  las escalas de octubre 2026 a mayo 2027 (2026-10-01) ya están ahí desde el
-  29/10/2026, con los PDF de FAECYS.
+- **La homologación en la pestaña Acuerdos.** Salió: Disposición
+  DI-2026-1424-APN-DNRYRT#MCH del 3/11/2026, que homologa el acuerdo y las
+  escalas sin tocar ningún importe. La copia firmada y numerada la publicó
+  la [CAC el 5/11](https://www.cac.com.ar/noticias/se-homologo-el-ultimo-acuerdo-paritario-para-empleados-de-comercio-3)
+  y está en esta carpeta (`comercio-homologacion-2026-11-03.pdf`). FAECYS
+  [la subió el 3/11](https://www.faecys.org.ar/14433-2/) sin número ni
+  firma. Al 26/11/2026 todavía no estaba en el Boletín Oficial. Falta
+  cargarla: tipo homologación, fecha 2026-11-03, título "Homologación del
+  acuerdo del 27 de octubre de 2026", con ese PDF y la nota de la CAC como
+  fuente. El acuerdo (2026-10-27) y las escalas de octubre 2026 a mayo 2027
+  (2026-10-01) ya están ahí desde el 29/10/2026, con los PDF de FAECYS. De
+  paso: la homologación del acuerdo de julio (Disposición 964/2026, que la
+  pestaña ya muestra con fecha 5/8/2026) recién salió en el
+  [Boletín Oficial del 25/11/2026](https://www.boletinoficial.gob.ar/detalleAviso/primera/350793/20261125),
+  por si se quiere poner ese link como fuente.
 - **Recapturar los fixtures** después de publicar
   (`node scripts/capturarFixtures.mjs comercio-cct-130-75`), para que los
-  tests sobre datos actuales vean los meses nuevos.
+  tests sobre datos actuales vean los meses nuevos. **Antes hay que ajustar
+  5 tests**: probado el 26/11/2026, con octubre a diciembre en los fixtures
+  fallan dos de `test/cargaDeMes.test.js` y dos de
+  `test/publicarEscala.test.js`, que usan las escalas de Comercio como
+  ejemplo y dan por hecho que el último mes cargado es septiembre ("publicar
+  2026-10 es un mes nuevo"), y uno de `test/ui/calculadoraConvenio.test.jsx`,
+  que espera que la calculadora arranque en el último mes cargado
+  (diciembre) cuando arranca en el mes en curso (noviembre), como dice
+  "Meses futuros" en `docs/continuidad.md`. Ninguno es un número del motor:
+  los cuatro primeros tienen que usar las escalas hasta septiembre y el de
+  la calculadora, la regla del mes en curso con una fecha fija. Por eso los
+  fixtures de Comercio siguen en septiembre.
 
 ## Auditoría del 28/10/2026, antes de subir
 
