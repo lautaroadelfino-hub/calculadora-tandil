@@ -264,7 +264,7 @@ export default function CalificacionesTab({ convenios = [] }) {
         <div>
           <h3 className="text-lg font-bold text-slate-800">Calificaciones de la gente</h3>
           <p className="text-[12px] text-slate-500">
-            Lo que contestaron en &quot;¿Te sirvió este cálculo?&quot;, al pie del recibo. Sin datos del sueldo; los comentarios los
+            Lo que contestaron en &quot;¿Te sirvió este cálculo?&quot;, en el recibo. Sin datos del sueldo; los comentarios los
             escribe cada uno y pueden traer datos personales: si ves alguno, borralo.
           </p>
         </div>

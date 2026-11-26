@@ -133,14 +133,16 @@ semanales.
 
 ### 5. Mirar qué opina la gente (calificaciones)
 
-Al pie de cada recibo aparece **"¿Te sirvió este cálculo?"**, con 5 estrellas.
-No es un cartel ni aparece por tiempo: está ahí recién cuando hay recibo. Con un
-toque en las estrellas la calificación queda guardada en el acto. Después, y
-todo opcional, pregunta qué falló (si puso 3 o menos), para qué usó la
-calculadora y un comentario; lo puede cambiar o borrar durante un día. Si la
-persona califica, no se le vuelve a preguntar por 4 meses; si toca "Ahora no",
-por uno. Hay una tarjeta por recibo: si recalcula después de calificar, no
-vuelve a aparecer.
+En cada recibo, debajo de los tres números de arriba (neto, bruto y costo
+laboral), aparece una línea discreta: **"¿Te sirvió este cálculo?"**, con 5
+estrellas. No es un cartel ni aparece por tiempo: está ahí recién cuando hay
+recibo, y el que no quiere calificar no toca nada (no hay "Ahora no"). Con un
+toque en las estrellas la calificación queda guardada en el acto. Ahí se abre,
+todo opcional, qué falló (si puso 3 o menos), para qué usó la calculadora y un
+comentario; **Enviar** funciona sin escribir nada, pliega el panel y deja
+"¡Gracias por ayudar a mejorar!" (desde ahí puede borrar su comentario). Si la
+persona califica, no se le vuelve a preguntar por 4 meses. Hay una tarjeta por
+recibo: si recalcula después de calificar, no vuelve a aparecer.
 
 **Qué se guarda:** las estrellas y lo que conteste, más el contexto del recibo
 que calificó, que se toma solo: convenio, mes y categoría, si estaba en el

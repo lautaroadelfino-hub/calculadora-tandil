@@ -1,12 +1,12 @@
 // @vitest-environment jsdom
 // test/ui/calificarExperiencia.test.jsx
-// La tarjeta "¿Te sirvió este cálculo?" del pie del recibo, como la usa una
-// persona: un toque en las estrellas la guarda en el acto; lo opcional (qué
-// falló, para qué la usó, comentario) corrige la misma calificación; "Ahora
-// no" la esconde y no vuelve; lo pendiente no se pierde si la tarjeta
-// desaparece; y si no se pudo guardar, lo dice y deja reintentar sin duplicar.
-// Lo que viaja a Firestore se mira en lo que recibe `enviar`
-// (lib/calificaciones.js arma las escrituras; su forma la prueba
+// La tarjeta "¿Te sirvió este cálculo?" del recibo, como la usa una persona:
+// un toque en las estrellas la guarda en el acto; lo opcional (qué falló, para
+// qué la usó, comentario) corrige la misma calificación; "Enviar" funciona sin
+// escribir nada, pliega el panel y deja el agradecimiento; lo pendiente no se
+// pierde si la tarjeta desaparece; y si no se pudo guardar, lo dice y deja
+// reintentar sin duplicar. Lo que viaja a Firestore se mira en lo que recibe
+// `enviar` (lib/calificaciones.js arma las escrituras; su forma la prueba
 // test/calificaciones.test.js).
 
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -33,11 +33,19 @@ const estrella = (n) => screen.getByLabelText(new RegExp(`^${n} de 5 estrellas`)
 const campos = (llamada) => llamada[0].writes[0].update.fields;
 const escritura = (llamada) => llamada[0].writes[0];
 const noHayRed = () => Object.assign(new Error("No hay conexión. Probá de nuevo en un rato."), { sinRespuesta: true });
+const tarjeta = () => screen.queryByRole("radiogroup", { name: "¿Te sirvió este cálculo?" });
 
 describe("la tarjeta de calificación", () => {
+  it("es una sola línea con las estrellas, sin 'Ahora no'", () => {
+    armar();
+    expect(tarjeta()).toBeTruthy();
+    expect(screen.getAllByRole("radio")).toHaveLength(5);
+    expect(screen.queryByRole("button", { name: "Ahora no" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Enviar" })).toBeNull(); // lo opcional aparece recién al calificar
+  });
+
   it("un toque en las estrellas guarda la calificación en el acto, con su contexto, y aparece lo opcional", async () => {
     const { enviar, almacen } = armar({ espera: 10_000 });
-    expect(screen.getByRole("group", { name: "¿Te sirvió este cálculo?" })).toBeTruthy();
     fireEvent.click(estrella(4));
 
     // Sin esperar a juntar toques: el que califica y cierra la pestaña también cuenta.
@@ -58,11 +66,49 @@ describe("la tarjeta de calificación", () => {
     });
 
     expect(await screen.findByText(/¡Gracias!/)).toBeTruthy();
+    expect(screen.getByText("Todo es opcional.")).toBeTruthy();
     expect(screen.queryByRole("group", { name: /Qué falló/ })).toBeNull();
     expect(screen.getByRole("group", { name: /Para qué la usaste/ })).toBeTruthy();
     const registro = JSON.parse(almacen.mem.get(CLAVE_LOCAL));
     expect(registro).toMatchObject({ estado: "calificada", el: AHORA.toISOString() });
     expect(w.update.name.endsWith(`/calificaciones/${registro.id}`)).toBe(true);
+  });
+
+  it("'Enviar' no pide comentario: con sólo 'Contador o RR. HH.' manda, se pliega y agradece", async () => {
+    const { enviar } = armar({ espera: 10_000 });
+    fireEvent.click(estrella(5));
+    await screen.findByText(/¡Gracias!/);
+    fireEvent.click(screen.getByRole("button", { name: "Contador o RR. HH." }));
+    const boton = screen.getByRole("button", { name: "Enviar" });
+    expect(boton.disabled).toBe(false);
+    fireEvent.click(boton);
+
+    expect(await screen.findByText("¡Gracias por ayudar a mejorar!")).toBeTruthy();
+    expect(tarjeta()).toBeNull();
+    const ultima = enviar.mock.calls.at(-1);
+    expect(campos(ultima)).toMatchObject({ estrellas: { integerValue: "5" }, perfil: { stringValue: "contador_rrhh" } });
+    expect(campos(ultima).comentario).toBeUndefined();
+    expect(screen.queryByRole("button", { name: "Borrar mi comentario" })).toBeNull();
+  });
+
+  it("'Enviar' funciona aunque se esté guardando una elección anterior (antes el clic se perdía)", async () => {
+    let soltar;
+    const enviar = vi.fn(async () => {});
+    armar({ enviar, espera: 0 });
+    fireEvent.click(estrella(4));
+    await screen.findByText(/¡Gracias!/);
+    // El guardado del perfil queda colgado un rato, como en una red lenta.
+    enviar.mockImplementationOnce(() => new Promise((r) => { soltar = r; }));
+    fireEvent.click(screen.getByRole("button", { name: "Contador o RR. HH." }));
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(2));
+    // Mientras se guarda sola la elección, nada cambia de lugar ni se apaga.
+    expect(screen.queryByText("Guardando…")).toBeNull();
+    const boton = screen.getByRole("button", { name: "Enviar" });
+    expect(boton.disabled).toBe(false);
+    fireEvent.click(boton);
+    soltar();
+    expect(await screen.findByText("¡Gracias por ayudar a mejorar!")).toBeTruthy();
+    expect(campos(enviar.mock.calls.at(-1)).perfil).toEqual({ stringValue: "contador_rrhh" });
   });
 
   it("con 3 o menos pregunta qué falló, y cada respuesta corrige la MISMA calificación", async () => {
@@ -85,6 +131,35 @@ describe("la tarjeta de calificación", () => {
       perfil: { stringValue: "empleador" },
       motivos: { arrayValue: { values: [{ stringValue: "numero_no_cierra" }] } },
     });
+  });
+
+  it("el comentario va con 'Enviar', y desde el agradecimiento se puede borrar", async () => {
+    const { enviar } = armar();
+    fireEvent.click(estrella(3));
+    fireEvent.change(await screen.findByLabelText("Comentario"), { target: { value: "  Me faltó el adicional por título  " } });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
+    await screen.findByText("¡Gracias por ayudar a mejorar!");
+    expect(campos(enviar.mock.calls.at(-1)).comentario).toEqual({ stringValue: "Me faltó el adicional por título" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Borrar mi comentario" }));
+    await screen.findByText("Borramos tu comentario.");
+    const borrado = escritura(enviar.mock.calls.at(-1));
+    expect(borrado.update.fields.comentario).toBeUndefined();
+    expect(borrado.updateMask.fieldPaths).toContain("comentario");
+  });
+
+  it("si 'Enviar' no pudo guardar, el panel queda abierto con el error y 'Reintentar'", async () => {
+    const enviar = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(noHayRed()).mockResolvedValue(undefined);
+    armar({ enviar });
+    fireEvent.click(estrella(4));
+    fireEvent.change(await screen.findByLabelText("Comentario"), { target: { value: "Muy claro" } });
+    fireEvent.click(screen.getByRole("button", { name: "Enviar" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("No hay conexión");
+    expect(screen.queryByText("¡Gracias por ayudar a mejorar!")).toBeNull();
+    expect(screen.getByLabelText("Comentario").value).toBe("Muy claro");
+    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(3));
+    expect(campos(enviar.mock.calls[2]).comentario).toEqual({ stringValue: "Muy claro" });
   });
 
   it("después del alta, los toques seguidos se juntan en una sola corrección", async () => {
@@ -124,7 +199,7 @@ describe("la tarjeta de calificación", () => {
   });
 
   it("si el alta había llegado y se perdió la respuesta, el reintento la encuentra y sigue desde ahí", async () => {
-    const yaExiste = Object.assign(new Error("No pudimos guardar tu calificación."), { status: 400 });
+    const yaExiste = Object.assign(new Error("No pudimos guardar tu calificación."), { status: 409 });
     const enviar = vi.fn()
       .mockRejectedValueOnce(noHayRed()) // el alta llegó, la respuesta no
       .mockRejectedValueOnce(yaExiste) // reintento del alta: ya existe
@@ -141,60 +216,6 @@ describe("la tarjeta de calificación", () => {
     expect(tercera.update.name).toBe(segunda.update.name);
   });
 
-  it("si falla una corrección después del alta, también se puede reintentar", async () => {
-    const enviar = vi.fn().mockResolvedValueOnce(undefined).mockRejectedValueOnce(noHayRed()).mockResolvedValue(undefined);
-    armar({ enviar });
-    fireEvent.click(estrella(1));
-    await screen.findByRole("group", { name: /Qué falló/ });
-    fireEvent.click(screen.getByRole("button", { name: "Es difícil de usar" }));
-    await screen.findByRole("alert");
-    fireEvent.click(screen.getByRole("button", { name: "Reintentar" }));
-    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(3));
-    expect(campos(enviar.mock.calls[2]).motivos).toEqual({ arrayValue: { values: [{ stringValue: "dificil_de_usar" }] } });
-    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
-  });
-
-  it("el comentario va con su botón; 'guardado' sólo si lo guardado es lo que sigue en la caja; y se puede borrar", async () => {
-    let soltar;
-    const enviar = vi.fn(async () => {});
-    armar({ enviar });
-    fireEvent.click(estrella(5));
-    const caja = await screen.findByLabelText("Comentario (opcional)");
-    expect(screen.getByRole("button", { name: "Enviar comentario" }).disabled).toBe(true);
-
-    // Sigue escribiendo mientras se guarda: no se le dice "guardado".
-    enviar.mockImplementationOnce(() => new Promise((r) => { soltar = r; }));
-    fireEvent.change(caja, { target: { value: "Primero" } });
-    fireEvent.click(screen.getByRole("button", { name: "Enviar comentario" }));
-    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(2));
-    fireEvent.change(caja, { target: { value: "Primero y algo más" } });
-    soltar();
-    await new Promise((r) => setTimeout(r, 20));
-    expect(screen.queryByText("Comentario guardado. ¡Gracias!")).toBeNull();
-
-    // Lo manda completo: ahora sí.
-    fireEvent.click(screen.getByRole("button", { name: "Enviar comentario" }));
-    await screen.findByText("Comentario guardado. ¡Gracias!");
-    expect(campos(enviar.mock.calls.at(-1)).comentario).toEqual({ stringValue: "Primero y algo más" });
-
-    // Se arrepiente: vacía la caja y lo borra.
-    fireEvent.change(caja, { target: { value: "" } });
-    fireEvent.click(screen.getByRole("button", { name: "Borrar el comentario que mandé" }));
-    await screen.findByText("Listo, borramos tu comentario.");
-    expect(campos(enviar.mock.calls.at(-1)).comentario).toBeUndefined();
-    expect(escritura(enviar.mock.calls.at(-1)).updateMask.fieldPaths).toContain("comentario");
-  });
-
-  it("'Listo' manda el comentario escrito que no se mandó, y cierra con un agradecimiento", async () => {
-    const { enviar } = armar();
-    fireEvent.click(estrella(4));
-    fireEvent.change(await screen.findByLabelText("Comentario (opcional)"), { target: { value: "Me sirvió" } });
-    fireEvent.click(screen.getByRole("button", { name: "Listo" }));
-    expect(await screen.findByText(/¡Gracias por calificar!/)).toBeTruthy();
-    expect(campos(enviar.mock.calls.at(-1)).comentario).toEqual({ stringValue: "Me sirvió" });
-    expect(screen.queryByRole("group", { name: "¿Te sirvió este cálculo?" })).toBeNull();
-  });
-
   it("pasado el día que dan las reglas, no manda nada y dice claro que no se guardó", async () => {
     let hora = AHORA;
     const enviar = vi.fn(async () => {});
@@ -206,14 +227,6 @@ describe("la tarjeta de calificación", () => {
     expect((await screen.findByRole("alert")).textContent).toContain("ya no se puede cambiar");
     expect(enviar).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole("button", { name: "Reintentar" })).toBeNull();
-  });
-
-  it("'Ahora no' la esconde, no manda nada y el navegador lo recuerda", () => {
-    const { enviar, almacen } = armar();
-    fireEvent.click(screen.getByRole("button", { name: "Ahora no" }));
-    expect(screen.queryByRole("group", { name: "¿Te sirvió este cálculo?" })).toBeNull();
-    expect(enviar).not.toHaveBeenCalled();
-    expect(JSON.parse(almacen.mem.get(CLAVE_LOCAL))).toEqual({ estado: "descartada", el: AHORA.toISOString() });
   });
 
   it("a quien ya calificó hace poco no se le pregunta", () => {
