@@ -34,6 +34,28 @@ delegar. Escrita el 24/9/2026 a partir de la auditoría integral del 23/9.
   Hasta entonces, `next` se queda en `^16`.
 - **Firestore no responde:** el sitio muestra "No pudimos traer los datos" y
   sigue en pie; vuelve solo cuando Firestore vuelve.
+- **Alguien llena las calificaciones de basura:** cualquiera puede crear
+  calificaciones sin registrarse (lib/calificaciones.js), así que un programa
+  podría cargar miles iguales. Se limpian desde `/admin` → Calificaciones →
+  "Todas las calificaciones del filtro": filtrar por días y convenio, bajar
+  el CSV por las dudas, y "Borrar las N del filtro". Si pasa seguido, la
+  salida es que la tarjeta escriba por una ruta del propio sitio en Cloudflare
+  que limite por IP y escriba con una cuenta propia (como la del vigía), y
+  que firestore.rules deje crear sólo a esa cuenta. App Check no sirve: se
+  fuerza para todo Firestore y cortaría las lecturas sin sesión del sitio.
+- **La tarjeta de calificaciones dice "No pudimos guardar tu calificación":**
+  casi seguro, las reglas de la consola no son las de `firestore.rules` (se
+  agregó un dato en lib/calificaciones.js y no se volvieron a pegar). En el
+  panel se nota porque "semana a semana" muestra semanas en cero, marcadas.
+- **Cloudflare deja de publicar:** pasó a fines de octubre de 2026: después
+  del 28/10 ningún push (ni a `main` ni a otras ramas) llegó a armarse, sin
+  ningún aviso. Se nota porque en GitHub los commits dejan de tener el check
+  "Cloudflare Pages" y las direcciones `<rama>.calculadora-tandil.pages.dev`
+  de las ramas nuevas dan 404. Hay que revisar la app "Cloudflare Workers and
+  Pages" en GitHub (Settings → Applications: que no esté suspendida y tenga
+  acceso al repo) y, en Cloudflare, Workers & Pages → calculadora-tandil →
+  Settings → Builds (repositorio conectado y despliegues automáticos
+  prendidos).
 - **Se pierde la contraseña de `admin@liquidar.ar`:** se cambia desde la
   consola de Firebase (Authentication → Users) con `info@liquidar.ar`.
 - **Se pierde el acceso a `info@liquidar.ar`:** es el único acceso a la

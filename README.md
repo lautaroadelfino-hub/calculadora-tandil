@@ -135,24 +135,38 @@ semanales.
 
 Al pie de cada recibo aparece **"¿Te sirvió este cálculo?"**, con 5 estrellas.
 No es un cartel ni aparece por tiempo: está ahí recién cuando hay recibo. Con un
-toque en las estrellas la calificación queda guardada. Después, y todo
-opcional, pregunta qué falló (si puso 3 o menos), para qué usó la calculadora y
-un comentario. Si la persona califica, no se le vuelve a preguntar por 4 meses;
-si toca "Ahora no", por uno.
+toque en las estrellas la calificación queda guardada en el acto. Después, y
+todo opcional, pregunta qué falló (si puso 3 o menos), para qué usó la
+calculadora y un comentario; lo puede cambiar o borrar durante un día. Si la
+persona califica, no se le vuelve a preguntar por 4 meses; si toca "Ahora no",
+por uno. Hay una tarjeta por recibo: si recalcula después de calificar, no
+vuelve a aparecer.
 
-**Qué se guarda:** las estrellas y lo que conteste, más el contexto, que se toma
-solo: convenio, mes y categoría calculados, si estaba en el celular o la
-computadora, si calculó a mano o abrió un link compartido, si el recibo traía
-avisos (falta una tabla, se usó la de otro mes) y cuántas cuentas hizo en la
-visita. **Ningún importe del sueldo ni dato de la persona.** El comentario le
-pide que no escriba datos personales; si alguien los escribe igual, se borra
-desde el panel.
+**Qué se guarda:** las estrellas y lo que conteste, más el contexto del recibo
+que calificó, que se toma solo: convenio, mes y categoría, si estaba en el
+celular o la computadora, si ese recibo lo armó un link de "Copiar link" o lo
+calculó a mano (un F5 cuenta como a mano), si le faltaban datos (una tabla del
+mes que no está, o que se tomó de otro mes) y cuántas cuentas lleva en esa
+visita a la página. **Ningún importe del sueldo ni dato de la persona.** El
+comentario le pide que no escriba datos personales; si alguien los escribe
+igual, se borra desde el panel.
 
-**Dónde se ve:** `/admin` → pestaña **Calificaciones**. Arriba, el porcentaje
-de 4 y 5 estrellas (la medida principal) y el promedio. Abajo, en este orden:
-qué falló en las bajas, semana a semana, por convenio, quién calcula, desde
-dónde, cómo llegó y con o sin avisos; después los comentarios, cada uno con su
-contexto y un botón **Borrar**. **Descargar CSV** baja todo para Excel.
+**Las pruebas no se mezclan:** una calificación hecha desde la PC (`npm run
+dev`) o desde una preview de Cloudflare también va a la base de producción,
+pero marcada como **prueba**, y el panel no la cuenta salvo que se tilde
+"Incluir pruebas". Las que hagas en liquidar.ar mismo cuentan como reales:
+borralas después desde el panel.
+
+**Dónde se ve:** `/admin` → pestaña **Calificaciones** (fechas y semanas en
+hora argentina). Arriba, el porcentaje de 4 y 5 estrellas (la medida
+principal) y el promedio. Abajo, en este orden: qué falló en las bajas, semana
+a semana (incluidas las semanas en cero), por convenio, para qué la usan,
+desde dónde, cómo se armó el recibo y si le faltaban datos; después los
+comentarios, y al final todas las calificaciones del filtro, cada una con su
+botón **Borrar**, y **Borrar las N del filtro** para limpiar de una (pruebas,
+o una tanda de calificaciones falsas: ver `docs/continuidad.md`).
+**Descargar CSV** baja lo que muestra el filtro, separado por punto y coma
+para que el Excel en castellano lo abra en columnas.
 
 **Cómo leerlo sin engañarse:** califica sobre todo el que quedó muy contento o
 muy enojado, así que importan más las comparaciones y la tendencia que el
@@ -163,21 +177,25 @@ nada (el panel lo marca). Lo que más conviene mirar:
   revisar esa escala o esas reglas.
 - **La nota baja la semana en que se cargó un mes** o se publicó un cambio:
   algo puede haber quedado mal.
-- **"Los datos no están al día"**, o recibos **con avisos** que califican
-  peor: cargar las tablas del mes a tiempo.
+- **"Los datos no están al día"**, o recibos a los que **les faltaban datos**
+  que califican peor: cargar las tablas del mes a tiempo.
 - **Celular peor que computadora**: revisar la pantalla chica.
+- **Una semana en cero, marcada en rojo**, después de semanas con
+  calificaciones: puede ser que la tarjeta haya dejado de guardar (casi
+  siempre, reglas sin pegar: ver `docs/continuidad.md`).
 
-Quien no llega a calcular (por un error) no ve la tarjeta: para eso sigue
-"Reportar error / sugerencia", que manda un mail.
+Quien no llega a calcular (por un error) no ve la tarjeta: para eso el aviso
+del error trae "Reportar error / sugerencia", que manda un mail. Ese mail
+lleva la página sin la afiliación sindical ni los datos de la familia.
 
 **Antes de que funcione hay que pegar las reglas** (ver `firestore.rules`, más
 abajo): las calificaciones son lo único que alguien sin sesión puede escribir
 en la base, y las reglas validan cada campo. Sin el bloque de
 "calificaciones" en la consola, la tarjeta dice "No pudimos guardar tu
 calificación" y la pestaña, que no puede leerlas. Si algún día se cambian
-los motivos o los perfiles, se cambian en `lib/calificaciones.js` **y** en
-`firestore.rules` (un test avisa si no coinciden) y se vuelven a pegar las
-reglas.
+los motivos, los perfiles o cualquier dato que se guarda, se cambian en
+`lib/calificaciones.js` **y** en `firestore.rules` (un test avisa si no
+coinciden) y se vuelven a pegar las reglas.
 
 ---
 

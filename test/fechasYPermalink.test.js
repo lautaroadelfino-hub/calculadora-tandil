@@ -57,3 +57,26 @@ describe("el link de una simulación", () => {
     expect(v.km_recorridos).toBe("100");
   });
 });
+
+describe("el link compartido y lo que viaja con 'Reportar error'", async () => {
+  const { conMarcaDeLink, llegoPorLinkCompartido, urlSinDatosSensibles } = await import("../lib/permalink.js");
+
+  it("el link de 'Copiar link' lleva la marca, la calculadora la reconoce y no la toma como dato", () => {
+    const q = paramsDesdeEntradas(camioneros, { categoria: "Peón", afiliado_sindicato: true }, "2026-11");
+    const link = conMarcaDeLink(q);
+    expect(link).toBe(`${q}&via=link`);
+    expect(llegoPorLinkCompartido(`?${link}`)).toBe(true);
+    expect(llegoPorLinkCompartido(`?${q}`)).toBe(false);
+    expect(llegoPorLinkCompartido("")).toBe(false);
+    expect(entradasDesdeParams(camioneros, link).valores).toEqual(entradasDesdeParams(camioneros, q).valores);
+    expect(conMarcaDeLink("")).toBe("");
+  });
+
+  it("'Reportar error' manda la página sin afiliación sindical, hijos con discapacidad, cónyuge ni hijos", () => {
+    const url = "https://liquidar.ar/calcular/camioneros-cct-40-89?periodo=2026-11&categoria=Pe%C3%B3n&afiliado_sindicato=1&conyuge=1&hijos=2&hijos_incapacitados=1&antiguedad_a%C3%B1os=5&via=link";
+    const limpia = urlSinDatosSensibles(url);
+    expect(limpia).toBe("https://liquidar.ar/calcular/camioneros-cct-40-89?periodo=2026-11&categoria=Pe%C3%B3n&antiguedad_a%C3%B1os=5");
+    for (const p of ["afiliado_sindicato", "conyuge", "hijos", "hijos_incapacitados", "via"]) expect(new URL(limpia).searchParams.has(p)).toBe(false);
+    expect(urlSinDatosSensibles("no es una url")).toBe("");
+  });
+});

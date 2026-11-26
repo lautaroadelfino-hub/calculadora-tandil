@@ -131,3 +131,23 @@ describe("el motor recibe el período que se liquida", () => {
     expect(Math.round(con.totales.neto * 100) / 100).toBe(1166249.7);
   });
 });
+
+describe("semestres (las tablas de Ganancias se cargan por semestre)", async () => {
+  const { semestreDe, mismoSemestre } = await import("../lib/periodos.js");
+
+  it("enero a junio es el primero; julio a diciembre, el segundo", () => {
+    expect(semestreDe("2026-01")).toBe("2026-1");
+    expect(semestreDe("2026-06")).toBe("2026-1");
+    expect(semestreDe("2026-07")).toBe("2026-2");
+    expect(semestreDe("2026-12")).toBe("2026-2");
+    expect(semestreDe("2026-13x")).toBeNull();
+  });
+
+  it("noviembre con la tabla de julio es el mismo semestre: no es 'de otro semestre'", () => {
+    expect(mismoSemestre("2026-07", "2026-11")).toBe(true);
+    expect(mismoSemestre("2026-01", "2026-06")).toBe(true);
+    expect(mismoSemestre("2026-07", "2027-01")).toBe(false);
+    expect(mismoSemestre("2026-01", "2026-07")).toBe(false);
+    expect(mismoSemestre(null, "2026-07")).toBe(false);
+  });
+});

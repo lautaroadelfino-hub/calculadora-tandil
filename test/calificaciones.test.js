@@ -1,9 +1,9 @@
 // test/calificaciones.test.js
 // La calificación del pie del recibo (lib/calificaciones.js): lo que se manda
-// a Firestore, cuándo se pregunta, lo que resume el panel, y que las listas y
-// los topes del código sigan siendo los mismos que valida firestore.rules
-// (están escritos en los dos lados: si se separan, las calificaciones se
-// rechazan en silencio).
+// a Firestore, cuándo se pregunta, lo que resume el panel, el CSV, y que las
+// listas y los topes del código sigan siendo los mismos que valida
+// firestore.rules (están escritos en los dos lados: si se separan, las
+// calificaciones se rechazan en silencio).
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -12,6 +12,7 @@ import {
   PERFILES,
   DISPOSITIVOS,
   ORIGENES,
+  ENTORNOS,
   MAX_COMENTARIO,
   MAX_CATEGORIA,
   MINUTOS_PARA_CAMBIAR,
@@ -22,6 +23,7 @@ import {
   limpiarComentario,
   motivosValidos,
   contextoValido,
+  entornoDe,
   escrituraNueva,
   escrituraDeCambio,
   enviarCalificacion,
@@ -30,12 +32,14 @@ import {
   debePreguntar,
   puedeCambiar,
   dispositivoDe,
+  fechaArgentina,
+  lunesArgentino,
   resumenDeCalificaciones,
   calificacionesACsv,
   CLAVE_LOCAL,
 } from "../lib/calificaciones.js";
 
-const CONTEXTO = { convenioId: "comercio-cct-130-75", periodo: "2026-11", categoria: "Vendedor B", origen: "manual", conAvisos: false, calculos: 2, dispositivo: "movil" };
+const CONTEXTO = { convenioId: "comercio-cct-130-75", periodo: "2026-11", categoria: "Vendedor B", origen: "manual", faltanDatos: false, calculos: 2, dispositivo: "movil" };
 const dias = (n) => n * 24 * 60 * 60 * 1000;
 
 describe("lo que se manda a Firestore", () => {
@@ -45,7 +49,7 @@ describe("lo que se manda a Firestore", () => {
   });
 
   it("crear: las estrellas y el contexto tipados, la hora del servidor y que el id no exista", () => {
-    const { writes } = escrituraNueva({ id: "a".repeat(20), estrellas: 4, contexto: CONTEXTO });
+    const { writes } = escrituraNueva({ id: "a".repeat(20), estrellas: 4, contexto: { ...CONTEXTO, entorno: "prueba" } });
     expect(writes).toHaveLength(1);
     const [w] = writes;
     expect(w.update.name).toMatch(/\/documents\/calificaciones\/a{20}$/);
@@ -56,8 +60,9 @@ describe("lo que se manda a Firestore", () => {
       categoria: { stringValue: "Vendedor B" },
       dispositivo: { stringValue: "movil" },
       origen: { stringValue: "manual" },
-      conAvisos: { booleanValue: false },
+      faltanDatos: { booleanValue: false },
       calculos: { integerValue: "2" },
+      entorno: { stringValue: "prueba" },
     });
     expect(w.updateTransforms).toEqual([{ fieldPath: "creadoEl", setToServerValue: "REQUEST_TIME" }]);
     expect(w.currentDocument).toEqual({ exists: false });
@@ -67,19 +72,25 @@ describe("lo que se manda a Firestore", () => {
   it("el contexto que no tiene la forma esperada no se manda (si no, la regla rechazaría toda la calificación)", () => {
     const ctx = contextoValido({
       convenioId: "comercio-cct-130-75", periodo: "2026-11",
-      categoria: "  " + "x".repeat(400) + "  ", dispositivo: "tablet", origen: "qr", conAvisos: "sí", calculos: 0,
+      categoria: "  " + "x".repeat(400) + "  ", dispositivo: "tablet", origen: "qr", faltanDatos: "sí", calculos: 0, entorno: "produccion",
     });
     expect(ctx).toEqual({ convenioId: "comercio-cct-130-75", periodo: "2026-11", categoria: "x".repeat(MAX_CATEGORIA) });
     expect(contextoValido({ convenioId: "Comercio CCT", periodo: "2026-13", calculos: 5000 })).toEqual({ calculos: 999 });
   });
 
+  it("lo que no viene de liquidar.ar (la PC, una preview) se marca como prueba", () => {
+    expect(entornoDe("liquidar.ar")).toBeNull();
+    expect(entornoDe("www.liquidar.ar")).toBeNull();
+    expect(entornoDe("LIQUIDAR.AR")).toBeNull();
+    expect(entornoDe("localhost")).toBe("prueba");
+    expect(entornoDe("calificaciones.calculadora-tandil.pages.dev")).toBe("prueba");
+    expect(entornoDe("")).toBe("prueba");
+  });
+
   it("sin convenio, sin mes o con estrellas fuera de 1 a 5 no se arma nada", () => {
     expect(() => escrituraNueva({ id: "a".repeat(20), estrellas: 4, contexto: { periodo: "2026-11" } })).toThrow();
     expect(() => escrituraNueva({ id: "a".repeat(20), estrellas: 4, contexto: { convenioId: "x" } })).toThrow();
-    for (const e of [0, 6, 3.5, "4", null]) {
-      if (estrellasValidas(e)) continue;
-      expect(() => escrituraNueva({ id: "a".repeat(20), estrellas: e, contexto: CONTEXTO })).toThrow();
-    }
+    for (const e of [0, 6, 3.5, null]) expect(() => escrituraNueva({ id: "a".repeat(20), estrellas: e, contexto: CONTEXTO })).toThrow();
     expect(estrellasValidas("4")).toBe(4);
   });
 
@@ -116,23 +127,30 @@ describe("lo que se manda a Firestore", () => {
 describe("enviar", () => {
   afterEach(() => vi.restoreAllMocks());
 
-  it("manda un POST al commit de Firestore con el cuerpo armado", async () => {
+  it("manda un POST al commit de Firestore, que sobrevive al cierre de la pestaña y tiene tiempo límite", async () => {
     const fetchFn = vi.fn(async () => ({ ok: true }));
     const cuerpo = escrituraNueva({ id: "c".repeat(20), estrellas: 5, contexto: CONTEXTO });
     await enviarCalificacion(cuerpo, { fetchFn });
     const [url, opciones] = fetchFn.mock.calls[0];
     expect(url).toMatch(/^https:\/\/firestore\.googleapis\.com\/v1\/projects\/.+\/databases\/\(default\)\/documents:commit$/);
     expect(opciones.method).toBe("POST");
+    expect(opciones.keepalive).toBe(true);
+    expect(opciones.signal).toBeDefined();
     expect(JSON.parse(opciones.body)).toEqual(cuerpo);
   });
 
-  it("si Firestore no lo acepta o no hay red, lanza un mensaje para la persona (y el detalle va a la consola)", async () => {
+  it("si Firestore no lo acepta, lanza un mensaje para la persona con el estado; si no hay respuesta, lo dice", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     const rechazo = vi.fn(async () => ({ ok: false, status: 403, json: async () => ({ error: { status: "PERMISSION_DENIED" } }) }));
-    await expect(enviarCalificacion({}, { fetchFn: rechazo })).rejects.toThrow("No pudimos guardar tu calificación");
+    const e1 = await enviarCalificacion({}, { fetchFn: rechazo }).catch((e) => e);
+    expect(e1.message).toContain("No pudimos guardar tu calificación");
+    expect(e1.status).toBe(403);
     expect(console.error).toHaveBeenCalledWith(expect.stringContaining("PERMISSION_DENIED"));
     const sinRed = vi.fn(async () => { throw new TypeError("Failed to fetch"); });
-    await expect(enviarCalificacion({}, { fetchFn: sinRed })).rejects.toThrow("No hay conexión");
+    const e2 = await enviarCalificacion({}, { fetchFn: sinRed }).catch((e) => e);
+    expect(e2.message).toContain("No hay conexión");
+    expect(e2.sinRespuesta).toBe(true);
+    expect(e2.status).toBeUndefined();
   });
 });
 
@@ -154,11 +172,13 @@ describe("cuándo se pregunta", () => {
     expect(DIAS_SIN_PREGUNTAR.descartada).toBeLessThan(DIAS_SIN_PREGUNTAR.calificada);
   });
 
-  it("se puede cambiar lo contestado durante la ventana de la regla, con un minuto de margen", () => {
+  it("se puede cambiar lo contestado durante un día (la ventana de la regla), con unos minutos de margen", () => {
+    expect(MINUTOS_PARA_CAMBIAR).toBe(24 * 60);
     const reg = (min) => ({ estado: "calificada", id: "x", el: hace(min * 60 * 1000) });
     expect(puedeCambiar(reg(1), ahora)).toBe(true);
-    expect(puedeCambiar(reg(MINUTOS_PARA_CAMBIAR - 1.5), ahora)).toBe(true);
-    expect(puedeCambiar(reg(MINUTOS_PARA_CAMBIAR - 0.5), ahora)).toBe(false);
+    expect(puedeCambiar(reg(60 * 20), ahora)).toBe(true);
+    expect(puedeCambiar(reg(MINUTOS_PARA_CAMBIAR - 6), ahora)).toBe(true);
+    expect(puedeCambiar(reg(MINUTOS_PARA_CAMBIAR - 4), ahora)).toBe(false);
     expect(puedeCambiar({ estado: "descartada", el: hace(0) }, ahora)).toBe(false);
   });
 
@@ -183,61 +203,102 @@ describe("cuándo se pregunta", () => {
   });
 });
 
+describe("las fechas, en hora argentina", () => {
+  it("la fecha del CSV y del panel", () => {
+    expect(fechaArgentina(new Date("2026-12-01T01:15:00Z"))).toBe("2026-11-30 22:15");
+    expect(fechaArgentina({ seconds: Date.parse("2026-11-26T15:00:00Z") / 1000 })).toBe("2026-11-26 12:00");
+    expect(fechaArgentina(null)).toBe("");
+  });
+
+  it("el domingo a la noche es de esa semana, no de la siguiente", () => {
+    // Domingo 29/11/2026 21:30 en la Argentina = lunes 30/11 00:30 UTC.
+    expect(lunesArgentino(new Date("2026-11-30T00:30:00Z"))).toBe("2026-11-23");
+    expect(lunesArgentino(new Date("2026-11-30T03:00:00Z"))).toBe("2026-11-30");
+  });
+});
+
 describe("el resumen del panel", () => {
   const ts = (iso) => ({ toDate: () => new Date(iso) });
   const lista = [
-    { id: "1", estrellas: 5, convenioId: "comercio-cct-130-75", perfil: "empleado", dispositivo: "movil", origen: "manual", conAvisos: false, creadoEl: ts("2026-11-23T10:00:00Z") },
-    { id: "2", estrellas: 4, convenioId: "comercio-cct-130-75", dispositivo: "escritorio", origen: "link", conAvisos: false, creadoEl: ts("2026-11-24T10:00:00Z"), comentario: "Muy claro" },
-    { id: "3", estrellas: 2, convenioId: "gastronomicos-cct-389-04", perfil: "empleador", dispositivo: "movil", origen: "manual", conAvisos: true, motivos: ["numero_no_cierra", "datos_viejos"], creadoEl: ts("2026-11-25T10:00:00Z"), comentario: "No me da" },
-    { id: "4", estrellas: 1, convenioId: "gastronomicos-cct-389-04", conAvisos: true, motivos: ["numero_no_cierra"], creadoEl: ts("2026-11-16T10:00:00Z") },
-    { id: "5", estrellas: 7, convenioId: "x", creadoEl: ts("2026-11-25T10:00:00Z") }, // inválida: no cuenta
+    { id: "1", estrellas: 5, convenioId: "comercio-cct-130-75", perfil: "empleado", dispositivo: "movil", origen: "manual", faltanDatos: false, creadoEl: ts("2026-11-23T13:00:00Z") },
+    { id: "2", estrellas: 4, convenioId: "comercio-cct-130-75", dispositivo: "escritorio", origen: "link", faltanDatos: false, creadoEl: ts("2026-11-24T13:00:00Z"), comentario: "Muy claro" },
+    { id: "3", estrellas: 2, convenioId: "gastronomicos-cct-389-04", perfil: "empleador", dispositivo: "movil", origen: "manual", faltanDatos: true, motivos: ["numero_no_cierra", "datos_viejos"], creadoEl: ts("2026-11-25T13:00:00Z"), comentario: "No me da" },
+    { id: "4", estrellas: 1, convenioId: "gastronomicos-cct-389-04", faltanDatos: true, motivos: ["numero_no_cierra"], creadoEl: ts("2026-11-09T13:00:00Z") },
+    { id: "5", estrellas: 7, convenioId: "x", creadoEl: ts("2026-11-25T13:00:00Z") }, // inválida: no cuenta
+    { id: "6", estrellas: 1, convenioId: "comercio-cct-130-75", entorno: "prueba", creadoEl: ts("2026-11-25T13:00:00Z") }, // prueba: no cuenta
   ];
+  const HOY = new Date("2026-11-26T15:00:00Z");
 
-  it("totales, satisfacción (4 o 5) y cuántas de cada estrella", () => {
-    const r = resumenDeCalificaciones(lista);
+  it("totales, satisfacción (4 o 5) y cuántas de cada estrella, sin las de prueba", () => {
+    const r = resumenDeCalificaciones(lista, { hasta: HOY });
     expect(r.total).toBe(4);
+    expect(r.pruebas).toBe(1);
     expect(r.promedio).toBe(3);
     expect(r.satisfaccion).toBe(0.5);
     expect(r.porEstrellas).toEqual({ 1: 1, 2: 1, 3: 0, 4: 1, 5: 1 });
+    expect(resumenDeCalificaciones(lista, { hasta: HOY, incluirPruebas: true }).total).toBe(5);
   });
 
   it("los motivos se cuentan sobre las bajas, de más a menos", () => {
-    const r = resumenDeCalificaciones(lista);
+    const r = resumenDeCalificaciones(lista, { hasta: HOY });
     expect(r.bajas).toBe(2);
     expect(r.motivos[0]).toMatchObject({ clave: "numero_no_cierra", total: 2 });
     expect(r.motivos.find((m) => m.clave === "datos_viejos").total).toBe(1);
     expect(r.motivos.map((m) => m.clave).sort()).toEqual(MOTIVOS.map((m) => m.id).sort());
   });
 
-  it("los cortes: convenio, perfil, dispositivo, origen y avisos", () => {
-    const r = resumenDeCalificaciones(lista);
+  it("los cortes: convenio, perfil, dispositivo, origen y si le faltaban datos", () => {
+    const r = resumenDeCalificaciones(lista, { hasta: HOY });
     const de = (filas, clave) => filas.find((f) => f.clave === clave);
     expect(de(r.porConvenio, "gastronomicos-cct-389-04")).toMatchObject({ total: 2, promedio: 1.5, satisfaccion: 0 });
     expect(de(r.porConvenio, "comercio-cct-130-75")).toMatchObject({ total: 2, promedio: 4.5, satisfaccion: 1 });
     expect(de(r.porPerfil, "(no contestó)").total).toBe(2);
     expect(de(r.porDispositivo, "movil").total).toBe(2);
     expect(de(r.porOrigen, "link").total).toBe(1);
-    expect(de(r.porAvisos, "con avisos")).toMatchObject({ total: 2, promedio: 1.5 });
-    expect(de(r.porAvisos, "sin avisos")).toMatchObject({ total: 2, promedio: 4.5 });
+    expect(de(r.porFaltanDatos, "faltaban")).toMatchObject({ total: 2, promedio: 1.5 });
+    expect(de(r.porFaltanDatos, "completos")).toMatchObject({ total: 2, promedio: 4.5 });
   });
 
-  it("semana a semana arranca el lunes, y los comentarios van del más nuevo al más viejo", () => {
-    const r = resumenDeCalificaciones(lista);
-    expect(r.porSemana.map((s) => [s.clave, s.total])).toEqual([["2026-11-16", 1], ["2026-11-23", 3]]);
-    expect(r.comentarios.map((c) => c.id)).toEqual(["3", "2"]);
-  });
-
-  it("'desde' deja afuera lo anterior", () => {
-    expect(resumenDeCalificaciones(lista, { desde: new Date("2026-11-24T00:00:00Z") }).total).toBe(2);
-  });
-
-  it("el CSV tiene una fila por calificación y escapa comas, comillas y saltos", () => {
-    const csv = calificacionesACsv([
-      { estrellas: 2, motivos: ["numero_no_cierra", "otro"], comentario: 'Dice "neto", y\nno cierra', convenioId: "comercio-cct-130-75", periodo: "2026-11", conAvisos: true, creadoEl: { seconds: 1764000000 } },
+  it("semana a semana muestra también las semanas vacías, hasta la que está en curso", () => {
+    const r = resumenDeCalificaciones(lista, { hasta: HOY });
+    expect(r.porSemana.map((s) => [s.clave, s.total, s.enCurso])).toEqual([
+      ["2026-11-09", 1, false],
+      ["2026-11-16", 0, false],
+      ["2026-11-23", 3, true],
     ]);
-    const [cabecera, fila] = csv.split(/\n(?=\d{4}-)/);
-    expect(cabecera).toBe("fecha,estrellas,motivos,perfil,comentario,convenio,periodo,categoria,dispositivo,origen,con_avisos,calculos");
-    expect(fila).toBe(`${new Date(1764000000 * 1000).toISOString()},2,numero_no_cierra otro,,"Dice ""neto"", y\nno cierra",comercio-cct-130-75,2026-11,,,,si,`);
+    expect(r.porSemana[1]).toMatchObject({ promedio: null, satisfaccion: null });
+  });
+
+  it("los comentarios y la lista completa van del más nuevo al más viejo", () => {
+    const r = resumenDeCalificaciones(lista, { hasta: HOY });
+    expect(r.comentarios.map((c) => c.id)).toEqual(["3", "2"]);
+    expect(r.calificaciones.map((c) => c.id)).toEqual(["3", "2", "1", "4"]);
+  });
+
+  it("'desde' deja afuera lo anterior, y las semanas arrancan ahí", () => {
+    const r = resumenDeCalificaciones(lista, { desde: new Date("2026-11-24T00:00:00Z"), hasta: HOY });
+    expect(r.total).toBe(2);
+    expect(r.porSemana.map((s) => s.clave)).toEqual(["2026-11-23"]);
+  });
+});
+
+describe("el CSV", () => {
+  it("separado por punto y coma (Excel en castellano), con la fecha en hora argentina y el id", () => {
+    const csv = calificacionesACsv([
+      { id: "abc", estrellas: 2, motivos: ["numero_no_cierra", "otro"], comentario: 'Dice "neto"; y\nno cierra', convenioId: "comercio-cct-130-75", periodo: "2026-11", faltanDatos: true, entorno: "prueba", creadoEl: new Date("2026-12-01T01:15:00Z") },
+    ]);
+    const [cabecera, fila] = csv.split("\r\n");
+    expect(cabecera).toBe("fecha;estrellas;motivos;perfil;comentario;convenio;periodo;categoria;dispositivo;origen;faltan_datos;calculos;entorno;id");
+    expect(fila).toBe('2026-11-30 22:15;2;numero_no_cierra otro;;"Dice ""neto""; y\nno cierra";comercio-cct-130-75;2026-11;;;;si;;prueba;abc');
+  });
+
+  it("un comentario que empieza con =, +, - o @ no llega a Excel como fórmula", () => {
+    const comentarios = ["=1+1", "+54 9 11", "-falta el presentismo", "@hola", "=HIPERVINCULO(\"http://x\")"];
+    const filas = calificacionesACsv(comentarios.map((c, i) => ({ id: String(i), estrellas: 3, comentario: c }))).split("\r\n").slice(1);
+    filas.forEach((fila, i) => {
+      const celda = fila.split(";")[4];
+      expect(celda.replace(/^"|"$/g, "").replace(/""/g, '"')).toBe("'" + comentarios[i]);
+    });
   });
 });
 
@@ -245,7 +306,7 @@ describe("firestore.rules valida lo mismo que manda el código", () => {
   const reglas = readFileSync(new URL("../firestore.rules", import.meta.url), "utf8");
   const bloque = reglas.slice(reglas.indexOf("function calificacionValida"), reglas.indexOf("// --- Todo lo demás está cerrado"));
 
-  it("las listas de motivos, perfiles, dispositivos y orígenes", () => {
+  it("las listas de motivos, perfiles, dispositivos, orígenes y entornos", () => {
     const lista = (campo) => {
       const m = bloque.match(new RegExp(`d\\.${campo}(?:\\.hasOnly\\(| in )\\[([^\\]]+)\\]`));
       return m ? m[1].split(",").map((s) => s.trim().replace(/'/g, "")) : null;
@@ -254,6 +315,7 @@ describe("firestore.rules valida lo mismo que manda el código", () => {
     expect(lista("perfil")).toEqual(PERFILES.map((p) => p.id));
     expect(lista("dispositivo")).toEqual(DISPOSITIVOS);
     expect(lista("origen")).toEqual(ORIGENES);
+    expect(lista("entorno")).toEqual(ENTORNOS);
   });
 
   it("los largos, la ventana para cambiar y los campos que se pueden cambiar", () => {
@@ -267,7 +329,7 @@ describe("firestore.rules valida lo mismo que manda el código", () => {
   it("todo lo que el código puede mandar está entre las claves permitidas", () => {
     const permitidas = bloque.match(/d\.keys\(\)\.hasOnly\(\[([^\]]+)\]\)/)[1].split(",").map((s) => s.trim().replace(/'/g, ""));
     const mandadas = [
-      ...Object.keys(escrituraNueva({ id: "a".repeat(20), estrellas: 1, contexto: CONTEXTO }).writes[0].update.fields),
+      ...Object.keys(escrituraNueva({ id: "a".repeat(20), estrellas: 1, contexto: { ...CONTEXTO, entorno: "prueba" } }).writes[0].update.fields),
       ...CAMPOS_QUE_CAMBIAN, "creadoEl", "actualizadoEl",
     ];
     for (const k of mandadas) expect(permitidas).toContain(k);

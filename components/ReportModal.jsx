@@ -1,6 +1,13 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { urlSinDatosSensibles } from "@/lib/permalink";
+
+// La página que viaja con el reporte, sin lo que la URL de una simulación dice
+// de la persona: afiliación sindical, hijos con discapacidad, cónyuge e hijos
+// (lib/permalink.js, PARAMS_SENSIBLES). Antes iba la URL entera junto al mail,
+// y la lista de "Datos que se envían" no la mostraba (revisión del 26/11/2026).
+const paginaParaElReporte = () => (typeof window !== "undefined" ? urlSinDatosSensibles(window.location.href) : "");
 
 // Lo que se manda como contexto, con nombre legible. Sólo lo que tiene valor:
 // antes la vista previa mostraba "{}" en la portada, que es jerga y encima
@@ -114,7 +121,7 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
       const payload = {
         email: email || undefined,
         descripcion,
-        pagina: typeof window !== "undefined" ? window.location.href : undefined,
+        pagina: paginaParaElReporte() || undefined,
         contexto: contextoLegible(context).map(([k, v]) => `${k}: ${v}`).join("\n") || "(sin contexto)",
       };
 
@@ -215,14 +222,14 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
             />
           </label>
 
-          {/* Lo que viaja con el reporte, legible. Si no hay nada, se dice. */}
-          {filas.length > 0 ? (
+          {/* Lo que viaja con el reporte, legible, incluida la página. */}
+          {filas.length > 0 || paginaParaElReporte() ? (
             <details className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
               <summary className="cursor-pointer select-none font-medium text-slate-700">
                 Datos que se envían
               </summary>
               <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-                {filas.map(([k, v]) => (
+                {[...filas, ["Página", paginaParaElReporte()]].filter(([, v]) => v).map(([k, v]) => (
                   <React.Fragment key={k}>
                     <dt className="font-medium text-slate-500">{k}</dt>
                     <dd className="text-slate-700 [overflow-wrap:anywhere]">{v}</dd>
