@@ -4,8 +4,8 @@ Los tres CSV de esta carpeta son las escalas de Comercio (CCT 130/75) de
 octubre, noviembre y diciembre de 2026, listas para subir en `/admin` →
 **Escalas paritarias**. Están calculadas desde la escala de septiembre que hoy
 está en producción, con la misma cuenta que usó la planilla firmada del
-acuerdo de julio. FAECYS todavía no publicó las planillas del acuerdo nuevo:
-cuando salgan, hay que compararlas (ver "Pendiente").
+acuerdo de julio. FAECYS publicó las planillas del acuerdo nuevo el
+28/10/2026 y coinciden (ver "Contra la circular de FAECYS").
 
 ## Qué dice el acuerdo
 
@@ -118,12 +118,18 @@ README), calculado con el motor sobre estas escalas:
 Diciembre da un neto menor que noviembre aunque el bruto sube: se va la
 cuota de $25.000 y los $20.000 que pasan al básico pagan aportes.
 
+## Contra la circular de FAECYS
+
+FAECYS publicó las escalas el 28/10/2026
+([circular](https://www.faecys.org.ar/circular-escalas-acuerdo-octubre-2026-cct-130/),
+de octubre 2026 a mayo 2027). Comparadas el 29/10/2026 con lo publicado en
+el sitio: de los 63 básicos (21 categorías por 3 meses), 22 difieren en $1
+exacto, por redondeo, y las sumas no remunerativas son iguales. Diciembre
+queda confirmado: $20.000 al básico y $100.000 no remunerativos. Ninguno
+difiere en más de $1, así que no hubo nada que corregir.
+
 ## Pendiente
 
-- **Las planillas firmadas.** Cuando FAECYS publique la circular con las
-  escalas, comparar básico por básico. Si alguna difiere en más de $1, manda
-  la planilla: se corrige el CSV y se vuelve a publicar ese mes. Lo primero
-  a mirar: diciembre, los $20.000 y los $100.000.
 - **FFEP y bases del art. 9 de noviembre y diciembre.** Hasta que se
   carguen, esos meses usan la tabla de octubre con aviso en el recibo. Cuando
   la SRT y ANSES los publiquen en el Boletín Oficial, el vigía los deja
@@ -136,10 +142,10 @@ cuota de $25.000 y los $20.000 que pasan al básico pagan aportes.
   Personal Auxiliar B ≈ $1.137.677 y Auxiliar Especializado B ≈ $1.153.743.
   Sólo afecta las liquidaciones de junio; se corrige desde /admin con la
   circular de abril a julio a la vista.
-- **El acuerdo en la pestaña Acuerdos**, con el PDF de FAECYS: título
-  "Acuerdo paritario del 27 de octubre de 2026 (octubre, noviembre y
-  diciembre 2026)", tipo acuerdo, fecha 2026-10-27, vigencia "octubre a
-  diciembre 2026". Y la homologación, cuando salga.
+- **La homologación en la pestaña Acuerdos**, cuando salga: tipo
+  homologación, con la fecha de la Disposición. El acuerdo (2026-10-27) y
+  las escalas de octubre 2026 a mayo 2027 (2026-10-01) ya están ahí desde el
+  29/10/2026, con los PDF de FAECYS.
 - **Recapturar los fixtures** después de publicar
   (`node scripts/capturarFixtures.mjs comercio-cct-130-75`), para que los
   tests sobre datos actuales vean los meses nuevos.
