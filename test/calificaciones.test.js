@@ -388,3 +388,18 @@ describe("firestore.rules valida lo mismo que manda el código", () => {
     for (const k of mandadas) expect(permitidas).toContain(k);
   });
 });
+
+// La tarjeta (components/calculadora/CalificarExperiencia.jsx) necesita dos
+// cosas de app/globals.css. Va acá, en Node: con jsdom, Vitest no deja leer un
+// .css como texto, y node:fs no carga en el build de Cloudflare.
+describe("app/globals.css, para la tarjeta de calificación", () => {
+  const css = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
+  it("tiene la animación del tilde (sin ella, el tilde queda invisible)", () => {
+    expect(css).toMatch(/@keyframes calificacion-trazo\s*\{\s*to\s*\{\s*stroke-dashoffset:\s*0;?\s*\}\s*\}/);
+  });
+  it("mientras flota, reserva su alto en lo del recibo y no en la página (la franja de la página incluía a la tarjeta y el recibo saltaba)", () => {
+    expect(css).toContain('[data-recibo]:has([data-calificacion="flotando"]) :not([data-flotante], [data-flotante] *)');
+    expect(css).toMatch(/scroll-margin-bottom:\s*var\(--reserva-calificacion/);
+    expect(css).not.toMatch(/scroll-padding-bottom/);
+  });
+});

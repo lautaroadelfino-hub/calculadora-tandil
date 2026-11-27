@@ -17,8 +17,10 @@
 // en el navegador (README, sección 5).
 
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+// Las reglas como texto, con ?raw de Vite. Con node:fs, el build de Cloudflare
+// (que corre los tests con NODE_ENV=production) no cargaba este archivo de
+// jsdom: "No such built-in module: node:".
+import REGLAS from "../../firestore.rules?raw";
 import { render, screen, fireEvent, cleanup, waitFor, act } from "@testing-library/react";
 import CalificarExperiencia, { AVISO_GUARDADA } from "../../components/calculadora/CalificarExperiencia.jsx";
 import { preguntaDelComentario, PREGUNTA_POR_MOTIVO } from "../../components/calculadora/calificacion/piezas.jsx";
@@ -887,7 +889,7 @@ describe("lo que se guarda", () => {
   });
 
   it("en un recorrido entero, todo lo que se escribe está entre lo que aceptan las reglas", async () => {
-    const reglas = readFileSync(join(process.cwd(), "firestore.rules"), "utf8");
+    const reglas = REGLAS;
     const permitidas = reglas.match(/d\.keys\(\)\.hasOnly\(\[([^\]]+)\]\)/)[1].split(",").map((s) => s.trim().replace(/'/g, ""));
     const { enviar } = armar();
     tocar(estrella(2));
@@ -906,17 +908,8 @@ describe("lo que se guarda", () => {
   });
 });
 
-describe("app/globals.css", () => {
-  const css = readFileSync(join(process.cwd(), "app", "globals.css"), "utf8");
-  it("tiene la animación del tilde (sin ella, el tilde queda invisible)", () => {
-    expect(css).toMatch(/@keyframes calificacion-trazo\s*\{\s*to\s*\{\s*stroke-dashoffset:\s*0;?\s*\}\s*\}/);
-  });
-  it("mientras flota, reserva su alto en lo del recibo y no en la página (la franja de la página incluía a la tarjeta y el recibo saltaba)", () => {
-    expect(css).toContain('[data-recibo]:has([data-calificacion="flotando"]) :not([data-flotante], [data-flotante] *)');
-    expect(css).toMatch(/scroll-margin-bottom:\s*var\(--reserva-calificacion/);
-    expect(css).not.toMatch(/scroll-padding-bottom/);
-  });
-});
+// Lo de app/globals.css se prueba en test/calificaciones.test.js, que corre en
+// Node: acá, con jsdom, Vitest no deja leer un .css como texto.
 
 describe("lo que tapa", () => {
   it("mientras flota, deja en el recibo su alto más la distancia al pie; al apoyarse, lo saca", async () => {
