@@ -135,13 +135,23 @@ difiere en más de $1, así que no hubo nada que corregir.
   la SRT y ANSES los publiquen en el Boletín Oficial, el vigía los deja
   preparados en /admin → Bandeja; si no llegaron, Contribuciones → Copiar del
   mes anterior, o un `carga.json` sólo con `contribuciones`.
-- **Junio 2026 está mal en producción**, desde la carga del 20/5/2026:
-  Personal Auxiliar B tiene el básico de abril ($1.102.315) y Auxiliar
-  Especializado B tiene el que le correspondía a Personal Auxiliar B
-  ($1.137.677). Por la progresión abril → mayo → julio, junio debería ser
-  Personal Auxiliar B ≈ $1.137.677 y Auxiliar Especializado B ≈ $1.153.743.
-  Sólo afecta las liquidaciones de junio; se corrige desde /admin con la
-  circular de abril a julio a la vista.
+- **Junio 2026 estaba mal en producción y se corrigió el 27/11/2026.**
+  Desde la carga del 20/5/2026, Personal Auxiliar B tenía el básico de abril
+  ($1.102.315) y Auxiliar Especializado B, el que le correspondía a Personal
+  Auxiliar B ($1.137.677). Ahora dicen lo que dice la circular de FAECYS de
+  abril a julio de 2026 (la que está en la pestaña Acuerdos como "Escalas
+  salariales abril a julio 2026"): **Personal Auxiliar B $1.137.677 y
+  Auxiliar Especializado B $1.153.743**. Se hizo desde /admin, después del
+  respaldo `respaldos/2026-11-27-202237`: Escalas paritarias → Empleados de
+  Comercio → `2026-06` → Buscar → Subir CSV (el del mes, con esos dos
+  importes cambiados) → Guardar y publicar. El panel avisó, como
+  correspondía, que las 21 categorías suben 1,6% respecto de mayo: antes de
+  corregir, esas dos se salían de la fila. Comparado después contra la base:
+  junio quedó igual que antes salvo esos dos básicos, y el documento del
+  convenio no cambió. Sólo afectaba las liquidaciones de junio de esas dos
+  categorías. El fixture de datos actuales
+  (`test/fixtures/comercio-cct-130-75.escalas.json`) lleva los dos importes
+  corregidos; el de `patron/` es una foto congelada y no se toca.
 - **La homologación en la pestaña Acuerdos.** Salió: Disposición
   DI-2026-1424-APN-DNRYRT#MCH del 3/11/2026, que homologa el acuerdo y las
   escalas sin tocar ningún importe. La copia firmada y numerada la publicó

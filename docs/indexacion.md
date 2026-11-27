@@ -68,12 +68,35 @@ situación en la que Google deja las páginas internas en "Descubierta".
   regla de qué mes va en qué página está en `lib/escalasDeAcuerdo.js`.
 - **Las novedades llevan un detalle** debajo del título, para contar qué
   cambió con cada acuerdo y cada escala. Una página de novedades vacía ya no
-  se indexa ni va al sitemap.
+  se indexa ni va al sitemap. El mismo 27/11 se publicaron las primeras 11
+  (4 de Camioneros, 3 de Comercio, 2 de Gastronómicos y 2 generales), cada
+  una con el enlace a su acuerdo, y las cuatro páginas volvieron al sitemap
+  con contenido.
 - **El sitemap no mueve fechas solo.** La calculadora de Comercio decía que
   había cambiado "recién" en cada lectura, porque su escala más nueva era de
   un mes futuro y esa fecha se reemplazaba por la hora del pedido. Ahora va
   el primer día del mes en curso. Y las páginas de acuerdos que pasaron a
   mostrar la escala llevan la fecha de ese cambio.
+- **Se corrigieron dos básicos de Comercio de junio de 2026** que estaban
+  mal cargados desde mayo y que la tabla nueva dejaba a la vista (el detalle
+  está en `docs/acuerdos/comercio-2026-10-27/README.md`, "Pendiente").
+
+### La indexación que se pidió a mano
+
+El 27/11/2026, con las páginas ya publicadas, se pidió en Inspección de URLs
+la indexación de 11 páginas, y Google las aceptó:
+
+- Camioneros: las escalas de julio, agosto, septiembre, octubre y noviembre
+  de 2026.
+- Comercio: "Escalas salariales octubre 2026 a mayo 2027", "Escalas
+  salariales abril a julio 2026" y el acuerdo del 22 de julio.
+- Gastronómicos: el acuerdo de julio a septiembre de 2026.
+- `/novedades` y `/novedades/camioneros-cct-40-89`.
+
+La solicitud número 12 dio "Cuota superada": Google admite alrededor de una
+docena por día. Quedaron sin pedir las novedades de Comercio y las de
+Gastronómicos, que igual están en el sitemap. No hay que repetir esto con
+cada carga: es un empujón para las páginas que cambiaron de golpe.
 
 ### Lo que quedó pendiente
 
@@ -84,9 +107,6 @@ situación en la que Google deja las páginas internas en "Descubierta".
 - **Gastronómicos, octubre y noviembre de 2026**: están en la calculadora
   pero no en ninguna página de acuerdos, porque salen del acta de julio y no
   de un documento propio.
-- **Comercio, junio de 2026**: dos categorías están mal cargadas (ver
-  `docs/acuerdos/comercio-2026-10-27/README.md`, "Pendiente"). Ahora se ve en
-  la página "Escalas salariales abril a julio 2026".
 
 ## Para la próxima revisión
 
