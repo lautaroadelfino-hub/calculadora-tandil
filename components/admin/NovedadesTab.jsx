@@ -26,7 +26,7 @@ const TAG_BADGE = {
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
-const FORM_VACIO = () => ({ date: hoy(), title: "", url: "", tag: "release", convenioId: "" });
+const FORM_VACIO = () => ({ date: hoy(), title: "", detalle: "", url: "", tag: "release", convenioId: "" });
 
 /** @param convenios todos los convenios (también los inactivos), para asignarle uno a la novedad. */
 export default function NovedadesTab({ convenios = [] }) {
@@ -66,6 +66,7 @@ export default function NovedadesTab({ convenios = [] }) {
       await crearNovedad({
         date: form.date,
         title: form.title.trim(),
+        detalle: form.detalle.trim() || null,
         url: form.url.trim() || null,
         tag: form.tag,
         published: true,
@@ -139,10 +140,23 @@ export default function NovedadesTab({ convenios = [] }) {
             name="title"
             value={form.title}
             onChange={handleChange}
-            placeholder="Título, ej: Cargado acuerdo agosto Empleados de Comercio"
+            placeholder="Título, ej: Escala de noviembre 2026: los básicos suben 1,7 %"
+            aria-label="Título"
             className="border border-sky-200 p-2.5 rounded-lg outline-none bg-white text-sm w-full"
           />
         </div>
+        {/* El detalle se lee debajo del título en /novedades. Sin él la página
+            queda en una lista de títulos, que ni al lector ni a Google le dice
+            qué cambió. */}
+        <textarea
+          name="detalle"
+          value={form.detalle}
+          onChange={handleChange}
+          rows={3}
+          placeholder="Detalle (opcional): dos o tres líneas con lo que cambió. Ej: Suben 1,7 % los 43 básicos y los viáticos respecto de octubre, sin suma no remunerativa."
+          aria-label="Detalle"
+          className="border border-sky-200 p-2.5 rounded-lg outline-none bg-white text-sm w-full"
+        />
         <div className="grid grid-cols-1 md:grid-cols-[auto_auto_1fr_auto] gap-3 items-center">
           <select name="tag" value={form.tag} onChange={handleChange} className="border border-sky-200 p-2.5 rounded-lg outline-none bg-white text-sm" aria-label="Tipo">
             {TAGS.map((t) => (
@@ -217,6 +231,7 @@ export default function NovedadesTab({ convenios = [] }) {
                       )}
                     </div>
                     <p className={`text-sm mt-0.5 ${publicada ? "text-gray-800" : "text-gray-400 line-through"}`}>{n.title}</p>
+                    {n.detalle ? <p className="mt-0.5 text-xs text-gray-500 whitespace-pre-line">{n.detalle}</p> : null}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <button

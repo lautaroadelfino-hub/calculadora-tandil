@@ -358,10 +358,37 @@ mandale esa hoja primero.
   dirección se arma del título al crear el acuerdo y **no cambia si después
   editás el título**: puede estar en Google o compartida. Despublicar un
   acuerdo deja su página en 404 y Google la saca sola.
-- **Google**: el sitio está en Search Console (verificación por DNS). Cada
-  página declara su propio título, descripción, canonical e imagen para
-  compartir; `/sitemap.xml` lista todas las páginas con su fecha real de
-  cambio y `/robots.txt` permite todo (el panel y el login llevan `noindex`).
+- **La página de un acuerdo muestra la escala de sus meses** (desde el
+  27/11/2026): los básicos de cada categoría, cuánto cambiaron respecto del
+  mes anterior y, en Camioneros, los viáticos. No hay que cargar nada aparte:
+  son las mismas escalas de la pestaña Escalas paritarias, las que usa la
+  calculadora. Lo único que depende de vos es **la vigencia**, que es de
+  donde la página saca los meses: escribila con el mes y el año, como
+  "noviembre 2026", "abril a julio 2026" u "octubre 2026 a mayo 2027". Si no
+  se entiende, la página sale como antes, con el documento y sin la tabla
+  (una escala sin vigencia usa el mes de su fecha). Cada mes aparece en una
+  sola página: si un acuerdo y su planilla cubren el mismo mes, va en la
+  planilla (tipo "Escala salarial") y el acuerdo la enlaza; si un acuerdo
+  posterior revisa un mes, va en el posterior. Las homologaciones no
+  muestran escalas. La regla y sus casos están en `lib/escalasDeAcuerdo.js`.
+- **Novedades** (pestaña Novedades de /admin): cada una lleva fecha, título
+  y, desde el 27/11/2026, un **detalle** de dos o tres líneas que se lee
+  debajo del título; el enlace y el convenio son opcionales. Conviene
+  publicar una con cada carga: la escala del mes, un acuerdo, su
+  homologación, las contribuciones. Con convenio se ve en
+  `/novedades/<convenio>` y en la lista general; sin convenio, sólo en la
+  general. Para corregir una hay que eliminarla y volver a publicarla.
+- **Google**: el sitio está en Search Console, con la cuenta
+  `info@liquidar.ar` (verificación por DNS). Cada página declara su propio
+  título, descripción, canonical e imagen para compartir; `/sitemap.xml`
+  lista todas las páginas con su fecha real de cambio y `/robots.txt`
+  permite todo (el panel y el login llevan `noindex`). Una página de
+  novedades sin ninguna publicada no se indexa ni va al sitemap. **No hace
+  falta pedirle nada a Google cada mes**: un acuerdo publicado entra solo al
+  sitemap. "Solicitar indexación" (Inspección de URLs) es un atajo para
+  cuando algo tiene que aparecer rápido. Cómo se revisa y qué había el
+  27/11/2026 (qué estaba indexado, qué no y por qué) está en
+  `docs/indexacion.md`.
 - **A `/admin` entra cualquier usuario autenticado de Firebase, pero guardar
   sólo puede `admin@liquidar.ar`**, porque las reglas llevan el UID de ese
   usuario (`yx2H1OsUirUTvevmtTasVnSU5Zw1`). El mail es un alias de
