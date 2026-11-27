@@ -23,6 +23,13 @@ const raiz = dirname(fileURLToPath(import.meta.url));
 // tiene `React.act`, y Testing Library se cae ("React.act is not a function").
 // Tres builds del 11/10/2026 no salieron a producción por esto, mientras que
 // en GitHub Actions y en la máquina local pasaban.
+//
+// Eso no alcanza para los imports: Vite los resuelve con el NODE_ENV de
+// afuera. Por eso los tests de jsdom no importan módulos de Node (node:fs,
+// node:path): con NODE_ENV=production los toma como del navegador y el archivo
+// entero no carga ("No such built-in module: node:"). Para leer un archivo
+// como texto: `import x from "../../archivo?raw"` (con .css no anda) o un test
+// en Node. Pasó el 26/11/2026; se reproduce con NODE_ENV=production npx vitest run.
 export default defineConfig({
   test: {
     env: { NODE_ENV: "test" },
