@@ -47,7 +47,7 @@ function conElMouseEncima(tarjeta) {
   return { sacar: () => (encima = false) };
 }
 
-/** La página se mueve hasta `y` (en el celular hace scroll el body; acá alcanza con la ventana). */
+/** La página se mueve hasta `y` (se desplaza la ventana; en los Safari viejos del celular, el body). */
 function moverLaPagina(y) {
   Object.defineProperty(window, "scrollY", { value: y, configurable: true });
   act(() => document.dispatchEvent(new Event("scroll")));

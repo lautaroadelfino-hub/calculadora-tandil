@@ -98,7 +98,10 @@ function tituloDelPaso(paso, cal) {
   return PREGUNTA;
 }
 
-/** Cuánto se desplazó la página: en el celular hace scroll el body; en la compu, la ventana. */
+/**
+ * Cuánto se desplazó la página. Se desplaza la ventana; en el celular, con un
+ * Safari anterior a la 16, el body (app/globals.css, "Evitar overflow horizontal").
+ */
 const desplazamiento = () => window.scrollY + (document.body?.scrollTop || 0);
 
 /**
