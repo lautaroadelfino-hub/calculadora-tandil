@@ -170,7 +170,7 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
           // Pasó el día: no hay nada que reintentar. La estrella quedó
           // guardada, así que termina en el agradecimiento, con el aviso
           // (antes quedaba la pregunta abierta, sin forma de mandarla).
-          setError(VENCIDA);
+          setError(pideBorrar.current ? VENCIDA_PARA_BORRAR : VENCIDA);
           setFase("cerrada");
           return false;
         }
@@ -182,8 +182,9 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
         return true;
       } catch (e) {
         // No se guardó: lo que salió en este intento vuelve a estar pendiente.
+        // Si lo que faltaba era borrar el comentario, el aviso dice eso.
         despachada.current = confirmada.current;
-        setError(e?.message || "No pudimos guardar tu calificación. Probá de nuevo en un rato.");
+        setError(pideBorrar.current ? NO_SE_BORRO : e?.message || "No pudimos guardar tu calificación. Probá de nuevo en un rato.");
         return false;
       } finally {
         ocupada.current = false;
@@ -316,10 +317,10 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
    * guardado sin comentario sale bien (pideBorrar). Si falla, el aviso dice
    * eso, no que falló la calificación.
    */
-  const borrarComentario = async () => {
+  const borrarComentario = () => {
     pideBorrar.current = true;
     contestar({ comentario: "" });
-    if (!(await guardar())) setError((e) => (e === VENCIDA ? VENCIDA_PARA_BORRAR : e ? NO_SE_BORRO : e));
+    guardar();
   };
 
   const reintentar = () => {

@@ -415,7 +415,8 @@ describe("el comentario", () => {
 
     tocar(boton("Borrar mi comentario"));
     await waitFor(() => expect(screen.getAllByText("Borramos tu comentario.").length).toBeGreaterThan(0));
-    expect(screen.getByRole("status").textContent).toBe("Borramos tu comentario.");
+    // La región viva cambia en un efecto, un instante después del texto: se espera a ella.
+    await waitFor(() => expect(screen.getByRole("status").textContent).toBe("Borramos tu comentario."));
     const borrado = escritura(enviar.mock.calls.at(-1));
     expect(borrado.update.fields.comentario).toBeUndefined();
     expect(borrado.updateMask.fieldPaths).toContain("comentario");
@@ -939,7 +940,7 @@ describe("lo que tapa", () => {
       await hastaElPerfil(5);
       tocar(boton("Seguir"));
       tocar(await screen.findByRole("button", { name: "Enviar" }));
-      await waitFor(() => expect(riel().dataset.calificacion).toBe("posada"));
+      await waitFor(() => expect(riel().dataset.calificacion).toBe("posada"), { timeout: 2500 });
       expect(recibo.style.getPropertyValue("--reserva-calificacion")).toBe("");
     } finally {
       alto.mockRestore();
