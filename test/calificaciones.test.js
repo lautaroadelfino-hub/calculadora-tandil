@@ -402,4 +402,7 @@ describe("app/globals.css, para la tarjeta de calificación", () => {
     expect(css).toMatch(/scroll-margin-bottom:\s*var\(--reserva-calificacion/);
     expect(css).not.toMatch(/scroll-padding-bottom/);
   });
+  it("en el celular se desplaza la ventana, no el body: si no, lo pegado al pie queda debajo de las barras del navegador", () => {
+    expect(css).toMatch(/@supports \(overflow-x: clip\)\s*\{\s*body\s*\{\s*overflow-x:\s*clip;\s*height:\s*auto;/);
+  });
 });

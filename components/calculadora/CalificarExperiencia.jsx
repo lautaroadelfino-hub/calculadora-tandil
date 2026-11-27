@@ -42,7 +42,7 @@
 //
 // Qué se guarda, y por qué no hay un cartel: lib/calificaciones.js.
 
-import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useLayoutEffect, useRef, useState } from "react";
 import { PREGUNTA_MOTIVO_HASTA } from "@/lib/calificaciones";
 import { useCalificacion, menosMovimiento } from "@/components/calculadora/calificacion/useCalificacion";
 import {
@@ -98,7 +98,10 @@ function tituloDelPaso(paso, cal) {
   return PREGUNTA;
 }
 
-/** Cuánto se desplazó la página: en el celular hace scroll el body; en la compu, la ventana. */
+/**
+ * Cuánto se desplazó la página. Se desplaza la ventana; en el celular, con un
+ * Safari anterior a la 16, el body (app/globals.css, "Evitar overflow horizontal").
+ */
 const desplazamiento = () => window.scrollY + (document.body?.scrollTop || 0);
 
 /**
@@ -243,7 +246,11 @@ export default function CalificarExperiencia({
   // página: el de adentro de la tarjeta o el de una tabla del recibo no.
   const conBorrador = paso === "comentario" && cal.comentario.trim() !== "";
   const puedeAchicarse = mostrada && modo === "flotando" && !cerrada && cal.estrellas > 0 && !achicada && !escribiendo && !conBorrador && !cal.enviando && !cal.plegando;
-  useEffect(() => {
+  // De disposición (useLayoutEffect) y no pasivo: el escucha queda puesto en el
+  // mismo dibujado que muestra la pregunta. Con useEffect se ponía un instante
+  // después, en otra tarea, y un scroll en ese medio no contaba (en el build
+  // de Cloudflare, más lento, un test lo agarró así).
+  useLayoutEffect(() => {
     if (!puedeAchicarse) return;
     recorrido.current = 0;
     // Desde dónde está la página ahora: con `null`, el primer tramo no contaba

@@ -158,6 +158,21 @@ main > * { isolation: isolate; }
   html, body {
     overflow-x: hidden;
   }
+  /* Que se desplace la ventana, no el body. Con `hidden` en el html y en el
+     body, el body se volvía el que hace scroll, con el alto de 100vh: en el
+     celular eso es el alto con las barras del navegador escondidas, y como la
+     ventana no se movía, las barras no se escondían nunca. Lo que va pegado
+     al pie del recibo (la calificación) quedaba debajo de la barra de Chrome
+     o de la barra flotante de Safari (27/11/2026). `clip` recorta igual sin
+     volver al body un contenedor con scroll, y `height: auto` lo deja crecer
+     con el contenido para que la barra de arriba siga pegada. Donde no existe
+     `clip` (Safari antes de la 16) queda todo como antes. */
+  @supports (overflow-x: clip) {
+    body {
+      overflow-x: clip;
+      height: auto;
+    }
+  }
   /* Si algún sticky insiste en empujar, lo “despegamos” en mobile */
   .md\:sticky:not([class*="sm:"]):not([class*="md:sticky"]) {
     position: static;
