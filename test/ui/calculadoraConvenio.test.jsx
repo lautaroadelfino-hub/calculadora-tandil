@@ -176,7 +176,10 @@ describe("la calculadora de Comercio", () => {
     // El segundo recibo está listo cuando se va el aviso de datos cambiados.
     await vi.waitFor(() => expect(screen.queryByText("Cambiaste datos.")).toBeNull());
 
-    fireEvent.click(await screen.findByLabelText(/^5 de 5 estrellas/));
+    // Un toque con el dedo: guarda y pasa sola a la pregunta siguiente.
+    const cinco = await screen.findByLabelText(/^5 de 5 estrellas/);
+    fireEvent.pointerDown(cinco, { pointerType: "touch" });
+    fireEvent.click(cinco);
     await vi.waitFor(() => expect(enviarCalificacion).toHaveBeenCalledTimes(1), { timeout: 3000 });
     const campos = enviarCalificacion.mock.calls[0][0].writes[0].update.fields;
     expect(campos).toMatchObject({
@@ -198,11 +201,84 @@ describe("la calculadora de Comercio", () => {
 
     // Recalcula después de calificar: la tarjeta es de cada recibo, y como ya
     // calificó no vuelve a aparecer (lo que toque no se pega al recibo anterior).
-    await screen.findByText(/¡Gracias!/);
+    await screen.findByText("¡Gracias! ¿Para qué la usaste?");
     fireEvent.change(screen.getByLabelText("Años de Antigüedad"), { target: { value: "6" } });
     fireEvent.click(botonCalcular());
     await vi.waitFor(() => expect(screen.queryByRole("radiogroup", { name: "¿Te sirvió este cálculo?" })).toBeNull());
     expect(enviarCalificacion).toHaveBeenCalledTimes(1);
+  });
+
+  it("la calificación va en la columna del recibo, después de 'Reportar error / sugerencia' y afuera de lo que se apaga con 'Cambiaste datos'", async () => {
+    const inicial = await cargarDatosDeCalculadora(ID);
+    render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+    fireEvent.click(botonCalcular());
+    await screen.findByRole("heading", { name: "Simulación de recibo" });
+    const region = await screen.findByRole("region", { name: "Calificá este cálculo" });
+    const columna = document.querySelector("[data-recibo]");
+    expect(columna.contains(region)).toBe(true);
+    // Pegajosa con data-flotante: globals.css despega los otros sticky de main por debajo de 1536 px.
+    expect(region.closest("[data-flotante]")).toBeTruthy();
+    // Con Tab y con lector se llega en el orden en que se ve: después del recibo.
+    const reportar = screen.getByRole("button", { name: "Reportar error / sugerencia" });
+    expect(reportar.compareDocumentPosition(region) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Ya no está adentro de la tarjeta del recibo, debajo de los tres números.
+    const radios = screen.getByRole("radiogroup", { name: "¿Te sirvió este cálculo?" });
+    expect(columna.querySelector("[data-resumen]").closest(".rounded-2xl").contains(radios)).toBe(false);
+
+    fireEvent.change(screen.getByLabelText("Años de Antigüedad"), { target: { value: "7" } });
+    expect(screen.getByText("Cambiaste datos.")).toBeTruthy();
+    expect(region.closest(".opacity-50")).toBeNull();
+  });
+
+  it("al calcular en una sola columna (el celular), el recibo queda arriba, debajo de la barra; en dos columnas, no", async () => {
+    const llamadas = [];
+    Element.prototype.scrollIntoView = function (opciones) {
+      llamadas.push({ el: this, opciones });
+    };
+    const conAncho = (unaColumna) =>
+      vi.fn((q) => ({ matches: unaColumna && q === "not all and (min-width: 64rem)", media: q, addEventListener() {}, removeEventListener() {} }));
+    try {
+      window.matchMedia = conAncho(true);
+      let inicial = await cargarDatosDeCalculadora(ID);
+      render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+      fireEvent.click(botonCalcular());
+      const titulo = await screen.findByRole("heading", { name: "Simulación de recibo" });
+      expect(llamadas).toHaveLength(1);
+      expect(llamadas[0].el).toBe(document.querySelector("[data-recibo]"));
+      expect(llamadas[0].opciones).toEqual({ block: "start" });
+      expect(document.activeElement).toBe(titulo);
+      cleanup();
+
+      llamadas.length = 0;
+      window.matchMedia = conAncho(false);
+      inicial = await cargarDatosDeCalculadora(ID);
+      render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+      fireEvent.click(botonCalcular());
+      const tituloEnDosColumnas = await screen.findByRole("heading", { name: "Simulación de recibo" });
+      expect(document.activeElement).toBe(tituloEnDosColumnas);
+      expect(llamadas).toHaveLength(0);
+    } finally {
+      delete Element.prototype.scrollIntoView;
+      delete window.matchMedia;
+    }
+  });
+
+  it("la calificación queda flotando, sin × ni 'Ahora no', y vuelve con cada recibo hasta que califica", async () => {
+    const inicial = await cargarDatosDeCalculadora(ID);
+    render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+    fireEvent.click(botonCalcular());
+    await screen.findByRole("heading", { name: "Simulación de recibo" });
+    const estado = () => document.querySelector("[data-calificacion]")?.dataset.calificacion;
+    await vi.waitFor(() => expect(estado()).toBe("flotando"), { timeout: 3000 });
+    expect(screen.queryByRole("button", { name: /Cerrar|Ahora no/ })).toBeNull();
+
+    fireEvent.change(screen.getByLabelText("Años de Antigüedad"), { target: { value: "3" } });
+    fireEvent.click(botonCalcular());
+    await vi.waitFor(() => expect(screen.queryByText("Cambiaste datos.")).toBeNull());
+    await vi.waitFor(() => expect(estado()).toBe("flotando"));
+    expect(screen.getByRole("radiogroup", { name: "¿Te sirvió este cálculo?" })).toBeTruthy();
+    expect(enviarCalificacion).not.toHaveBeenCalled();
+    expect(window.localStorage.length).toBe(0);
   });
 
   it("'Abrió un link compartido' es sólo el recibo que arma un link de 'Copiar link'; un F5 con la simulación en la URL es 'a mano'", async () => {

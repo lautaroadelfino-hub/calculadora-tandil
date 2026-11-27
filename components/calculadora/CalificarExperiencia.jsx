@@ -1,441 +1,615 @@
 "use client";
 // components/calculadora/CalificarExperiencia.jsx
-// La tarjeta "¿Te sirvió este cálculo?" del recibo. Qué guarda, para qué, por
-// qué así y no con un cartel, y qué validan las reglas: lib/calificaciones.js.
+// "¿Te sirvió este cálculo?": la solapa del recibo.
 //
-// Dónde y cómo se ve (pedido del dueño, 26/11/2026): una sola línea discreta
-// con las estrellas, debajo de los tres números del recibo (neto, bruto, costo
-// laboral), que es lo primero que se mira. Al pie quedaba demasiado escondida.
-// No tiene "Ahora no": no es un cartel, así que el que no quiere calificar
-// simplemente no toca nada.
+// DÓNDE. Vive en la columna del recibo, justo después de la tarjeta del
+// recibo, y es pegajosa (sticky) contra el pie de la pantalla. Mientras se
+// mira el recibo flota abajo: con los bordes del recibo en el celular y en su
+// esquina en la compu. Al bajar hasta el final se apoya sola debajo del
+// recibo, y al volver al formulario se va con él. Así nunca queda encima del
+// formulario, del "Calcular liquidación" pegado, de las preguntas frecuentes
+// ni del modal, y con Tab o con lector se llega en el orden en que se ve. La
+// versión que el dueño eligió en la vista previa del 26/11/2026 (la 5) flotaba
+// fija en la esquina de la pantalla. En monitores anchos quedaba lejos del
+// recibo, al final tapaba "Copiar link" y era lo último del Tab.
 //
-// El recorrido: la persona toca una estrella y la calificación sale en ese
-// momento, sin botón (el que no lo aprieta se pierde) y sin esperar (el que
-// toca y cierra la pestaña también cuenta). Recién ahí se abre lo opcional:
-// qué falló si calificó con 3 o menos, para qué usó la calculadora y un
-// comentario. Cada elección corrige la misma calificación sola; "Enviar"
-// (siempre habilitado: todo es opcional de verdad, también sin comentario)
-// manda lo que falte, pliega el panel con una transición corta y deja
-// "¡Gracias por ayudar a mejorar!". Lo pendiente se manda igual si la tarjeta
-// desaparece o la página se cierra.
+// CUÁNDO. Entra una sola vez y sin reloj: cuando los tres números ya se vieron
+// enteros (data-resumen), espera un compás y sube con un fundido. No toma el
+// foco ni se anuncia. Desde el segundo recibo de la visita entra sin espera.
 //
-// Hay una tarjeta por recibo: la calculadora la vuelve a armar al recalcular,
-// y si ya calificó no se muestra (DIAS_SIN_PREGUNTAR). El id de la
-// calificación se elige una sola vez: un reintento después de un corte no la
-// duplica, y si el alta había llegado y se perdió la respuesta, el reintento
-// la encuentra y sigue desde ahí (revisión del 26/11/2026).
+// CÓMO SIGUE. Al tocar una estrella la calificación se guarda en el acto
+// (useCalificacion.js). La tarjeta sigue de a una pregunta, en el mismo
+// lugar: qué falló (con 3 o menos), para qué la usó y un comentario con una
+// pregunta a medida. Con todo junto, la tarjeta pasaba de 92 px a media
+// pantalla, con "Enviar" escondido, justo cuando la persona decidía si seguía.
+// Avanza sola sólo con toque o clic y sólo en las preguntas de una respuesta.
+// Con teclado no avanza: las flechas elegirían de paso cada valor intermedio,
+// así que se sigue con "Seguir". "Seguir" y "Enviar" están siempre activos:
+// todo es opcional.
+//
+// SIN ×. No tiene × ni "Ahora no": el dueño la quiere flotando, sin que
+// moleste (26/11/2026). Para no molestar sin cerrarse: si después de la
+// estrella la persona sigue leyendo el recibo sin contestar (la página se
+// mueve un buen trecho sin que toque la tarjeta), la pregunta abierta, que en
+// el celular ocupa un tercio de la pantalla, se achica a una línea con la
+// pregunta y el avance. Esa línea sigue flotando y un toque la vuelve a abrir
+// donde estaba. Las estrellas, en cambio, no se achican: son la invitación.
+// Tampoco se achica con un comentario escrito sin mandar (escondería "Enviar",
+// lo único que lo manda). Con un error sí: el error no se va solo, y la
+// pregunta abierta quedaba tapando el recibo; la línea dice "No se guardó".
+// "Enviar" pliega el panel, el cuadradito de LiquidAR se vuelve un tilde y
+// queda "¡Gracias por ayudar a mejorar!", que a los 4,5 s se apoya al pie.
+//
+// Qué se guarda, y por qué no hay un cartel: lib/calificaciones.js.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useId, useRef, useState } from "react";
+import { PREGUNTA_MOTIVO_HASTA } from "@/lib/calificaciones";
+import { useCalificacion, menosMovimiento } from "@/components/calculadora/calificacion/useCalificacion";
 import {
-  MOTIVOS,
-  PERFILES,
-  MAX_COMENTARIO,
-  PREGUNTA_MOTIVO_HASTA,
-  nuevoIdDeCalificacion,
-  escrituraNueva,
-  escrituraDeCambio,
-  enviarCalificacion,
-  leerRegistro,
-  guardarRegistro,
-  debePreguntar,
-  puedeCambiar,
-  dispositivoDe,
-  entornoDe,
-} from "@/lib/calificaciones";
-
-const AHORA = () => new Date();
-const ESTRELLAS = [1, 2, 3, 4, 5];
-const NOMBRE_DE_LAS_ESTRELLAS = ["", "Muy mal", "Mal", "Más o menos", "Bien", "Muy bien"];
-const VENCIDA = "Pasó más de un día desde que calificaste y esto ya no se puede cambiar. Si querés contarnos algo más, usá \"Reportar error / sugerencia\".";
-/** Lo que dura el plegado del panel al enviar (igual que `duration-300`). */
-const PLEGADO_MS = 320;
-
-function almacenDelNavegador() {
-  try {
-    return typeof window !== "undefined" ? window.localStorage : null;
-  } catch {
-    return null;
-  }
-}
-
-/** ¿La persona pidió menos movimiento en su sistema? Entonces nada de transiciones. */
-function menosMovimiento() {
-  try {
-    return typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch {
-    return false;
-  }
-}
-
-function Estrella({ llena }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-      className={`h-6 w-6 transition-colors ${llena ? "fill-amber-400 stroke-amber-500" : "fill-transparent stroke-slate-400"}`}
-      strokeWidth="1.5"
-    >
-      <path strokeLinejoin="round" d="M12 2.8l2.84 5.76 6.36.92-4.6 4.48 1.09 6.33L12 17.3l-5.69 2.99 1.09-6.33-4.6-4.48 6.36-.92z" />
-    </svg>
-  );
-}
-
-function Opcion({ activa, onClick, children }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={activa}
-      onClick={onClick}
-      className={`rounded-full border px-3 py-1 text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 ${
-        activa ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 bg-white text-slate-700 hover:border-slate-400"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-/** "¡Gracias por ayudar a mejorar!", que aparece con un fundido suave. */
-function Agradecimiento({ comentarioEnviado, onBorrarComentario, borrado }) {
-  const [visible, setVisible] = useState(false);
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setVisible(true));
-    return () => cancelAnimationFrame(id);
-  }, []);
-  return (
-    <div
-      role="status"
-      className={`flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-800 transition-all duration-300 ease-out motion-reduce:transition-none print:hidden ${
-        visible ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"
-      }`}
-    >
-      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-emerald-600 text-[11px] text-white" aria-hidden="true">✓</span>
-      ¡Gracias por ayudar a mejorar!
-      {comentarioEnviado && !borrado && (
-        <button type="button" onClick={onBorrarComentario} className="ml-auto text-[11px] font-normal text-emerald-700 underline underline-offset-2 hover:text-emerald-900">
-          Borrar mi comentario
-        </button>
-      )}
-      {borrado && <span className="ml-auto text-[11px] font-normal text-emerald-700">Borramos tu comentario.</span>}
-    </div>
-  );
-}
+  PREGUNTA,
+  Marca,
+  Estrellas,
+  OpcionesDeMotivo,
+  OpcionesDePerfil,
+  CampoComentario,
+  preguntaDelComentario,
+  Avance,
+  Pie,
+  BotonSeguir,
+  BotonEnviar,
+  BotonVolver,
+  Plegable,
+  AparecerSuave,
+  BorrarComentario,
+  ErrorDeCalificacion,
+} from "@/components/calculadora/calificacion/piezas";
 
 /**
- * @param contexto  lo que se guarda solo con la calificación: { convenioId,
- *   periodo, categoria, origen, faltanDatos, calculos } (lib/calificaciones.js).
- * @param enviar, almacen, ahora, espera  para los tests: a dónde se manda, dónde
- *   se recuerda, qué hora es y cuánto se espera para juntar toques.
+ * Los tiempos, en ms:
+ * - entrada: el compás entre ver los números y que suba la tarjeta;
+ * - pausa: lo que se ve lo elegido antes de pasar sola a la pregunta siguiente;
+ * - pie: lo que el pie no toma toques después de cambiar de pregunta;
+ * - agradecimiento: lo que flota el "¡Gracias…!" antes de apoyarse al pie;
+ * - salida: el fundido del agradecimiento al apoyarse.
  */
-export default function CalificarExperiencia({ contexto, enviar = enviarCalificacion, almacen = null, ahora = AHORA, espera = 700 }) {
-  // cargando → (oculta | pregunta) → guardada → cerrada
-  const [fase, setFase] = useState("cargando");
-  const [plegando, setPlegando] = useState(false);
-  const [estrellas, setEstrellas] = useState(0);
-  const [previa, setPrevia] = useState(0);
-  const [motivos, setMotivos] = useState([]);
-  const [perfil, setPerfil] = useState(null);
-  const [comentario, setComentario] = useState("");
-  const [comentarioEnviado, setComentarioEnviado] = useState("");
-  const [comentarioBorrado, setComentarioBorrado] = useState(false);
-  // Sólo mientras corre el "Enviar" que apretó la persona (contra el doble clic).
-  // No se apaga mientras se guarda sola una elección anterior: así el clic de
-  // ese momento se perdía sin aviso (26/11/2026).
-  const [enviando, setEnviando] = useState(false);
-  const [error, setError] = useState("");
+export const TIEMPOS = { entrada: 600, pausa: 380, pie: 300, agradecimiento: 4500, salida: 300 };
+export const AVISO_GUARDADA = "Guardamos tu calificación. Lo que sigue es opcional.";
+const AVISO_BORRADO = "Borramos tu comentario.";
+/**
+ * Dónde tienen que verse los tres números para darlos por vistos: debajo de
+ * la barra (--h-header, 60 px) y arriba de la tarjeta plegada (92 px), con aire.
+ */
+const ZONA_DE_LOS_NUMEROS = "-60px 0px -120px 0px";
+/** Cuánto tiene que moverse la página, sin tocar la tarjeta, para que una pregunta abierta se achique. */
+export const RECORRIDO_PARA_ACHICAR = 160;
+const CON_EL_DEDO_O_EL_MOUSE = new Set(["mouse", "touch", "pen"]);
+const SIN_TECLADO = { tapa: 0, alto: 0 };
 
-  // Lo último que contestó, para que cada envío mande lo más nuevo aunque se
-  // haya programado antes; el id elegido para el alta; y la calificación ya
-  // creada, si la hay.
-  const respuestas = useRef({ estrellas: 0, motivos: [], perfil: null, comentario: "" });
-  const idDelAlta = useRef(null);
-  const creada = useRef(null);
-  const temporizador = useRef(null);
-  const cola = useRef(Promise.resolve(true));
-  const ultimoFallo = useRef(false);
-  const contextoActual = useRef(contexto);
-  useEffect(() => {
-    contextoActual.current = contexto;
-  }, [contexto]);
+/** ¿Los tres números estuvieron enteros a la vista, o ya quedaron arriba? */
+function seVieron(e) {
+  const arriba = e.rootBounds ? e.rootBounds.top : 60;
+  return e.intersectionRatio >= 0.99 || e.boundingClientRect.bottom <= arriba;
+}
 
-  const almacenReal = () => almacen ?? almacenDelNavegador();
+function tituloDelPaso(paso, cal) {
+  if (paso === "motivos") return cal.estrellas <= 2 ? "Uy. ¿Qué falló?" : "¿Qué no te convenció?";
+  if (paso === "perfil") return cal.baja ? "¿Para qué la usaste?" : "¡Gracias! ¿Para qué la usaste?";
+  if (paso === "comentario") return preguntaDelComentario(cal).titulo;
+  return PREGUNTA;
+}
 
-  /** Manda lo contestado: la primera vez crea la calificación; después la corrige. Devuelve si se guardó. */
-  const guardar = () => {
-    cola.current = cola.current.then(async () => {
-      const r = respuestas.current;
-      setError("");
-      const cambio = () =>
-        escrituraDeCambio({
-          id: (creada.current || {}).id || idDelAlta.current,
-          estrellas: r.estrellas,
-          motivos: r.estrellas <= PREGUNTA_MOTIVO_HASTA ? r.motivos : [],
-          perfil: r.perfil,
-          comentario: r.comentario,
-        });
-      try {
-        if (!creada.current) {
-          idDelAlta.current = idDelAlta.current || nuevoIdDeCalificacion();
-          const ctx = {
-            ...contextoActual.current,
-            dispositivo: dispositivoDe(typeof window !== "undefined" ? window.innerWidth : 0),
-            entorno: typeof window !== "undefined" ? entornoDe(window.location.hostname) : "prueba",
-          };
-          try {
-            await enviar(escrituraNueva({ id: idDelAlta.current, estrellas: r.estrellas, contexto: ctx }));
-          } catch (e) {
-            // ¿Ya existía? Pasa si el alta anterior llegó y se perdió la
-            // respuesta: Firestore rechaza crearla de nuevo con el mismo id.
-            // Si corregirla funciona, estaba creada; si no, era otro error.
-            if (!e?.status) throw e;
-            await enviar(cambio()).catch(() => { throw e; });
-          }
-          creada.current = { estado: "calificada", el: ahora().toISOString(), id: idDelAlta.current };
-          guardarRegistro(almacenReal(), creada.current);
-          setFase((f) => (f === "pregunta" ? "guardada" : f));
-        } else if (puedeCambiar(creada.current, ahora())) {
-          await enviar(cambio());
-        } else {
-          setError(VENCIDA);
-          ultimoFallo.current = true;
-          return false;
-        }
-        ultimoFallo.current = false;
-        return true;
-      } catch (e) {
-        setError(e?.message || "No pudimos guardar tu calificación. Probá de nuevo en un rato.");
-        ultimoFallo.current = true;
-        return false;
-      }
-    });
-    return cola.current;
+/** Cuánto se desplazó la página: en el celular hace scroll el body; en la compu, la ventana. */
+const desplazamiento = () => window.scrollY + (document.body?.scrollTop || 0);
+
+/**
+ * ¿El mouse está encima de la tarjeta? Se pregunta en el momento: con
+ * pointerenter/pointerleave quedaba "encima" para siempre cuando la tarjeta
+ * cambiaba de forma debajo del puntero. Sólo si lo último que la tocó fue un
+ * mouse: en el celular, el :hover queda pegado después de un toque.
+ */
+const mouseEncima = (gesto, seccion) => gesto === "mouse" && Boolean(seccion?.matches(":hover"));
+
+/**
+ * ¿La persona está en la tarjeta con el teclado o con un lector de pantalla?
+ * Cuenta todo foco adentro que no vino de un toque o un clic: un lector elige
+ * sin mandar teclas ni toques a la página, y con Tab se entra desde afuera.
+ * También se pregunta en el momento: Safari y Firefox no avisan (blur) cuando
+ * desaparece lo que tenía el foco, y quedaba "adentro" para siempre.
+ */
+const focoDeTecladoEn = (gesto, seccion) => !CON_EL_DEDO_O_EL_MOUSE.has(gesto) && Boolean(seccion?.contains(document.activeElement));
+
+/**
+ * @param contexto  lo que se guarda con la calificación (lib/calificaciones.js).
+ * @param desactualizado  el recibo dice "Cambiaste datos": si todavía no
+ *   calificó, la tarjeta se va mientras dure (no se pregunta por un recibo
+ *   viejo ni se compite con "Recalcular"); si ya calificó, se queda.
+ * @param visita  "nueva" (todavía no apareció en esta visita) o "vista" (ya
+ *   apareció: la del recibo siguiente entra sin espera). La guarda la
+ *   calculadora, que arma una tarjeta por recibo.
+ * @param alCambiarVisita  avisa "vista" cuando entra por primera vez.
+ * @param enviar, almacen, ahora, espera, tiempos  para los tests.
+ */
+export default function CalificarExperiencia({
+  contexto,
+  desactualizado = false,
+  visita = "nueva",
+  alCambiarVisita,
+  enviar,
+  almacen,
+  ahora,
+  espera,
+  tiempos,
+}) {
+  const t = { ...TIEMPOS, ...tiempos };
+  const cal = useCalificacion({ contexto, enviar, almacen, ahora, espera });
+  const [paso, setPaso] = useState("estrellas");
+  const [haciaAtras, setHaciaAtras] = useState(false);
+  // flotando (pegada al pie de la pantalla) → saliendo → posada (quieta al pie
+  // del recibo). Sólo el agradecimiento se apoya: la pregunta sigue flotando.
+  const [modo, setModo] = useState("flotando");
+  const [entro, setEntro] = useState(false);
+  // La pregunta abierta, achicada a una línea porque la persona siguió leyendo el recibo.
+  const [achicada, setAchicada] = useState(false);
+  // Hay una pausa en curso antes de pasar sola a la pregunta siguiente.
+  const [avanzando, setAvanzando] = useState(false);
+  const [pieBloqueado, setPieBloqueado] = useState(false);
+  // Lo que dice la región viva (existe vacía desde el principio, si no el lector no la anuncia).
+  const [aviso, setAviso] = useState("");
+  const [escribiendo, setEscribiendo] = useState(false);
+  const [teclado, setTeclado] = useState(SIN_TECLADO);
+  const idPregunta = useId();
+  const riel = useRef(null);
+  const seccion = useRef(null);
+  const titulo = useRef(null);
+  const caja = useRef(null);
+  const linea = useRef(null);
+  // Con qué se tocó lo último en la tarjeta: "mouse", "touch", "pen" o "teclado".
+  const gesto = useRef(null);
+  // Cuánto se movió la página desde que la persona tocó la tarjeta por última vez.
+  const recorrido = useRef(0);
+  // El foco que pone la tarjeta en la caja no es escribir: con eso solo, la
+  // pregunta no se achicaba aunque la persona no escribiera nada.
+  const focoPuesto = useRef(false);
+  const relojes = useRef({});
+  // Lo que tenía el foco va a desaparecer: se pide moverlo con un número que
+  // sube, en la misma tanda que el cambio que lo saca. Así el efecto del foco
+  // corre en el dibujado que ya tiene la pregunta nueva (con una marca en un
+  // ref, la consumía antes un dibujado de otra cosa y el foco quedaba en el body).
+  const [pedidoDeFoco, setPedidoDeFoco] = useState(0);
+  const pedirFoco = () => setPedidoDeFoco((n) => n + 1);
+
+  const cerrada = cal.fase === "cerrada";
+  const pasos = ["estrellas", ...(cal.baja ? ["motivos"] : []), "perfil", "comentario"];
+  const indice = Math.max(0, pasos.indexOf(paso));
+  const mostrada = cal.visible && !(desactualizado && cal.estrellas === 0) && (modo !== "flotando" || entro);
+  const estado = mostrada ? modo : "oculta";
+  const enLinea = achicada && !cerrada;
+  // La persona está con la tarjeta: el mouse encima o el foco de teclado adentro.
+  const estaConLaTarjeta = () => mouseEncima(gesto.current, seccion.current) || focoDeTecladoEn(gesto.current, seccion.current);
+
+  const reloj = (nombre, fn, ms) => {
+    clearTimeout(relojes.current[nombre]);
+    relojes.current[nombre] = setTimeout(fn, ms);
   };
-
-  /** Lo que estaba esperando para juntarse con otros toques, que salga ya. */
-  const vaciarPendiente = () => {
-    if (temporizador.current === null) return;
-    clearTimeout(temporizador.current);
-    temporizador.current = null;
-    guardar();
+  const pararReloj = (nombre) => {
+    clearTimeout(relojes.current[nombre]);
+    relojes.current[nombre] = null;
   };
-  const vaciarRef = useRef(vaciarPendiente);
   useEffect(() => {
-    vaciarRef.current = vaciarPendiente;
+    const todos = relojes.current;
+    return () => Object.values(todos).forEach(clearTimeout);
+  }, []);
+
+  // ENTRADA: cuando los tres números estuvieron enteros a la vista (o ya
+  // quedaron arriba), un compás y entra. Es un pestillo: el scroll no la
+  // vuelve a esconder. Sin IntersectionObserver, entra después del compás.
+  const alEntrar = useEffectEvent(() => {
+    setEntro(true);
+    if (visita === "nueva") alCambiarVisita?.("vista");
   });
-
-  // Si se pregunta o no, se decide en el navegador (el servidor no sabe qué
-  // contestó esta persona antes) y una sola vez. Lo pendiente se manda igual
-  // si la tarjeta desaparece (recalcular, ir a otra página) o la pestaña se
-  // cierra: el envío lleva `keepalive` (lib/calificaciones.js).
+  const demoraDeEntrada = visita === "nueva" ? t.entrada : 0;
   useEffect(() => {
-    const registro = leerRegistro(almacen ?? almacenDelNavegador());
-    setFase((f) => (f === "cargando" ? (debePreguntar(registro, ahora()) ? "pregunta" : "oculta") : f));
-    const alOcultar = () => vaciarRef.current();
-    if (typeof window !== "undefined") window.addEventListener("pagehide", alOcultar);
-    return () => {
-      if (typeof window !== "undefined") window.removeEventListener("pagehide", alOcultar);
-      vaciarRef.current();
+    if (!cal.visible || modo !== "flotando" || entro) return;
+    let espera = null;
+    const listo = () => {
+      espera = setTimeout(() => alEntrar(), demoraDeEntrada);
     };
-  }, [almacen, ahora]);
+    const numeros = riel.current?.closest("[data-recibo]")?.querySelector("[data-resumen]");
+    if (typeof IntersectionObserver === "undefined" || !numeros) {
+      listo();
+      return () => clearTimeout(espera);
+    }
+    const observador = new IntersectionObserver(
+      (entradas) => {
+        const e = entradas[entradas.length - 1];
+        if (!e || !seVieron(e)) return;
+        observador.disconnect();
+        listo();
+      },
+      { rootMargin: ZONA_DE_LOS_NUMEROS, threshold: [0, 1] }
+    );
+    observador.observe(numeros);
+    return () => {
+      observador.disconnect();
+      clearTimeout(espera);
+    };
+  }, [cal.visible, modo, entro, demoraDeEntrada]);
 
-  /** Junta los toques seguidos y manda uno solo. La primera estrella no espera. */
-  const programar = () => {
-    if (!creada.current && !idDelAlta.current) {
-      guardar();
+  // ACHICARSE: la pregunta abierta (después de la estrella) se achica a una
+  // línea si la página se mueve más de RECORRIDO_PARA_ACHICAR sin que la
+  // persona toque la tarjeta. No mientras escribe o tiene un comentario sin
+  // mandar, ni con el mouse encima o el foco de teclado adentro, ni mientras
+  // manda. Con un error, sí (la línea lo dice). Se cuenta sólo el scroll de la
+  // página: el de adentro de la tarjeta o el de una tabla del recibo no.
+  const conBorrador = paso === "comentario" && cal.comentario.trim() !== "";
+  const puedeAchicarse = mostrada && modo === "flotando" && !cerrada && cal.estrellas > 0 && !achicada && !escribiendo && !conBorrador && !cal.enviando && !cal.plegando;
+  useEffect(() => {
+    if (!puedeAchicarse) return;
+    recorrido.current = 0;
+    // Desde dónde está la página ahora: con `null`, el primer tramo no contaba
+    // (un salto de un solo evento, como AvPág sin animación, no la achicaba).
+    let ultimo = desplazamiento();
+    const alMoverse = (e) => {
+      if (e.target !== document && e.target !== document.documentElement && e.target !== document.body) return;
+      const y = desplazamiento();
+      const tramo = Math.abs(y - ultimo);
+      ultimo = y;
+      // Con el mouse encima o el foco de teclado adentro, la persona está con la tarjeta: no cuenta.
+      if (mouseEncima(gesto.current, seccion.current) || focoDeTecladoEn(gesto.current, seccion.current)) {
+        recorrido.current = 0;
+        return;
+      }
+      recorrido.current += tramo;
+      if (recorrido.current <= RECORRIDO_PARA_ACHICAR) return;
+      // Si el foco estaba adentro (lo puso la tarjeta), pasa a la línea: lo que lo tenía desaparece.
+      const conFocoAdentro = seccion.current?.contains(document.activeElement);
+      setAchicada(true);
+      if (conFocoAdentro) pedirFoco();
+    };
+    document.addEventListener("scroll", alMoverse, { capture: true, passive: true });
+    return () => document.removeEventListener("scroll", alMoverse, { capture: true });
+  }, [puedeAchicarse]);
+
+  /** El agradecimiento deja de flotar: se funde y queda quieto al pie del recibo. */
+  const aterrizar = () => {
+    pedirFoco();
+    if (menosMovimiento()) {
+      setModo("posada");
       return;
     }
-    clearTimeout(temporizador.current);
-    temporizador.current = setTimeout(() => {
-      temporizador.current = null;
-      guardar();
-    }, espera);
+    setModo("saliendo");
+    reloj("salida", () => setModo("posada"), t.salida);
   };
+
+  // El agradecimiento flota un rato y se apoya al pie. Espera mientras el
+  // mouse está encima o el foco de teclado está adentro, y vuelve a preguntar
+  // cada segundo (no con un toque: en iOS el foco no se suelta y quedaría
+  // flotando para siempre).
+  const alTerminarAgradecimiento = useEffectEvent(() => {
+    if (estaConLaTarjeta()) return false;
+    aterrizar();
+    return true;
+  });
+  useEffect(() => {
+    if (modo !== "flotando" || !cerrada) return;
+    let id = null;
+    const intentar = () => {
+      if (!alTerminarAgradecimiento()) id = setTimeout(intentar, 1000);
+    };
+    id = setTimeout(intentar, t.agradecimiento);
+    return () => clearTimeout(id);
+  }, [modo, cerrada, t.agradecimiento]);
+
+  // LO QUE TAPA. Mientras flota, lo del recibo que toma el foco (con Tab)
+  // tiene que quedar por encima de la tarjeta (WCAG 2.4.11). El navegador lo
+  // corre con scroll-margin-bottom (app/globals.css), que necesita el alto de
+  // la tarjeta (abierta, de 110 a 300 px; en una línea, unos 64) más su
+  // distancia al pie. Antes era un scroll-padding fijo de 8rem en la página:
+  // no alcanzaba con la tarjeta abierta y, como incluía a la propia tarjeta,
+  // tocar una estrella hacía saltar el recibo media pantalla.
+  useEffect(() => {
+    const s = seccion.current;
+    const r = riel.current;
+    const recibo = r?.closest("[data-recibo]");
+    if (estado !== "flotando" || !s || !recibo) return;
+    const medir = () => {
+      const abajo = parseFloat(getComputedStyle(r).bottom) || 0;
+      recibo.style.setProperty("--reserva-calificacion", `${Math.ceil(s.offsetHeight + abajo + 8)}px`);
+    };
+    medir();
+    const observador = typeof ResizeObserver !== "undefined" ? new ResizeObserver(medir) : null;
+    observador?.observe(s);
+    return () => {
+      observador?.disconnect();
+      recibo.style.removeProperty("--reserva-calificacion");
+    };
+  }, [estado, teclado.tapa]);
+
+  // EL TECLADO DEL CELULAR. En Safari del iPhone y en Chrome de Android el
+  // teclado achica sólo el viewport visual: lo que está pegado abajo queda
+  // tapado, y se escribía a ciegas con "Enviar" debajo del teclado. Mientras
+  // la caja tiene el foco, la parte tapada se suma al `bottom` del riel
+  // (--teclado). Con zoom de dedos no se toca nada.
+  useEffect(() => {
+    const vv = typeof window !== "undefined" ? window.visualViewport : null;
+    if (!escribiendo || modo !== "flotando" || !vv) {
+      setTeclado((v) => (v.tapa === 0 && v.alto === 0 ? v : SIN_TECLADO));
+      return;
+    }
+    let cuadro = 0;
+    const medir = () => {
+      cancelAnimationFrame(cuadro);
+      cuadro = requestAnimationFrame(() => {
+        const tapa = vv.scale > 1.01 ? 0 : Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+        setTeclado({ tapa, alto: Math.round(vv.height) });
+      });
+    };
+    medir();
+    vv.addEventListener("resize", medir);
+    vv.addEventListener("scroll", medir);
+    return () => {
+      cancelAnimationFrame(cuadro);
+      vv.removeEventListener("resize", medir);
+      vv.removeEventListener("scroll", medir);
+    };
+  }, [escribiendo, modo]);
+
+  // Un solo aviso para el lector cuando Firestore confirmó el alta, y otro al
+  // borrar el comentario. Si el alta llegó recién con "Enviar" (había fallado),
+  // no: sigue el agradecimiento, que toma el foco, y "Lo que sigue es
+  // opcional" ya no es cierto. Al llegar al agradecimiento, el foco va a él.
+  const faseAnterior = useRef(cal.fase);
+  useEffect(() => {
+    if (faseAnterior.current === cal.fase) return;
+    faseAnterior.current = cal.fase;
+    if (cal.fase === "guardada" && !cal.enviando && !cal.plegando) setAviso(AVISO_GUARDADA);
+    if (cal.fase === "cerrada") pedirFoco();
+  }, [cal.fase, cal.enviando, cal.plegando]);
+  useEffect(() => {
+    if (!cal.comentarioBorrado) return;
+    setAviso(AVISO_BORRADO);
+    pedirFoco();
+  }, [cal.comentarioBorrado]);
+
+  // EL FOCO. Cuando desaparece lo que tenía el foco (cambio de pregunta,
+  // achicarse, agradecimiento, borrar el comentario), va al título del estado
+  // nuevo, sin mover la página: nunca queda en el body, donde el próximo Tab
+  // arrancaría en "Saltar al contenido". En el comentario, con mouse o
+  // teclado, va a la caja; con el dedo no, para no abrir el teclado a quien no
+  // pidió escribir. Si la persona ya está en otro lado (el formulario), no se
+  // mueve.
+  const moverFoco = useEffectEvent(() => {
+    const s = seccion.current;
+    const activo = document.activeElement;
+    if (!s || s.hasAttribute("inert")) return;
+    if (activo && activo !== document.body && !s.contains(activo)) return;
+    let destino = titulo.current;
+    if (enLinea) destino = linea.current;
+    else if (paso === "comentario" && !cerrada && (gesto.current === "mouse" || gesto.current === "teclado")) destino = caja.current;
+    focoPuesto.current = destino === caja.current;
+    destino?.focus({ preventScroll: true });
+    focoPuesto.current = false;
+  });
+  useEffect(() => {
+    if (pedidoDeFoco > 0) moverFoco();
+  }, [pedidoDeFoco]);
+
+  if (!cal.visible) return null;
+
+  /** Cambia de pregunta, en el acto o después de la pausa para ver lo elegido. */
+  const irA = (destino, { conPausa = false, atras = false } = {}) => {
+    pararReloj("pausa");
+    const ir = () => {
+      setAvanzando(false);
+      setHaciaAtras(atras);
+      setPaso(destino);
+      setPieBloqueado(true);
+      reloj("pie", () => setPieBloqueado(false), t.pie);
+      pedirFoco();
+    };
+    if (!conPausa) return ir();
+    setAvanzando(true);
+    reloj("pausa", ir, t.pausa);
+  };
+  const conElDedoOElMouse = () => CON_EL_DEDO_O_EL_MOUSE.has(gesto.current);
+  const seguir = () => irA(pasos[Math.min(indice + 1, pasos.length - 1)]);
+  const volver = () => irA(pasos[Math.max(indice - 1, 0)], { atras: true });
 
   const elegirEstrellas = (n) => {
-    respuestas.current = { ...respuestas.current, estrellas: n };
-    setEstrellas(n);
-    programar();
+    cal.elegirEstrellas(n);
+    if (conElDedoOElMouse()) {
+      irA(n <= PREGUNTA_MOTIVO_HASTA ? "motivos" : "perfil", { conPausa: true });
+    } else {
+      pararReloj("pausa");
+      setAvanzando(false);
+    }
+  };
+  const alTocarPerfil = (elegida) => {
+    if (elegida && conElDedoOElMouse()) irA("comentario", { conPausa: true });
+    else {
+      pararReloj("pausa");
+      setAvanzando(false);
+    }
   };
 
-  const alternarMotivo = (id) => {
-    const actual = respuestas.current.motivos;
-    const nuevos = actual.includes(id) ? actual.filter((m) => m !== id) : [...actual, id];
-    respuestas.current = { ...respuestas.current, motivos: nuevos };
-    setMotivos(nuevos);
-    programar();
+  const abrir = () => {
+    setAchicada(false);
+    pedirFoco();
   };
-
-  const elegirPerfil = (id) => {
-    const nuevo = respuestas.current.perfil === id ? null : id;
-    respuestas.current = { ...respuestas.current, perfil: nuevo };
-    setPerfil(nuevo);
-    programar();
-  };
-
-  /**
-   * "Enviar": manda lo que haya (con o sin comentario: todo es opcional),
-   * pliega el panel y deja el agradecimiento. Si no se pudo guardar, el panel
-   * queda abierto con el error y "Reintentar".
-   */
-  const enviarTodo = async (e) => {
-    e?.preventDefault?.();
-    if (enviando) return;
-    setEnviando(true);
-    clearTimeout(temporizador.current);
-    temporizador.current = null;
-    respuestas.current = { ...respuestas.current, comentario };
-    // Se encola detrás de lo que se esté guardando solo (cola): sale en orden.
-    const ok = await guardar();
-    setEnviando(false);
-    if (!ok) return;
-    setComentarioEnviado(comentario.trim());
-    setPlegando(true);
-    setTimeout(() => setFase("cerrada"), menosMovimiento() ? 0 : PLEGADO_MS);
-  };
-
-  /** Desde el agradecimiento: borra el comentario que mandó (la Ley 25.326 le da derecho a sacarlo). */
-  const borrarComentario = async () => {
-    respuestas.current = { ...respuestas.current, comentario: "" };
-    const ok = await guardar();
-    if (ok) setComentarioBorrado(true);
-  };
-
+  // El foco se pide antes de que "Reintentar" desaparezca (el error se borra al empezar a guardar).
   const reintentar = () => {
-    clearTimeout(temporizador.current);
-    temporizador.current = null;
-    guardar();
+    pedirFoco();
+    cal.reintentar();
   };
 
-  if (fase === "cargando" || fase === "oculta") return null;
+  const alEnviar = (e) => {
+    e.preventDefault();
+    // Con el dedo, primero baja el teclado y después se pliega.
+    if (gesto.current !== "mouse" && gesto.current !== "teclado" && document.activeElement === caja.current) caja.current?.blur();
+    cal.enviarTodo();
+  };
 
-  if (fase === "cerrada") {
-    return (
-      <div className="space-y-1">
-        <Agradecimiento comentarioEnviado={comentarioEnviado} onBorrarComentario={borrarComentario} borrado={comentarioBorrado} />
-        {error && <p role="alert" className="text-[12px] text-rose-700">{error}</p>}
-      </div>
+  // Lo que va en el cuerpo y en el pie de cada pregunta.
+  let cuerpo = null;
+  let pie = null;
+  const pieDelPaso = (derecha) => (
+    <Pie izquierda={<BotonVolver onClick={volver} />} centro={<Avance total={pasos.length} actual={indice} />} derecha={derecha} bloqueado={pieBloqueado} />
+  );
+  if (paso === "motivos") {
+    cuerpo = (
+      <>
+        <p className="text-[12px] text-slate-600">Podés marcar varias. Así lo arreglamos.</p>
+        <div className="mt-2">
+          <OpcionesDeMotivo cal={cal} etiquetadaPor={idPregunta} />
+        </div>
+      </>
     );
+    pie = pieDelPaso(<BotonSeguir onClick={seguir} />);
+  } else if (paso === "perfil") {
+    cuerpo = <OpcionesDePerfil cal={cal} etiquetadaPor={idPregunta} alTocar={alTocarPerfil} />;
+    pie = pieDelPaso(<BotonSeguir onClick={seguir} />);
+  } else if (paso === "comentario") {
+    cuerpo = (
+      <CampoComentario
+        cal={cal}
+        etiquetadaPor={idPregunta}
+        ejemplo={preguntaDelComentario(cal).ejemplo}
+        cajaRef={caja}
+        onFocus={() => {
+          if (!focoPuesto.current) setEscribiendo(true);
+        }}
+        onPointerDown={() => setEscribiendo(true)}
+        onKeyDown={() => setEscribiendo(true)}
+        onBlur={() => setEscribiendo(false)}
+      />
+    );
+    pie = pieDelPaso(<BotonEnviar cal={cal} />);
+  } else {
+    cuerpo = <Estrellas valor={cal.estrellas} onElegir={elegirEstrellas} etiquetadaPor={idPregunta} />;
+    // Con las flechas (o al volver) se eligió sin avanzar: "Seguir".
+    if (cal.estrellas > 0 && !avanzando) pie = <Pie derecha={<BotonSeguir onClick={seguir} />} bloqueado={pieBloqueado} />;
   }
+  const Contenedor = paso === "comentario" ? "form" : "div";
+  const progreso = !cerrada && indice > 0 ? ` Pregunta ${indice + 1} de ${pasos.length}.` : "";
 
-  const mostradas = previa || estrellas;
-  const baja = estrellas > 0 && estrellas <= PREGUNTA_MOTIVO_HASTA;
+  const pegada = modo !== "posada";
+  const visibilidad =
+    estado === "oculta"
+      ? `pointer-events-none opacity-0 ${!entro && visita === "nueva" ? "translate-y-3 motion-reduce:translate-y-0" : ""}`
+      : estado === "saliendo"
+        ? "pointer-events-none opacity-0 translate-y-2 motion-reduce:translate-y-0"
+        : "pointer-events-auto opacity-100 translate-y-0";
+  const aspecto = cerrada
+    ? "bg-emerald-50 ring-emerald-600/20"
+    : pegada
+      ? "bg-white ring-slate-900/10"
+      : "bg-white ring-slate-200";
 
   return (
-    <section aria-label="Calificá este cálculo" className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 print:hidden">
-      <div
-        role="radiogroup"
-        aria-labelledby="calificar-titulo"
-        className="flex flex-wrap items-center gap-x-3 gap-y-1"
-        onMouseLeave={() => setPrevia(0)}
+    <div
+      ref={riel}
+      data-flotante=""
+      data-calificacion={estado}
+      style={{ "--teclado": `${teclado.tapa}px` }}
+      className={`pointer-events-none mt-3 flex justify-end sm:pr-5 print:hidden ${
+        pegada ? "sticky bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))_+_var(--teclado,0px))] z-10 sm:bottom-[calc(1.25rem_+_var(--teclado,0px))]" : ""
+      }`}
+    >
+      <section
+        ref={seccion}
+        aria-label="Calificá este cálculo"
+        data-achicada={enLinea ? "" : undefined}
+        inert={!mostrada}
+        style={teclado.tapa > 0 ? { maxHeight: `min(${teclado.alto - 16}px, 26rem)` } : undefined}
+        onPointerDownCapture={(e) => {
+          gesto.current = e.pointerType || "mouse";
+          recorrido.current = 0;
+        }}
+        onKeyDownCapture={() => {
+          gesto.current = "teclado";
+          recorrido.current = 0;
+        }}
+        className={`relative flex max-h-[min(60dvh,26rem)] w-full flex-col rounded-2xl px-4 ring-1 transition-[opacity,translate,box-shadow,background-color] duration-300 ease-out motion-reduce:transition-opacity sm:w-[25rem] ${
+          enLinea ? "py-1" : "py-3"
+        } ${pegada ? "shadow-[0_18px_40px_-12px_rgba(15,23,42,0.35)]" : "shadow-none"} ${aspecto} ${visibilidad}`}
       >
-        <span id="calificar-titulo" className="text-sm font-semibold text-slate-800">¿Te sirvió este cálculo?</span>
-        <div className="flex items-center">
-          {ESTRELLAS.map((n) => (
-            <label
-              key={n}
-              onMouseEnter={() => setPrevia(n)}
-              className="cursor-pointer rounded-md p-0.5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-emerald-400"
-            >
-              <input
-                type="radio"
-                name="calificacion-estrellas"
-                value={n}
-                checked={estrellas === n}
-                onChange={() => elegirEstrellas(n)}
-                className="sr-only"
-              />
-              <Estrella llena={n <= mostradas} />
-              <span className="sr-only">{`${n} de 5 estrellas (${NOMBRE_DE_LAS_ESTRELLAS[n]})`}</span>
-            </label>
-          ))}
-        </div>
-        <span className="text-[12px] text-slate-600" aria-hidden="true">
-          {mostradas ? NOMBRE_DE_LAS_ESTRELLAS[mostradas] : ""}
-        </span>
-        {/* Sin "Guardando…" acá: aparecía y desaparecía en esta misma línea, que
-            en el celular se partía en dos, el panel saltaba y el toque en
-            "Enviar" caía al lado del botón (probado el 26/11/2026). El guardado
-            de cada elección es silencioso; "Enviar" dice "Enviando…". */}
-      </div>
-
-      {fase === "guardada" && (
-        <div
-          className={`grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none ${
-            plegando ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"
-          }`}
-        >
-          <form onSubmit={enviarTodo} className="min-h-0 overflow-hidden">
-            <div className="space-y-3 pt-3">
-              <p role="status" className="text-[13px] font-medium text-emerald-800">
-                ¡Gracias! {baja ? "Contanos qué falló, así lo arreglamos." : "Si querés, contanos un poco más."}{" "}
-                <span className="font-normal text-slate-500">Todo es opcional.</span>
-              </p>
-
-              {baja && (
-                <div role="group" aria-labelledby="calificar-motivos">
-                  <p id="calificar-motivos" className="text-[12px] font-semibold text-slate-700">¿Qué falló? Podés marcar varias.</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {MOTIVOS.map((m) => (
-                      <Opcion key={m.id} activa={motivos.includes(m.id)} onClick={() => alternarMotivo(m.id)}>
-                        {m.texto}
-                      </Opcion>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div role="group" aria-labelledby="calificar-perfil">
-                <p id="calificar-perfil" className="text-[12px] font-semibold text-slate-700">¿Para qué la usaste?</p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {PERFILES.map((p) => (
-                    <Opcion key={p.id} activa={perfil === p.id} onClick={() => elegirPerfil(p.id)}>
-                      {p.texto}
-                    </Opcion>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="calificar-comentario" className="block text-[12px] font-semibold text-slate-700">
-                  Comentario
-                </label>
-                <textarea
-                  id="calificar-comentario"
-                  value={comentario}
-                  onChange={(e) => setComentario(e.target.value)}
-                  maxLength={MAX_COMENTARIO}
-                  rows={2}
-                  placeholder={baja ? "Qué esperabas y qué pasó…" : "Qué te sirvió, qué te faltó…"}
-                  aria-describedby="calificar-comentario-nota"
-                  className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-400"
-                />
-                <p id="calificar-comentario-nota" className="text-[11px] text-slate-500">
-                  No escribas datos personales (nombre, CUIL, empresa).
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                disabled={enviando}
-                className="rounded-lg bg-emerald-600 px-4 py-1.5 text-[13px] font-semibold text-white hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60"
-              >
-                {enviando ? "Enviando…" : "Enviar"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {error && (
-        <p role="alert" className="mt-2 text-[12px] text-rose-700">
-          {error}{" "}
-          {estrellas > 0 && error !== VENCIDA && (
-            <button type="button" onClick={reintentar} className="font-semibold underline underline-offset-2">
-              Reintentar
-            </button>
-          )}
+        <p className="sr-only" role="status" aria-live="polite">
+          {aviso}
         </p>
-      )}
-    </section>
+
+        {enLinea ? (
+          // La pregunta abierta, en una línea: sigue flotando y un toque la abre donde estaba.
+          <AparecerSuave desde="translate-y-1">
+            {/* Achicada no está el aviso del error: el lector se entera por acá. */}
+            {cal.error && (
+              <p role="alert" className="sr-only">
+                {cal.error}
+              </p>
+            )}
+            <button
+              ref={linea}
+              type="button"
+              aria-expanded="false"
+              onClick={abrir}
+              className="-mx-2 flex min-h-11 w-[calc(100%+1rem)] items-center gap-2.5 rounded-xl px-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+            >
+              <Marca />
+              <span className="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800">
+                {tituloDelPaso(paso, cal)}
+                <span className="sr-only">{progreso}</span>
+              </span>
+              {cal.error ? (
+                <span className="shrink-0 text-[12px] font-semibold text-rose-700"> No se guardó</span>
+              ) : (
+                indice > 0 && <Avance total={pasos.length} actual={indice} />
+              )}
+              <svg viewBox="0 0 16 16" aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 10l4-4 4 4" />
+              </svg>
+            </button>
+          </AparecerSuave>
+        ) : (
+          <>
+            <div className="flex shrink-0 items-start gap-2.5">
+              <Marca hecho={cerrada} />
+              <AparecerSuave key={cerrada ? "gracias" : paso} desde={haciaAtras ? "-translate-x-3" : "translate-x-3"} className="min-w-0 flex-1">
+                <p ref={titulo} tabIndex={-1} className={`pt-0.5 text-sm font-semibold leading-5 outline-none ${cerrada ? "text-emerald-900" : "text-slate-800"}`}>
+                  <span id={idPregunta}>{cerrada ? "¡Gracias por ayudar a mejorar!" : tituloDelPaso(paso, cal)}</span>
+                  {progreso && <span className="sr-only">{progreso}</span>}
+                </p>
+              </AparecerSuave>
+            </div>
+
+            {cerrada ? (
+              (cal.comentarioEnviado || cal.comentarioBorrado || cal.error) && (
+                <div className="pl-[34px] pt-0.5">
+                  <BorrarComentario cal={cal} />
+                  <ErrorDeCalificacion cal={cal} conReintentar={false} />
+                </div>
+              )
+            ) : (
+              // Aire adentro (-mx-3 px-3, pb-1) en las dos cajas que recortan, la
+              // del plegado y la del scroll: sin él se cortaban los anillos de foco
+              // de la primera estrella, de las opciones del borde y del pie.
+              <Plegable plegado={cal.plegando} className="min-h-0" interior="-mx-3 flex flex-col px-3 pb-1">
+                <Contenedor className="flex min-h-0 flex-col" {...(paso === "comentario" ? { onSubmit: alEnviar } : {})}>
+                  {/* overscroll-contain sólo con el teclado del celular, cuando el cuerpo
+                      desborda: siempre, frenaba la rueda con el puntero sobre las opciones. */}
+                  <AparecerSuave
+                    key={paso}
+                    desde={haciaAtras ? "-translate-x-3" : "translate-x-3"}
+                    className={`-mx-3 min-h-0 overflow-y-auto px-3 pb-1 pt-1.5 ${teclado.tapa > 0 ? "overscroll-contain" : ""}`}
+                  >
+                    {cuerpo}
+                  </AparecerSuave>
+                  <ErrorDeCalificacion cal={cal} conReintentar={paso !== "comentario"} alReintentar={reintentar} />
+                  {pie}
+                </Contenedor>
+              </Plegable>
+            )}
+          </>
+        )}
+      </section>
+    </div>
   );
 }

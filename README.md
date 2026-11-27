@@ -133,16 +133,36 @@ semanales.
 
 ### 5. Mirar qué opina la gente (calificaciones)
 
-En cada recibo, debajo de los tres números de arriba (neto, bruto y costo
-laboral), aparece una línea discreta: **"¿Te sirvió este cálculo?"**, con 5
-estrellas. No es un cartel ni aparece por tiempo: está ahí recién cuando hay
-recibo, y el que no quiere calificar no toca nada (no hay "Ahora no"). Con un
-toque en las estrellas la calificación queda guardada en el acto. Ahí se abre,
-todo opcional, qué falló (si puso 3 o menos), para qué usó la calculadora y un
-comentario; **Enviar** funciona sin escribir nada, pliega el panel y deja
-"¡Gracias por ayudar a mejorar!" (desde ahí puede borrar su comentario). Si la
-persona califica, no se le vuelve a preguntar por 4 meses. Hay una tarjeta por
-recibo: si recalcula después de calificar, no vuelve a aparecer.
+En cada recibo aparece **"¿Te sirvió este cálculo?"**, con 5 estrellas, en una
+tarjeta que flota abajo mientras mirás el recibo (en el celular, con los bordes
+del recibo; en la compu, en su esquina) y que al final se apoya debajo del
+recibo. No es un cartel ni aparece por tiempo: entra recién cuando ya se vieron
+enteros los tres números de arriba (neto, bruto y costo laboral), nunca queda
+encima del formulario y no tiene × ni "Ahora no": el que no quiere calificar no
+toca nada. En el celular, al calcular, el recibo queda arriba, debajo de la
+barra.
+
+Con un toque en las estrellas la calificación queda guardada en el acto.
+Después pregunta de a una, todo opcional: qué falló (si puso 3 o menos), para
+qué usó la calculadora y un comentario, con una pregunta según lo que contestó.
+**Seguir** y **Enviar** funcionan sin contestar. Si la persona sigue leyendo
+el recibo sin contestar, la pregunta se achica a una línea que sigue flotando,
+y un toque la vuelve a abrir (no se achica si dejó un comentario escrito sin
+mandar). **Enviar** pliega el panel y deja "¡Gracias por ayudar a mejorar!"
+(desde ahí puede borrar su comentario), que a los pocos segundos queda quieto
+debajo del recibo. Si algo no se pudo guardar (sin señal), la tarjeta lo dice
+y deja reintentar, y cuando la persona se va de la página se intenta mandar
+de nuevo lo que quedó sin guardar. Si la persona califica, no se le vuelve a
+preguntar por 4 meses. Hay una tarjeta por recibo: si recalcula después de
+calificar, no vuelve a aparecer.
+
+Así es **desde el 26/11/2026**. La versión anterior (una línea fija debajo de
+los tres números, con todo lo opcional junto) estuvo publicada sólo unas horas
+ese mismo día, así que no hay un "antes" con qué comparar: seguí cómo evoluciona
+la columna **Siguieron** de **Semana a semana**. Si algún día se cambia la
+tarjeta, compará esa columna en las semanas de antes y de después, sin "Incluir
+pruebas" y en la misma época del mes, porque las cargas de escalas mueven la
+nota. La semana del 23/11/2026 mezcla las versiones: no la uses para comparar.
 
 **Qué se guarda:** las estrellas y lo que conteste, más el contexto del recibo
 que calificó, que se toma solo: convenio, mes y categoría, si estaba en el
@@ -161,14 +181,20 @@ borralas después desde el panel.
 
 **Dónde se ve:** `/admin` → pestaña **Calificaciones** (fechas y semanas en
 hora argentina). Arriba, el porcentaje de 4 y 5 estrellas (la medida
-principal) y el promedio. Abajo, en este orden: qué falló en las bajas, semana
-a semana (incluidas las semanas en cero), por convenio, para qué la usan,
+principal) y el promedio. Abajo, en este orden: qué falló en las bajas;
+**Cuántos siguen después de la estrella** (total, celular y computadora: qué
+parte contestó algo más o apretó "Enviar", qué parte dijo para qué la usó,
+cuántas de las de 3 o menos dijeron qué falló, con la base al lado cuando son
+pocas, y qué parte dejó comentario; si la tarjeta lleva a completar, esos
+números suben); semana a semana (incluidas las semanas en cero, con la columna
+**Siguieron** para comparar antes y después de un cambio), por convenio, para qué la usan,
 desde dónde, cómo se armó el recibo y si le faltaban datos; después los
 comentarios, y al final todas las calificaciones del filtro, cada una con su
 botón **Borrar**, y **Borrar las N del filtro** para limpiar de una (pruebas,
 o una tanda de calificaciones falsas: ver `docs/continuidad.md`).
 **Descargar CSV** baja lo que muestra el filtro, separado por punto y coma
-para que el Excel en castellano lo abra en columnas.
+para que el Excel en castellano lo abra en columnas. La columna `actualizado`
+dice cuándo contestó lo último después de la estrella (vacía si no siguió).
 
 **Cómo leerlo sin engañarse:** califica sobre todo el que quedó muy contento o
 muy enojado, así que importan más las comparaciones y la tendencia que el

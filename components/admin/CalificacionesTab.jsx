@@ -1,7 +1,7 @@
 "use client";
 // components/admin/CalificacionesTab.jsx
-// Lo que la gente contestó en la tarjeta "¿Te sirvió este cálculo?" del pie
-// del recibo (lib/calificaciones.js), para decidir qué mejorar.
+// Lo que la gente contestó en la tarjeta "¿Te sirvió este cálculo?" del
+// recibo (lib/calificaciones.js), para decidir qué mejorar.
 //
 // Cómo leerlo (también está en la pantalla): califica sobre todo el que quedó
 // muy contento o muy enojado, así que importan más las comparaciones y la
@@ -12,7 +12,9 @@
 // hacia dónde va? (semana a semana, incluidas las semanas en cero: una semana
 // sin ninguna después de semanas con datos es la alarma de que la tarjeta dejó
 // de guardar; una caída después de cargar un mes o de publicar, la de que algo
-// quedó mal); ¿qué falla? (los motivos de las bajas); ¿dónde? (convenio,
+// quedó mal); ¿qué falla? (los motivos de las bajas); ¿cuántos siguen después
+// de la estrella? (si la tarjeta lleva a contestar lo opcional: para comparar
+// antes y después de cambiarla, en celular y en computadora); ¿dónde? (convenio,
 // celular o computadora, link o a mano, recibos a los que les faltaban datos);
 // ¿para quién? (perfil); y el detalle, en los comentarios.
 //
@@ -55,8 +57,11 @@ const NOMBRE_DE_MOTIVO = Object.fromEntries(MOTIVOS.map((m) => [m.id, m.texto]))
 const NOMBRE_DE_DISPOSITIVO = { movil: "Celular", escritorio: "Computadora" };
 const NOMBRE_DE_ORIGEN = { manual: "Calculó a mano", link: "Abrió un link compartido" };
 const NOMBRE_DE_DATOS = { faltaban: "Le faltaban datos", completos: "Con todos los datos" };
+const NOMBRE_DE_SEGUIMIENTO = { total: "Total", ...NOMBRE_DE_DISPOSITIVO };
 
 const pct = (x) => (x == null ? "—" : `${Math.round(x * 100)}%`);
+/** Qué parte de `de` es `n`; sin ninguna, no hay parte (se muestra "—"). */
+const parte = (n, de) => (de ? n / de : null);
 const uno = (x) => (x == null ? "—" : x.toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }));
 const estrellitas = (n) => "★".repeat(n) + "☆".repeat(5 - n);
 const fechaCorta = (v) => {
@@ -87,7 +92,8 @@ function Barra({ etiqueta, total, max }) {
   );
 }
 
-function TablaDeGrupos({ titulo, filas, nombre = (k) => k, marca = () => null }) {
+/** `conSiguieron`: una columna más con qué parte siguió después de la estrella (semana a semana). */
+function TablaDeGrupos({ titulo, filas, nombre = (k) => k, marca = () => null, conSiguieron = false }) {
   if (!filas.length) return null;
   return (
     <div>
@@ -99,6 +105,7 @@ function TablaDeGrupos({ titulo, filas, nombre = (k) => k, marca = () => null })
             <th className="py-1 text-right font-medium">Cuántas</th>
             <th className="py-1 text-right font-medium">Promedio</th>
             <th className="py-1 text-right font-medium">4 o 5 estrellas</th>
+            {conSiguieron && <th className="py-1 text-right font-medium">Siguieron</th>}
           </tr>
         </thead>
         <tbody>
@@ -113,10 +120,62 @@ function TablaDeGrupos({ titulo, filas, nombre = (k) => k, marca = () => null })
               <td className="py-1 text-right tabular-nums">{f.total}</td>
               <td className="py-1 text-right tabular-nums">{uno(f.promedio)}</td>
               <td className="py-1 text-right tabular-nums">{pct(f.satisfaccion)}</td>
+              {conSiguieron && <td className="py-1 text-right tabular-nums">{pct(parte(f.siguieron, f.total))}</td>}
             </tr>
           ))}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+/** Cuántos siguen después de la estrella (lib/calificaciones.js, seguimientoDe): total, celular y computadora. */
+function TablaDeSeguimiento({ filas }) {
+  return (
+    <div>
+      <h4 className="mb-1 text-[13px] font-semibold text-slate-700">Cuántos siguen después de la estrella</h4>
+      <div className="overflow-x-auto">
+        <table className="w-full text-[12px]">
+          <thead>
+            <tr className="text-left text-slate-500">
+              <th className="py-1 font-medium"> </th>
+              <th className="py-1 text-right font-medium">Cuántas</th>
+              <th className="py-1 text-right font-medium">Siguieron</th>
+              <th className="py-1 text-right font-medium">Para qué la usaron</th>
+              <th className="py-1 text-right font-medium">Qué falló (de las de 1 a {PREGUNTA_MOTIVO_HASTA})</th>
+              <th className="py-1 text-right font-medium">Dejaron comentario</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filas.map((f) => (
+              <tr key={f.clave} className="border-t border-slate-100">
+                <td className="py-1 text-slate-700">
+                  {NOMBRE_DE_SEGUIMIENTO[f.clave] || f.clave}
+                  {f.total > 0 && f.total < MINIMO_PARA_COMPARAR && <span className="ml-1 text-[11px] text-amber-700">(pocas para comparar)</span>}
+                </td>
+                <td className="py-1 text-right tabular-nums">{f.total}</td>
+                <td className="py-1 text-right tabular-nums">{pct(parte(f.siguieron, f.total))}</td>
+                <td className="py-1 text-right tabular-nums">{pct(parte(f.conPerfil, f.total))}</td>
+                <td className="py-1 text-right tabular-nums">
+                  {pct(parte(f.bajasConMotivo, f.bajas))}
+                  {/* Se cuenta sobre las bajas, que suelen ser pocas: con menos de MINIMO_PARA_COMPARAR, la base a la vista. */}
+                  {f.bajas > 0 && f.bajas < MINIMO_PARA_COMPARAR && (
+                    <span className="ml-1 text-[11px] text-amber-700">
+                      ({f.bajasConMotivo} de {f.bajas})
+                    </span>
+                  )}
+                </td>
+                <td className="py-1 text-right tabular-nums">{pct(parte(f.conComentario, f.total))}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-1 text-[11px] text-slate-500">
+        Siguieron: después de la estrella tocaron algo más o apretaron &quot;Enviar&quot;. Qué falló se cuenta sobre las de 1 a{" "}
+        {PREGUNTA_MOTIVO_HASTA} estrellas, que son las que lo ven; con pocas, al lado va de cuántas sale. Para saber si un
+        cambio en la tarjeta funcionó, compará la columna Siguieron de semana a semana, antes y después del cambio.
+      </p>
     </div>
   );
 }
@@ -331,11 +390,14 @@ export default function CalificacionesTab({ convenios = [] }) {
             </div>
           </div>
 
+          <TablaDeSeguimiento filas={r.seguimiento} />
+
           <TablaDeGrupos
             titulo="Semana a semana (de lunes a domingo)"
             filas={[...r.porSemana].reverse().slice(0, 16)}
             nombre={(k) => `Semana del ${k.split("-").reverse().join("/")}`}
             marca={marcaDeSemana}
+            conSiguieron
           />
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">

@@ -81,10 +81,18 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
   const [autoCalcular, setAutoCalcular] = useState(inicial.autoCalcular);
   const [copiado, setCopiado] = useState("");
   // Al calcular, el foco va al título del recibo y una región viva lo anuncia:
-  // quien usa lector de pantalla pulsaba Enter y no oía nada.
+  // quien usa lector de pantalla pulsaba Enter y no oía nada. En una sola
+  // columna (el celular), además, el recibo queda arriba, debajo de la barra:
+  // el focus() solo lo dejaba más o menos al medio, con los tres números
+  // cortados y la calificación cayendo encima de ellos (26/11/2026).
   const tituloReciboRef = useRef(null);
+  const reciboRef = useRef(null);
   useEffect(() => {
-    if (resultadoLiquidacion) tituloReciboRef.current?.focus?.();
+    if (!resultadoLiquidacion) return;
+    // La misma consulta que `lg:` de Tailwind, en rem: en px no coincidía con la grilla si la fuente del navegador no es la de fábrica.
+    const unaColumna = typeof window !== "undefined" && Boolean(window.matchMedia?.("not all and (min-width: 64rem)")?.matches);
+    if (unaColumna) reciboRef.current?.scrollIntoView?.({ block: "start" });
+    tituloReciboRef.current?.focus?.({ preventScroll: unaColumna });
   }, [resultadoLiquidacion]);
   // De qué período salieron las tablas de Ganancias que se usaron. Si no
   // coincide con el mes liquidado hay que decirlo: la escala del impuesto
@@ -104,6 +112,10 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
   const [calculosEnLaVisita, setCalculosEnLaVisita] = useState(0);
   const [origenDelRecibo, setOrigenDelRecibo] = useState("manual");
   const reciboAutomatico = useRef(false);
+  // Si la calificación ya apareció en esta visita: "nueva" (todavía no) o
+  // "vista" (sí: la del recibo siguiente entra sin espera, sin volver a hacer
+  // la entrada). No se guarda en el navegador: un F5 vuelve a "nueva".
+  const [visitaDeCalificacion, setVisitaDeCalificacion] = useState("nueva");
 
   // Lo que ya vino en el HTML (la escala y las tablas del período inicial) y lo
   // que se fue trayendo después: nada se pide dos veces.
@@ -578,9 +590,19 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
 
           {/* PANEL DERECHO: El Recibo, con el modelo del Anexo III del Decreto
               407/2026: datos · lo que paga el empleador · haberes y deducciones ·
-              neto · composición del costo laboral. */}
+              neto · composición del costo laboral. La columna lleva el recibo
+              y, debajo, la calificación, que flota pegada al pie de la
+              pantalla mientras se mira el recibo y se apoya al final
+              (CalificarExperiencia.jsx). Esta caja NO lleva overflow: con
+              overflow sería ella la que hace scroll y la calificación dejaría
+              de quedar pegada. */}
           {resultadoLiquidacion ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:sticky lg:top-[calc(var(--h-header)+1rem)] print:shadow-none print:border-0 print:static">
+            <div
+              ref={reciboRef}
+              data-recibo=""
+              className="min-w-0 scroll-mt-[calc(var(--h-header)+0.75rem)] lg:sticky lg:top-[calc(var(--h-header)+1rem)] print:static"
+            >
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden print:shadow-none print:border-0">
 
               <div className="bg-slate-900 text-white px-5 py-4 flex items-center justify-between gap-3 print:hidden">
                 <div>
@@ -622,7 +644,7 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                     tarjeta del recibo (consulta de contenedor), no de la
                     pantalla: en una columna de 470 px se apilaban mal y el neto
                     se cortaba. El importe del neto crece recién cuando entra. */}
-                <div className="@container print:hidden">
+                <div data-resumen="" className="@container print:hidden">
                 <div className="grid grid-cols-1 @lg:grid-cols-3 gap-2">
                   <div className="rounded-xl bg-emerald-600 text-white px-4 py-3">
                     <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-100">Neto a cobrar</div>
@@ -641,15 +663,6 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                   </div>
                 </div>
                 </div>
-
-                {/* ¿Te sirvió? Una línea con estrellas debajo de los tres números,
-                    que es lo primero que se mira: al pie del recibo quedaba
-                    demasiado escondida (dueño, 26/11/2026). Sin insistir: ver
-                    lib/calificaciones.js (por qué no es un cartel, qué se guarda
-                    y para qué). Una tarjeta por recibo (`key`): si recalcula, lo
-                    que conteste ya no se pega al recibo anterior; si ya calificó,
-                    la tarjeta nueva no aparece. */}
-                <CalificarExperiencia key={calculosEnLaVisita} contexto={contextoDeCalificacion} />
 
                 {/* 1 a 5. El recibo, con el formato del Anexo III del Decreto
                     407/2026 (docs/decreto-407-2026-anexo-III.pdf): casillas,
@@ -804,6 +817,22 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                 </div>
                 {copiado && <p role="status" className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-2 [overflow-wrap:anywhere] print:hidden">{copiado}</p>}
               </div>
+            </div>
+
+            {/* ¿Te sirvió? Va acá, después del recibo y no adentro: así queda
+                afuera de lo que se apaga con "Cambiaste datos" y, con Tab, se
+                llega después de "Reportar error / sugerencia", en el orden en
+                que se ve. Sin insistir: ver lib/calificaciones.js (por qué no
+                es un cartel, qué se guarda y para qué). Una tarjeta por recibo
+                (`key`): si recalcula, lo que conteste ya no se pega al recibo
+                anterior; si ya calificó, la tarjeta nueva no aparece. */}
+            <CalificarExperiencia
+              key={calculosEnLaVisita}
+              contexto={contextoDeCalificacion}
+              desactualizado={desactualizado}
+              visita={visitaDeCalificacion}
+              alCambiarVisita={setVisitaDeCalificacion}
+            />
             </div>
           ) : (
             <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-10 text-center lg:sticky lg:top-[calc(var(--h-header)+1rem)]">
