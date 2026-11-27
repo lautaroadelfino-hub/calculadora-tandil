@@ -280,6 +280,23 @@ main > * { isolation: isolate; }
    izquierda y quedaba una franja vacía de 15 px a lo largo de todo el sitio. */
 html { scrollbar-gutter: stable; }
 
+/* ===== Calificación del recibo (components/calculadora/CalificarExperiencia.jsx) =====
+   El tilde del agradecimiento se dibuja: arranca con stroke-dashoffset 1 y
+   llega a 0. Sin esta animación queda invisible.
+   Mientras la tarjeta flota pegada al pie de la pantalla, lo del recibo que
+   toma el foco (con Tab) no puede quedar debajo de ella (WCAG 2.4.11): se le
+   reserva el alto de la tarjeta más su distancia al pie, que la tarjeta mide
+   y deja en --reserva-calificacion. Va en cada cosa del recibo y no en la
+   página (scroll-padding): la franja de la página incluía a la propia
+   tarjeta, y tocar una estrella hacía saltar el recibo media pantalla. Fuera
+   del recibo no hace falta: la tarjeta no sale de su columna. */
+@keyframes calificacion-trazo {
+  to { stroke-dashoffset: 0; }
+}
+[data-recibo]:has([data-calificacion="flotando"]) :not([data-flotante], [data-flotante] *) {
+  scroll-margin-bottom: var(--reserva-calificacion, 9rem);
+}
+
 
 /* ===== Impresión del recibo oficial =====
    Las franjas grises y los colores de la torta del recibo (Anexo III del

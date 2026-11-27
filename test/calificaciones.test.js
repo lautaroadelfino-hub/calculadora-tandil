@@ -280,23 +280,76 @@ describe("el resumen del panel", () => {
     expect(r.total).toBe(2);
     expect(r.porSemana.map((s) => s.clave)).toEqual(["2026-11-23"]);
   });
+
+  it("cuántos siguen después de la estrella, en total y por celular y computadora, sin las de prueba", () => {
+    const el = ts("2026-11-25T13:00:00Z");
+    const despues = ts("2026-11-25T13:01:00Z");
+    const seguidas = [
+      { id: "m1", estrellas: 5, dispositivo: "movil", perfil: "empleado", creadoEl: el, actualizadoEl: despues },
+      { id: "m2", estrellas: 2, dispositivo: "movil", motivos: ["numero_no_cierra"], perfil: "contador_rrhh", comentario: "No me da", creadoEl: el, actualizadoEl: despues },
+      { id: "m3", estrellas: 3, dispositivo: "movil", creadoEl: el }, // sólo la estrella
+      { id: "e1", estrellas: 4, dispositivo: "escritorio", comentario: "Muy claro", creadoEl: el, actualizadoEl: despues },
+      { id: "e2", estrellas: 1, dispositivo: "escritorio", motivos: [], creadoEl: el, actualizadoEl: despues }, // marcó un motivo y lo sacó
+      { id: "s1", estrellas: 5, perfil: "otro", creadoEl: el }, // sin dispositivo: sólo en el total
+      { id: "p1", estrellas: 1, dispositivo: "movil", motivos: ["otro"], perfil: "otro", comentario: "probando", entorno: "prueba", creadoEl: el, actualizadoEl: despues },
+      { id: "x1", estrellas: 0, dispositivo: "movil", perfil: "otro", creadoEl: el, actualizadoEl: despues }, // inválida
+    ];
+    const r = resumenDeCalificaciones(seguidas, { hasta: HOY });
+    expect(r.seguimiento).toEqual([
+      { clave: "total", total: 6, siguieron: 4, conPerfil: 3, bajas: 3, bajasConMotivo: 1, conComentario: 2 },
+      { clave: "movil", total: 3, siguieron: 2, conPerfil: 2, bajas: 2, bajasConMotivo: 1, conComentario: 1 },
+      { clave: "escritorio", total: 2, siguieron: 2, conPerfil: 0, bajas: 1, bajasConMotivo: 0, conComentario: 1 },
+    ]);
+    // "Para qué la usaron" es "Para qué la usan" sin la fila "(no contestó)".
+    expect(r.seguimiento[0].conPerfil).toBe(r.total - r.porPerfil.find((f) => f.clave === "(no contestó)").total);
+    // Con "Incluir pruebas", la de prueba entra, como en el resto del panel.
+    expect(resumenDeCalificaciones(seguidas, { hasta: HOY, incluirPruebas: true }).seguimiento[0]).toMatchObject({ total: 7, siguieron: 5, bajasConMotivo: 2 });
+    // Sin ninguna, las filas están igual, en cero.
+    expect(resumenDeCalificaciones([], { hasta: HOY }).seguimiento.map((f) => [f.clave, f.total])).toEqual([["total", 0], ["movil", 0], ["escritorio", 0]]);
+  });
+
+  it("'siguieron' también semana a semana, para comparar antes y después de cambiar la tarjeta", () => {
+    const antes = ts("2026-11-17T13:00:00Z");
+    const despues = ts("2026-11-25T13:00:00Z");
+    const luego = ts("2026-11-25T13:01:00Z");
+    const r = resumenDeCalificaciones(
+      [
+        { id: "a1", estrellas: 5, creadoEl: antes },
+        { id: "a2", estrellas: 4, creadoEl: antes, actualizadoEl: ts("2026-11-17T13:01:00Z") },
+        { id: "d1", estrellas: 5, creadoEl: despues, actualizadoEl: luego },
+        { id: "d2", estrellas: 2, creadoEl: despues, actualizadoEl: luego },
+        { id: "d3", estrellas: 3, creadoEl: despues },
+      ],
+      { hasta: HOY }
+    );
+    expect(r.porSemana.map((s) => [s.clave, s.total, s.siguieron])).toEqual([
+      ["2026-11-16", 2, 1],
+      ["2026-11-23", 3, 2],
+    ]);
+  });
 });
 
 describe("el CSV", () => {
-  it("separado por punto y coma (Excel en castellano), con la fecha en hora argentina y el id", () => {
+  it("separado por punto y coma (Excel en castellano), con las fechas en hora argentina y el id", () => {
     const csv = calificacionesACsv([
-      { id: "abc", estrellas: 2, motivos: ["numero_no_cierra", "otro"], comentario: 'Dice "neto"; y\nno cierra', convenioId: "comercio-cct-130-75", periodo: "2026-11", faltanDatos: true, entorno: "prueba", creadoEl: new Date("2026-12-01T01:15:00Z") },
+      { id: "abc", estrellas: 2, motivos: ["numero_no_cierra", "otro"], comentario: 'Dice "neto"; y\nno cierra', convenioId: "comercio-cct-130-75", periodo: "2026-11", faltanDatos: true, entorno: "prueba", creadoEl: new Date("2026-12-01T01:15:00Z"), actualizadoEl: new Date("2026-12-01T02:40:00Z") },
+      // Como llega del panel: la hora es un Timestamp de Firestore. Sin `actualizadoEl` (no siguió), la celda va vacía.
+      { id: "def", estrellas: 5, creadoEl: { toDate: () => new Date("2026-11-26T15:00:00Z") } },
+      { id: "ghi", estrellas: 4, creadoEl: { toDate: () => new Date("2026-11-26T15:00:00Z") }, actualizadoEl: { toDate: () => new Date("2026-11-27T02:59:00Z") } },
     ]);
-    const [cabecera, fila] = csv.split("\r\n");
-    expect(cabecera).toBe("fecha;estrellas;motivos;perfil;comentario;convenio;periodo;categoria;dispositivo;origen;faltan_datos;calculos;entorno;id");
-    expect(fila).toBe('2026-11-30 22:15;2;numero_no_cierra otro;;"Dice ""neto""; y\nno cierra";comercio-cct-130-75;2026-11;;;;si;;prueba;abc');
+    const [cabecera, fila, sinSeguir, conTimestamp] = csv.split("\r\n");
+    expect(cabecera).toBe("fecha;actualizado;estrellas;motivos;perfil;comentario;convenio;periodo;categoria;dispositivo;origen;faltan_datos;calculos;entorno;id");
+    expect(fila).toBe('2026-11-30 22:15;2026-11-30 23:40;2;numero_no_cierra otro;;"Dice ""neto""; y\nno cierra";comercio-cct-130-75;2026-11;;;;si;;prueba;abc');
+    expect(sinSeguir).toBe("2026-11-26 12:00;;5;;;;;;;;;;;;def");
+    // 02:59 UTC del 27 es todavía el 26 a la noche en la Argentina.
+    expect(conTimestamp.split(";").slice(0, 2)).toEqual(["2026-11-26 12:00", "2026-11-26 23:59"]);
   });
 
   it("un comentario que empieza con =, +, - o @ no llega a Excel como fórmula", () => {
     const comentarios = ["=1+1", "+54 9 11", "-falta el presentismo", "@hola", "=HIPERVINCULO(\"http://x\")"];
     const filas = calificacionesACsv(comentarios.map((c, i) => ({ id: String(i), estrellas: 3, comentario: c }))).split("\r\n").slice(1);
     filas.forEach((fila, i) => {
-      const celda = fila.split(";")[4];
+      const celda = fila.split(";")[5];
       expect(celda.replace(/^"|"$/g, "").replace(/""/g, '"')).toBe("'" + comentarios[i]);
     });
   });
