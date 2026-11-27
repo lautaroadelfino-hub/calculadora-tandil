@@ -707,6 +707,20 @@ describe("lo que se guarda", () => {
     expect(campos(enviar.mock.calls.at(-1)).perfil).toEqual({ stringValue: "contador_rrhh" });
   });
 
+  it("una función 'ahora' nueva en cada dibujado no manda nada de más (el build de producción la vuelve nueva en cada uno)", async () => {
+    // En producción el minificador escribe `ahora = () => new Date` en la firma
+    // del hook: una función nueva en cada dibujado. Si el efecto dependía de
+    // ella, se desarmaba en cada uno, creía que la tarjeta se iba y mandaba una
+    // corrección de más con sólo tocar la estrella (en el panel, "siguió").
+    const { enviar, redibujar } = armar();
+    tocar(estrella(4));
+    redibujar({ ahora: () => AHORA });
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(enviar).toHaveBeenCalledTimes(1);
+    expect(escritura(enviar.mock.calls[0]).currentDocument).toEqual({ exists: false });
+  });
+
   it("después del alta, los toques seguidos se juntan en una sola corrección", async () => {
     const { enviar } = armar({ espera: 60 });
     tocar(estrella(2));

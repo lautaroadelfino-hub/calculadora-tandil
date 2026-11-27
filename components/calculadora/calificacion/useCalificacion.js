@@ -230,9 +230,17 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
   // (lib/calificaciones.js). En el celular, "pagehide" no siempre llega y el
   // sistema congela los relojes de una pestaña en segundo plano: por eso
   // también "visibilitychange".
+  // Corre una sola vez, con `almacen` y `ahora` del primer dibujado: en el
+  // build de producción el minificador escribe `ahora = () => new Date` en la
+  // firma, una función nueva en cada dibujado. Con ellas en las dependencias,
+  // el efecto se desarmaba en cada uno, creía que la tarjeta se iba y, con
+  // sólo tocar la estrella, salía una corrección de más que en el panel
+  // contaba como que siguió (27/11/2026).
+  const almacenInicial = useRef(almacen);
+  const ahoraInicial = useRef(ahora);
   useEffect(() => {
-    const registro = leerRegistro(almacen ?? almacenDelNavegador());
-    setFase((f) => (f === "cargando" ? (debePreguntar(registro, ahora()) ? "pregunta" : "oculta") : f));
+    const registro = leerRegistro(almacenInicial.current ?? almacenDelNavegador());
+    setFase((f) => (f === "cargando" ? (debePreguntar(registro, ahoraInicial.current()) ? "pregunta" : "oculta") : f));
     const alOcultar = () => alIrseRef.current();
     const alCambiarVisibilidad = () => {
       if (document.visibilityState === "hidden") alIrseRef.current();
@@ -248,7 +256,7 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
       }
       alIrseRef.current();
     };
-  }, [almacen, ahora]);
+  }, []);
 
   /** Junta los toques seguidos y manda uno solo. La primera estrella no espera. */
   const programar = () => {
