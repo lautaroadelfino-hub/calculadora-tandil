@@ -27,10 +27,11 @@ function firestoreSimulado({ convenios = [], acuerdos = [], novedades = [] }) {
 }
 
 describe("sitemap", () => {
-  it("lista las fijas y, por convenio activo, la calculadora, sus acuerdos (y cada acuerdo) y sus novedades, ordenadas", async () => {
+  it("lista las fijas y, por convenio activo, la calculadora, sus acuerdos (y cada acuerdo) y sus novedades si tiene, ordenadas", async () => {
     vi.stubGlobal("fetch", firestoreSimulado({
       convenios: [doc("convenios", "comercio-cct-130-75", { activo: true, ultimo_periodo: "2026-09" }), doc("convenios", "camioneros-cct-40-89", { activo: true }), doc("convenios", "uocra-cct-76-75", { activo: false })],
       acuerdos: [doc("acuerdos", "a1", { convenioId: "camioneros-cct-40-89", fecha: "2026-09-01", titulo: "Escala salarial septiembre 2026", published: true })],
+      novedades: [doc("novedades", "n1", { date: "2026-09-13", convenioId: "comercio-cct-130-75", published: true })],
     }));
     const entradas = await sitemap();
     expect(entradas.map((e) => e.url)).toEqual([
@@ -40,7 +41,6 @@ describe("sitemap", () => {
       "https://liquidar.ar/calcular/camioneros-cct-40-89",
       "https://liquidar.ar/acuerdos/camioneros-cct-40-89",
       "https://liquidar.ar/acuerdos/camioneros-cct-40-89/escala-salarial-septiembre-2026",
-      "https://liquidar.ar/novedades/camioneros-cct-40-89",
       "https://liquidar.ar/calcular/comercio-cct-130-75",
       "https://liquidar.ar/acuerdos/comercio-cct-130-75",
       "https://liquidar.ar/novedades/comercio-cct-130-75",
@@ -48,12 +48,46 @@ describe("sitemap", () => {
     expect(entradas.find((e) => e.url.endsWith("/calcular/comercio-cct-130-75")).lastModified).toEqual(new Date("2026-09-01T00:00:00Z"));
   });
 
-  it("una escala publicada por adelantado no lleva la fecha de la calculadora al futuro", async () => {
+  it("sin novedades publicadas, ninguna página de novedades va al mapa", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado({ convenios: [doc("convenios", "comercio-cct-130-75", { activo: true })] }));
+    const urls = (await sitemap()).map((e) => e.url);
+    expect(urls.some((u) => u.includes("/novedades"))).toBe(false);
+  });
+
+  it("una escala publicada por adelantado no lleva la fecha de la calculadora al futuro ni la mueve en cada pedido", async () => {
     vi.stubGlobal("fetch", firestoreSimulado({ convenios: [doc("convenios", "comercio-cct-130-75", { activo: true, ultimo_periodo: "2099-12" })] }));
-    const antes = Date.now();
     const calculadora = (await sitemap()).find((e) => e.url.endsWith("/calcular/comercio-cct-130-75"));
-    expect(calculadora.lastModified.getTime()).toBeGreaterThanOrEqual(antes);
-    expect(calculadora.lastModified.getTime()).toBeLessThanOrEqual(Date.now());
+    // El primer día del mes en curso: la misma fecha en todos los pedidos del mes.
+    const ahora = new Date();
+    expect(calculadora.lastModified).toEqual(new Date(Date.UTC(ahora.getUTCFullYear(), ahora.getUTCMonth(), 1)));
+  });
+
+  it("lee los meses cargados de cada convenio: el acuerdo que muestra su escala lleva la fecha de ese cambio", async () => {
+    const base = firestoreSimulado({
+      convenios: [doc("convenios", "camioneros-cct-40-89", { activo: true, ultimo_periodo: "2026-09" })],
+      acuerdos: [doc("acuerdos", "a1", { convenioId: "camioneros-cct-40-89", fecha: "2026-09-01", titulo: "Escala salarial septiembre 2026", tipo: "escala", vigencia: "septiembre 2026", creadoEl: "2026-10-10T20:05:00.000Z", published: true })],
+    });
+    vi.stubGlobal("fetch", vi.fn(async (url) => {
+      const ruta = String(url).split("/documents/")[1] || "";
+      if (ruta.startsWith("convenios/camioneros-cct-40-89/escalas?")) {
+        return { ok: true, status: 200, json: async () => ({ documents: [{ name: "projects/p/databases/(default)/documents/convenios/camioneros-cct-40-89/escalas/2026-09" }] }) };
+      }
+      return base(url);
+    }));
+    const acuerdo = (await sitemap()).find((e) => e.url.endsWith("/escala-salarial-septiembre-2026"));
+    expect(acuerdo.lastModified).toEqual(new Date("2026-11-27T00:00:00Z"));
+  });
+
+  it("si no se pueden leer los meses cargados, el acuerdo sale igual, con su fecha", async () => {
+    const base = firestoreSimulado({
+      convenios: [doc("convenios", "camioneros-cct-40-89", { activo: true })],
+      acuerdos: [doc("acuerdos", "a1", { convenioId: "camioneros-cct-40-89", fecha: "2026-09-01", titulo: "Escala salarial septiembre 2026", tipo: "escala", vigencia: "septiembre 2026", creadoEl: "2026-10-10T20:05:00.000Z", published: true })],
+    });
+    vi.stubGlobal("fetch", vi.fn(async (url) => (String(url).includes("/escalas?") ? { ok: false, status: 500, json: async () => ({}) } : base(url))));
+    const silencio = vi.spyOn(console, "error").mockImplementation(() => {});
+    const acuerdo = (await sitemap()).find((e) => e.url.endsWith("/escala-salarial-septiembre-2026"));
+    expect(acuerdo.lastModified).toEqual(new Date("2026-10-10T20:05:00.000Z"));
+    silencio.mockRestore();
   });
 
   it("no lista /empleador: el panel se retiró el 13/9/2026 y la URL sólo redirige", async () => {
@@ -66,7 +100,7 @@ describe("sitemap", () => {
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("sin red"); }));
     const silencio = vi.spyOn(console, "error").mockImplementation(() => {});
     const urls = (await sitemap()).map((e) => e.url);
-    expect(urls).toEqual(["https://liquidar.ar", "https://liquidar.ar/novedades", "https://liquidar.ar/acuerdos"]);
+    expect(urls).toEqual(["https://liquidar.ar", "https://liquidar.ar/acuerdos"]);
     silencio.mockRestore();
   });
 

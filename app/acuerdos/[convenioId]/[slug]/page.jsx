@@ -1,6 +1,7 @@
 // app/acuerdos/[convenioId]/[slug]/page.jsx
 // La página de UN acuerdo o escala: título, fecha, vigencia, descarga, fuente,
-// el anterior y el siguiente del mismo convenio y el paso a la calculadora.
+// la escala de sus meses (los básicos por categoría, si están en la base), el
+// anterior y el siguiente del mismo convenio y el paso a la calculadora.
 //
 // POR QUÉ EXISTE: lo que la gente busca en Google es "escala salarial
 // camioneros septiembre 2026", y Google sólo puede mostrar una URL que trate
@@ -10,14 +11,18 @@
 //
 // Mismo patrón que la página del convenio: edge, sin loading.js, notFound()
 // fuera del try y SinDatos si Firestore no responde.
+//
+// La escala es un agregado: si su lectura falla, la página sale igual, con el
+// documento y sin la tabla. Lo imprescindible sigue siendo el acuerdo.
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { convenioCacheado, acuerdosCacheados, esIdDeConvenio } from "@/lib/datosCalculadora";
+import { convenioCacheado, acuerdosCacheados, cargarEscalasDeAcuerdo, esIdDeConvenio } from "@/lib/datosCalculadora";
 import { metadataDeAcuerdo, tituloDeConvenio } from "@/lib/metadataConvenio";
 import { acuerdosPublicados, acuerdoPorSlug, vecinosDe, etiquetaDeTipo, etiquetaDeFormato, ES_SLUG } from "@/lib/acuerdosPublicados";
 import { fechaLarga } from "@/lib/fechas";
 import { jsonLdMigas, jsonLdAcuerdo } from "@/lib/jsonLd";
 import EncabezadoConvenio from "@/components/EncabezadoConvenio";
+import EscalaDeAcuerdo from "@/components/EscalaDeAcuerdo";
 import JsonLd from "@/components/JsonLd";
 import SinDatos from "@/components/SinDatos";
 
@@ -25,13 +30,27 @@ export const runtime = "edge";
 
 const esRutaValida = (convenioId, slug) => esIdDeConvenio(convenioId) && ES_SLUG.test(String(slug || ""));
 
+/** Las escalas de la página, o nada si no se pudieron leer: no tumban la página del acuerdo. */
+async function escalasDe(convenio, convenioId, acuerdo, acuerdos) {
+  try {
+    return await cargarEscalasDeAcuerdo(convenio, convenioId, acuerdo, acuerdosPublicados(acuerdos, { convenioId }));
+  } catch (error) {
+    console.error("El acuerdo sale sin su escala:", error);
+    return { vista: null, enOtraPagina: [] };
+  }
+}
+
 export async function generateMetadata({ params }) {
   const { convenioId, slug } = await params;
   try {
     if (esRutaValida(convenioId, slug)) {
       const [convenio, acuerdos] = await Promise.all([convenioCacheado(convenioId), acuerdosCacheados()]);
       const acuerdo = acuerdoPorSlug(acuerdos, convenioId, slug);
-      if (convenio && acuerdo) return metadataDeAcuerdo(acuerdo, convenio, convenioId, { etiquetaDeTipo, fechaLarga });
+      if (convenio && acuerdo) {
+        const { vista } = await escalasDe(convenio, convenioId, acuerdo, acuerdos);
+        const escalas = vista ? { categorias: vista.tabla.categorias, meses: vista.meses, variosMeses: vista.tabla.periodos.length > 1 } : null;
+        return metadataDeAcuerdo(acuerdo, convenio, convenioId, { etiquetaDeTipo, fechaLarga, escalas });
+      }
     }
   } catch {
     // Sin red: queda el título general.
@@ -68,6 +87,7 @@ export default async function PaginaAcuerdo({ params }) {
   const descripcion = descripcionDe(acuerdo, convenio);
   const activo = convenio.activo !== false;
   const linkVecino = "rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50 [overflow-wrap:anywhere]";
+  const { vista, enOtraPagina } = await escalasDe(convenio, convenioId, acuerdo, acuerdos);
 
   return (
     <div className="max-w-5xl mx-auto py-8 min-h-[calc(100svh-var(--h-header))]">
@@ -125,8 +145,10 @@ export default async function PaginaAcuerdo({ params }) {
         </div>
       </article>
 
+      <EscalaDeAcuerdo vista={vista} enOtraPagina={enOtraPagina} convenio={convenio} convenioId={convenioId} />
+
       {anterior || siguiente ? (
-        <nav aria-label="Otros acuerdos del convenio" className="mt-4 flex flex-wrap justify-between gap-2">
+        <nav aria-label="Otros acuerdos del convenio" className="mt-6 flex flex-wrap justify-between gap-2">
           {anterior ? (
             <Link href={`/acuerdos/${id}/${anterior.slug}`} className={linkVecino}>
               ← {anterior.titulo}

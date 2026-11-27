@@ -16,6 +16,7 @@ import PaginaAcuerdo, { generateMetadata as metadataDelAcuerdo } from "../app/ac
 import IndiceAcuerdos from "../app/acuerdos/page.jsx";
 import PaginaNovedades from "../app/novedades/[convenioId]/page.jsx";
 import NovedadesGenerales, { metadata as metadataDeNovedades } from "../app/novedades/page.jsx";
+import { camposARest } from "../lib/firestoreValores.js";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -43,19 +44,40 @@ const NOVEDADES = [
   docRest("novedades", "n2", { date: "2026-08-03", title: "Camioneros: nueva escala cargada", tag: "aviso", convenioId: "camioneros-cct-40-89", published: true }),
 ];
 
-/** Un fetch que contesta como la API REST de Firestore según la URL pedida. */
-function firestoreSimulado() {
+// Dos meses de escala de Camioneros, con centavos: agosto es julio más 10 %.
+const ESCALAS = {
+  "camioneros-cct-40-89": {
+    "2026-07": { mes_vigencia: "Julio 2026", categorias: { "Conductor de primera categoría": { basico: 1000000, no_remunerativo: 0 }, Peón: { basico: 900000.5, no_remunerativo: 0 } } },
+    "2026-08": { mes_vigencia: "Agosto 2026", categorias: { "Conductor de primera categoría": { basico: 1100000, no_remunerativo: 0 }, Peón: { basico: 990000.55, no_remunerativo: 0 } } },
+  },
+};
+
+/**
+ * Un fetch que contesta como la API REST de Firestore según la URL pedida.
+ * `escalas` es { convenioId: { "AAAA-MM": documento } }: sin él, ningún
+ * convenio tiene escalas cargadas y las páginas de acuerdos salen sin tabla.
+ */
+function firestoreSimulado({ acuerdos = ACUERDOS, novedades = NOVEDADES, escalas = {} } = {}) {
   return vi.fn(async (url) => {
     const ruta = String(url).split("/documents/")[1] || "";
     const ok = (json) => ({ ok: true, status: 200, json: async () => json });
+    const deEscalas = /^convenios\/([^/?]+)\/escalas(?:\/([^/?]+))?(?:\?|$)/.exec(ruta);
+    if (deEscalas) {
+      const id = decodeURIComponent(deEscalas[1]);
+      const periodo = deEscalas[2] ? decodeURIComponent(deEscalas[2]) : null;
+      const suyas = escalas[id] || {};
+      const nombre = (p) => `projects/p/databases/(default)/documents/convenios/${id}/escalas/${p}`;
+      if (!periodo) return ok({ documents: Object.keys(suyas).map((p) => ({ name: nombre(p) })) });
+      return suyas[periodo] ? ok({ name: nombre(periodo), fields: camposARest(suyas[periodo]) }) : { ok: false, status: 404, json: async () => ({}) };
+    }
     if (ruta.startsWith("convenios/")) {
       const id = decodeURIComponent(ruta.slice("convenios/".length).split("?")[0]);
       const c = CONVENIOS[id];
       return c ? ok(docRest("convenios", id, c)) : { ok: false, status: 404, json: async () => ({}) };
     }
     if (ruta.startsWith("convenios?")) return ok({ documents: Object.entries(CONVENIOS).map(([id, c]) => docRest("convenios", id, c)) });
-    if (ruta.startsWith("acuerdos?")) return ok({ documents: ACUERDOS });
-    if (ruta.startsWith("novedades?")) return ok({ documents: NOVEDADES });
+    if (ruta.startsWith("acuerdos?")) return ok({ documents: acuerdos });
+    if (ruta.startsWith("novedades?")) return ok({ documents: novedades });
     return { ok: false, status: 404, json: async () => ({}) };
   });
 }
@@ -131,6 +153,38 @@ describe("/novedades/<convenio>", () => {
     vi.stubGlobal("fetch", firestoreSimulado());
     await expect(PaginaNovedades(params("no-existe"))).rejects.toThrow(/NEXT_HTTP_ERROR_FALLBACK;404|NEXT_NOT_FOUND/);
   });
+
+  it("muestra el detalle debajo del título, y el título con link lleva a su página", async () => {
+    const conDetalle = [
+      docRest("novedades", "n3", {
+        date: "2026-11-26",
+        title: "Escala de noviembre 2026: los básicos suben 1,7 %",
+        detalle: "Suben 1,7 % los 43 básicos y los viáticos respecto de octubre, sin suma no remunerativa.",
+        url: "/acuerdos/camioneros-cct-40-89/escala-salarial-noviembre-2026",
+        tag: "release",
+        convenioId: "camioneros-cct-40-89",
+        published: true,
+      }),
+    ];
+    const fetchSimulado = firestoreSimulado({ novedades: conDetalle });
+    vi.stubGlobal("fetch", fetchSimulado);
+    const h = await html(PaginaNovedades(params("camioneros-cct-40-89")));
+    // El espacio antes del % sale como uno que no se corta: el número y su signo van juntos.
+    expect(h).toContain("Escala de noviembre 2026: los básicos suben 1,7\u00a0%");
+    expect(h).toContain("Suben 1,7\u00a0% los 43 básicos y los viáticos respecto de octubre, sin suma no remunerativa.");
+    expect(h).toContain('href="/acuerdos/camioneros-cct-40-89/escala-salarial-noviembre-2026"');
+    expect(h).not.toContain("noindex");
+    // El detalle hay que pedirlo: la lectura lleva máscara de campos.
+    const pedido = fetchSimulado.mock.calls.map(([u]) => String(u)).find((u) => u.includes("/novedades?"));
+    expect(pedido).toContain("mask.fieldPaths=detalle");
+  });
+
+  it("sin novedades del convenio lo dice y no se indexa", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado({ novedades: [NOVEDADES[0]] }));
+    const h = await html(PaginaNovedades(params("camioneros-cct-40-89")));
+    expect(h).toContain("Todavía no hay novedades de este convenio.");
+    expect(h).toContain('<meta name="robots" content="noindex, follow"/>');
+  });
 });
 
 describe("/acuerdos/<convenio>/<slug>: la página de un acuerdo", () => {
@@ -176,6 +230,76 @@ describe("/acuerdos/<convenio>/<slug>: la página de un acuerdo", () => {
     silencio.mockRestore();
   });
 
+  it("una escala con su mes cargado muestra los básicos de cada categoría y cuánto cambiaron", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado({ escalas: ESCALAS }));
+    const h = await html(PaginaAcuerdo(params2("camioneros-cct-40-89", "escala-salarial-agosto-2026")));
+    expect(h).toMatch(/<h2[^>]*>Básicos de agosto de 2026<\/h2>/);
+    expect(h).toMatch(/Los básicos suben 10\s% respecto de julio de 2026\./);
+    // Una tabla de verdad: encabezado de fila por categoría y el importe con centavos.
+    expect(h).toMatch(/<th scope="row"[^>]*>Conductor de primera categoría<\/th>/);
+    expect(h).toContain("1.100.000,00");
+    expect(h).toContain("990.000,55");
+    expect(h).toContain("<caption");
+    // Julio se leyó para comparar, pero no es de esta página.
+    expect(h).not.toContain("1.000.000,00");
+    expect(h).toContain("vale el documento");
+  });
+
+  it("con la escala a la vista, la descripción para Google dice cuántas categorías y de qué mes", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado({ escalas: ESCALAS }));
+    const m = await metadataDelAcuerdo(params2("camioneros-cct-40-89", "escala-salarial-agosto-2026"));
+    expect(m.title).toBe("Escala salarial agosto 2026 · Camioneros (CCT 40/89)");
+    expect(m.description).toBe("Básico de las 2 categorías de Camioneros (CCT 40/89) en agosto de 2026. Descargá el documento y calculá el sueldo con la escala vigente.");
+  });
+
+  it("un acuerdo muestra los meses que son suyos y lleva a la escala de los demás", async () => {
+    const acuerdos = [
+      ACUERDOS[0],
+      docRest("acuerdos", "a5", { convenioId: "camioneros-cct-40-89", fecha: "2026-07-20", titulo: "Acuerdo de julio 2026", tipo: "acuerdo", vigencia: "julio a septiembre 2026", fuenteUrl: "https://sindicato.org/julio", published: true }),
+    ];
+    vi.stubGlobal("fetch", firestoreSimulado({ acuerdos, escalas: ESCALAS }));
+    const h = await html(PaginaAcuerdo(params2("camioneros-cct-40-89", "acuerdo-de-julio-2026")));
+    // Julio no tiene escala propia: va acá. Agosto tiene la suya: se enlaza.
+    expect(h).toMatch(/<h2[^>]*>Básicos de julio de 2026<\/h2>/);
+    expect(h).toContain("1.000.000,00");
+    expect(h).not.toContain("1.100.000,00");
+    expect(h).toContain("Los básicos de agosto de 2026 están en:");
+    expect(h).toContain('href="/acuerdos/camioneros-cct-40-89/escala-salarial-agosto-2026"');
+  });
+
+  it("un acuerdo cuyos meses tienen todos su propia escala sólo dice dónde están", async () => {
+    const acuerdos = [
+      ACUERDOS[0],
+      docRest("acuerdos", "a6", { convenioId: "camioneros-cct-40-89", fecha: "2026-08-10", titulo: "Acuerdo de agosto 2026", tipo: "acuerdo", vigencia: "agosto 2026", fuenteUrl: "https://sindicato.org/agosto", published: true }),
+    ];
+    vi.stubGlobal("fetch", firestoreSimulado({ acuerdos, escalas: ESCALAS }));
+    const h = await html(PaginaAcuerdo(params2("camioneros-cct-40-89", "acuerdo-de-agosto-2026")));
+    expect(h).toMatch(/<h2[^>]*>Dónde están los básicos<\/h2>/);
+    expect(h).toContain('href="/acuerdos/camioneros-cct-40-89/escala-salarial-agosto-2026"');
+    expect(h).not.toContain("<table");
+  });
+
+  it("sin escalas en la base, la página es la de siempre: el documento y nada más", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado());
+    const h = await html(PaginaAcuerdo(params2("camioneros-cct-40-89", "escala-salarial-agosto-2026")));
+    expect(h).toContain("Descargar PDF");
+    expect(h).not.toContain("<table");
+    expect(h).not.toContain("Básicos de");
+  });
+
+  it("si las escalas no se pueden leer, el acuerdo sale igual, sin la tabla", async () => {
+    const base = firestoreSimulado({ escalas: ESCALAS });
+    vi.stubGlobal("fetch", vi.fn(async (url) => (String(url).includes("/escalas") ? { ok: false, status: 500, json: async () => ({}) } : base(url))));
+    const silencio = vi.spyOn(console, "error").mockImplementation(() => {});
+    const h = await html(PaginaAcuerdo(params2("camioneros-cct-40-89", "escala-salarial-agosto-2026")));
+    expect(h).toMatch(/<h1[^>]*>Escala salarial agosto 2026<\/h1>/);
+    expect(h).toContain("Descargar PDF");
+    expect(h).not.toContain("<table");
+    expect(h).not.toContain("noindex");
+    expect(silencio).toHaveBeenCalled();
+    silencio.mockRestore();
+  });
+
   it("la lista del convenio y el índice enlazan a la página de cada acuerdo", async () => {
     vi.stubGlobal("fetch", firestoreSimulado());
     const lista = await html(PaginaAcuerdos(params("camioneros-cct-40-89")));
@@ -207,5 +331,14 @@ describe("/novedades (todas)", () => {
     const silencio = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await html(NovedadesGenerales())).toContain("No pudimos traer las novedades");
     silencio.mockRestore();
+  });
+
+  it("con novedades se indexa; sin ninguna publicada lo dice y no se indexa", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado());
+    expect(await html(NovedadesGenerales())).not.toContain("noindex");
+    vi.stubGlobal("fetch", firestoreSimulado({ novedades: [] }));
+    const vacia = await html(NovedadesGenerales());
+    expect(vacia).toContain("Todavía no hay novedades publicadas.");
+    expect(vacia).toContain('<meta name="robots" content="noindex, follow"/>');
   });
 });

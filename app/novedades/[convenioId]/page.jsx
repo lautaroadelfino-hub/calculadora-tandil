@@ -7,14 +7,12 @@ import { notFound } from "next/navigation";
 import { convenioCacheado, esIdDeConvenio } from "@/lib/datosCalculadora";
 import { listarColeccion } from "@/lib/firestoreRest";
 import { metadataDeNovedadesDeConvenio } from "@/lib/metadataConvenio";
-import { novedadesPublicadas } from "@/lib/novedadesPublicadas";
+import { novedadesPublicadas, CAMPOS_DE_NOVEDAD } from "@/lib/novedadesPublicadas";
 import EncabezadoConvenio from "@/components/EncabezadoConvenio";
 import ListaNovedades from "@/components/ListaNovedades";
 import SinDatos from "@/components/SinDatos";
 
 export const runtime = "edge";
-
-const CAMPOS_DE_NOVEDAD = ["date", "title", "url", "tag", "published", "convenioId"];
 
 export async function generateMetadata({ params }) {
   const { convenioId } = await params;
@@ -48,7 +46,11 @@ export default async function PaginaNovedadesDeConvenio({ params }) {
     <div className="max-w-5xl mx-auto py-8 min-h-[calc(100svh-var(--h-header))]">
       <EncabezadoConvenio convenio={convenio} convenioId={convenioId} seccion="Novedades" activa="novedades" />
       {lista.length === 0 ? (
-        <p className="text-sm text-slate-600">Todavía no hay novedades de este convenio.</p>
+        <>
+          {/* Vacía no se indexa ni va al mapa del sitio: ver app/novedades/page.jsx. */}
+          <meta name="robots" content="noindex, follow" />
+          <p className="text-sm text-slate-600">Todavía no hay novedades de este convenio.</p>
+        </>
       ) : (
         <ListaNovedades novedades={lista} />
       )}
