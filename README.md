@@ -378,6 +378,12 @@ mandale esa hoja primero.
   homologación, las contribuciones. Con convenio se ve en
   `/novedades/<convenio>` y en la lista general; sin convenio, sólo en la
   general. Para corregir una hay que eliminarla y volver a publicarla.
+  Se ven como la tapa de un diario: **la más nueva va grande, arriba**, y las
+  demás en recuadros, cada uno con su convenio (las que no tienen convenio
+  dicen "El sitio"). Así que la fecha decide cuál es la principal: si dos
+  son del mismo día, el orden entre ellas no se elige. Un título corto y un
+  detalle de dos o tres líneas es lo que mejor entra en un recuadro. El
+  diseño está en Claude Design, en "Novedades tipo diario — LiquidAR".
 - **Google**: el sitio está en Search Console, con la cuenta
   `info@liquidar.ar` (verificación por DNS). Cada página declara su propio
   título, descripción, canonical e imagen para compartir; `/sitemap.xml`
