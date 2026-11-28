@@ -199,13 +199,87 @@ describe("la calculadora de Comercio", () => {
     expect(Object.keys(campos).some((k) => /neto|bruto|antig|basico|importe/i.test(k))).toBe(false);
     expect(JSON.stringify(campos)).not.toContain("1251841");
 
-    // Recalcula después de calificar: la tarjeta es de cada recibo, y como ya
-    // calificó no vuelve a aparecer (lo que toque no se pega al recibo anterior).
+    // Recalcula después de calificar: cada recibo lleva su tira y se puede
+    // calificar. Como ya calificó, la nueva no lo invita (lo espera quieta al
+    // pie del recibo), y lo que toque no se pega al recibo anterior: es otra
+    // calificación, marcada como de alguien que ya había calificado.
     await screen.findByText("¡Gracias! ¿Para qué la usaste?");
     fireEvent.change(screen.getByLabelText("Años de Antigüedad"), { target: { value: "6" } });
     fireEvent.click(botonCalcular());
-    await vi.waitFor(() => expect(screen.queryByRole("radiogroup", { name: "¿Te sirvió este cálculo?" })).toBeNull());
+    await vi.waitFor(() => expect(screen.queryByText("Cambiaste datos.")).toBeNull());
+    const tira = () => document.querySelector("[data-calificacion]");
+    await vi.waitFor(() => expect(tira()?.hasAttribute("data-quieta")).toBe(true));
+    expect(tira().dataset.calificacion).toBe("posada");
+    expect(screen.getByRole("radiogroup", { name: "¿Te sirvió este cálculo?" })).toBeTruthy();
     expect(enviarCalificacion).toHaveBeenCalledTimes(1);
+
+    const dos = screen.getByLabelText(/^2 de 5 estrellas/);
+    fireEvent.pointerDown(dos, { pointerType: "touch" });
+    fireEvent.click(dos);
+    await vi.waitFor(() => expect(enviarCalificacion).toHaveBeenCalledTimes(2));
+    const [primera, segunda] = enviarCalificacion.mock.calls.map((c) => c[0].writes[0].update);
+    expect(segunda.name).not.toBe(primera.name);
+    expect(segunda.fields).toMatchObject({ estrellas: { integerValue: "2" }, calculos: { integerValue: "3" }, yaCalifico: { booleanValue: true } });
+    expect(primera.fields.yaCalifico).toBeUndefined();
+  });
+
+  it("si recalcula antes de que el alta conteste (red lenta), el recibo nuevo igual sabe que ya calificó: no lo vuelve a invitar, y lo que califique va marcado", async () => {
+    // El alta no contesta nunca: el navegador no llega a anotar que ya calificó.
+    enviarCalificacion.mockImplementationOnce(() => new Promise(() => {}));
+    const inicial = await cargarDatosDeCalculadora(ID);
+    render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+    fireEvent.click(botonCalcular());
+    await screen.findByRole("heading", { name: "Simulación de recibo" });
+    const cuatro = await screen.findByLabelText(/^4 de 5 estrellas/);
+    fireEvent.pointerDown(cuatro, { pointerType: "touch" });
+    fireEvent.click(cuatro);
+    await vi.waitFor(() => expect(enviarCalificacion).toHaveBeenCalledTimes(1));
+    expect(window.localStorage.length).toBe(0);
+
+    fireEvent.change(screen.getByLabelText("Años de Antigüedad"), { target: { value: "9" } });
+    fireEvent.click(botonCalcular());
+    await vi.waitFor(() => expect(screen.queryByText("Cambiaste datos.")).toBeNull());
+    // El navegador no anotó nada, pero la calculadora sabe que tocó una
+    // estrella: la tira nueva no sube como la primera vez, espera quieta.
+    await vi.waitFor(() => expect(document.querySelector("[data-calificacion]")?.hasAttribute("data-quieta")).toBe(true));
+    expect(window.localStorage.length).toBe(0);
+    expect(enviarCalificacion).toHaveBeenCalledTimes(1);
+
+    const cinco = screen.getByLabelText(/^5 de 5 estrellas/);
+    fireEvent.pointerDown(cinco, { pointerType: "touch" });
+    fireEvent.click(cinco);
+    await vi.waitFor(() => expect(enviarCalificacion).toHaveBeenCalledTimes(2));
+    expect(enviarCalificacion.mock.calls[1][0].writes[0].update.fields).toMatchObject({ estrellas: { integerValue: "5" }, yaCalifico: { booleanValue: true } });
+  });
+
+  it("si el dato mal cargado está en una sección plegada, 'Calcular liquidación' la abre y lleva al campo (antes no hacía nada a la vista)", async () => {
+    const inicial = await cargarDatosDeCalculadora(ID);
+    render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+    const art = screen.getByLabelText(/Alícuota de ART/);
+    const seccion = art.closest("details");
+    seccion.open = true;
+    fireEvent.change(art, { target: { value: "abc" } });
+    seccion.open = false;
+    fireEvent.click(botonCalcular());
+    await vi.waitFor(() => expect(seccion.open).toBe(true));
+    await vi.waitFor(() => expect(document.activeElement).toBe(art));
+    expect(screen.getByRole("alert").textContent).toContain("Revisá estos datos");
+  });
+
+  it("con el modal de 'Reportar error' abierto, la página de atrás no se desplaza; al cerrarlo, vuelve", async () => {
+    const inicial = await cargarDatosDeCalculadora(ID);
+    render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+    fireEvent.click(botonCalcular());
+    await screen.findByRole("heading", { name: "Simulación de recibo" });
+    expect(document.documentElement.style.overflowY).toBe("");
+    fireEvent.click(screen.getByRole("button", { name: "Reportar error / sugerencia" }));
+    const modal = await screen.findByRole("dialog");
+    expect(document.documentElement.style.overflowY).toBe("hidden");
+    // El fondo hace scroll: si el panel no entra en la pantalla, se llega a la ✕ y a "Enviar".
+    expect(modal.className).toContain("overflow-y-auto");
+    fireEvent.click(within(modal).getByRole("button", { name: "Cerrar" }));
+    await vi.waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(document.documentElement.style.overflowY).toBe("");
   });
 
   it("la calificación va en la columna del recibo, después de 'Reportar error / sugerencia' y afuera de lo que se apaga con 'Cambiaste datos'", async () => {
@@ -279,6 +353,18 @@ describe("la calculadora de Comercio", () => {
     expect(screen.getByRole("radiogroup", { name: "¿Te sirvió este cálculo?" })).toBeTruthy();
     expect(enviarCalificacion).not.toHaveBeenCalled();
     expect(window.localStorage.length).toBe(0);
+  });
+
+  it("al calcular, la dirección guarda la simulación sin perder lo que viene después del # (#medidas, de la calificación)", async () => {
+    window.history.replaceState(null, "", "/calcular/comercio-cct-130-75#medidas");
+    const inicial = await cargarDatosDeCalculadora(ID);
+    render(<CalculadoraConvenio convenioId={ID} inicial={inicial} />);
+    fireEvent.click(botonCalcular());
+    await screen.findByRole("heading", { name: "Simulación de recibo" });
+    expect(window.location.search).toContain("categoria=");
+    expect(window.location.hash).toBe("#medidas");
+    // Y la tira se entera: está en el modo de medidas.
+    await vi.waitFor(() => expect(document.querySelector("[data-calificacion]").hasAttribute("data-de-prueba")).toBe(true));
   });
 
   it("'Abrió un link compartido' es sólo el recibo que arma un link de 'Copiar link'; un F5 con la simulación en la URL es 'a mano'", async () => {

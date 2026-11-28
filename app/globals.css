@@ -1,8 +1,12 @@
 /* Carga Tailwind para que puedas usar utilidades en el markup */
 @import "tailwindcss";
 
-/* ===== Fondo y tipografía base (sin @apply) ===== */
-html, body, #__next {
+/* ===== Fondo y tipografía base (sin @apply) =====
+   El alto fijo va sólo en el html. El body no lleva `height: 100%`: con eso
+   medía una pantalla justa aunque el contenido siguiera, y la barra de arriba
+   (sticky, hija del body) se despegaba al bajar una pantalla en la compu
+   (27/11/2026). Su mínimo de una pantalla lo da `min-h-screen` (app/layout.js). */
+html {
   height: 100%;
 }
 
@@ -164,13 +168,15 @@ main > * { isolation: isolate; }
      ventana no se movía, las barras no se escondían nunca. Lo que va pegado
      al pie del recibo (la calificación) quedaba debajo de la barra de Chrome
      o de la barra flotante de Safari (27/11/2026). `clip` recorta igual sin
-     volver al body un contenedor con scroll, y `height: auto` lo deja crecer
-     con el contenido para que la barra de arriba siga pegada. Donde no existe
-     `clip` (Safari antes de la 16) queda todo como antes. */
+     volver al body un contenedor con scroll, así lo pegajoso (la barra de
+     arriba, la calificación) se pega contra la ventana. Va fuera de las capas
+     de Tailwind a propósito: en una capa le ganaría el `overflow-x-hidden`
+     del body. Donde no existe `clip` (Safari antes de la 16) el body sigue
+     con `hidden`: ya no hace scroll (no tiene alto fijo), pero lo pegajoso no
+     se pega y la calificación queda apoyada al final del recibo. */
   @supports (overflow-x: clip) {
     body {
       overflow-x: clip;
-      height: auto;
     }
   }
   /* Si algún sticky insiste en empujar, lo “despegamos” en mobile */
@@ -308,10 +314,35 @@ html { scrollbar-gutter: stable; }
 @keyframes calificacion-trazo {
   to { stroke-dashoffset: 0; }
 }
+/* Al entrar la tira, las estrellas se encienden una vez, de a una (el atraso
+   de cada una lo pone la tira). Sin `forwards`: al terminar no queda nada
+   aplicado, así el relleno vuelve a mandarlo la clase (la vista previa del
+   mouse y la estrella elegida). #fbbf24 es el amber-400 de las estrellas. */
+@keyframes calificacion-destello {
+  0%, 100% { fill: transparent; }
+  45% { fill: #fbbf24; }
+}
 [data-recibo]:has([data-calificacion="flotando"]) :not([data-flotante], [data-flotante] *) {
   scroll-margin-bottom: var(--reserva-calificacion, 9rem);
 }
 
+
+/* ===== El foco en los formularios, con lo que va pegado =====
+   Al recorrer un formulario con Tab (o con "siguiente" del teclado del
+   celular), el navegador trae el campo a la vista sin contar lo pegado: quedaba
+   debajo de la barra de arriba al volver para atrás y, en el celular, debajo
+   de "Calcular liquidación", que va pegado al pie (WCAG 2.4.11; revisión del
+   27/11/2026). Va en los campos y no en la página (scroll-padding): el salto
+   al recibo ya trae su propio margen y se sumarían. Lo flotante (el modal, la
+   calificación) queda afuera. */
+main form:not([data-flotante] *) :is(input, select, textarea, summary, button) {
+  scroll-margin-top: calc(var(--h-header) + 0.5rem);
+}
+@media (max-width: 639px) {
+  main form:not([data-flotante] *) :is(input, select, textarea, summary) {
+    scroll-margin-bottom: 5rem;
+  }
+}
 
 /* ===== Impresión del recibo oficial =====
    Las franjas grises y los colores de la torta del recibo (Anexo III del

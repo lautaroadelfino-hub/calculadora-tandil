@@ -116,6 +116,13 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
   // "vista" (sí: la del recibo siguiente entra sin espera, sin volver a hacer
   // la entrada). No se guarda en el navegador: un F5 vuelve a "nueva".
   const [visitaDeCalificacion, setVisitaDeCalificacion] = useState("nueva");
+  // ¿Ya tocó una estrella en esta visita? Cada recibo lleva su tira y se
+  // puede calificar, pero a quien ya calificó no se lo vuelve a invitar: la
+  // tira lo espera quieta al final del recibo. El navegador recién anota que
+  // calificó cuando Firestore contesta: si la persona recalculaba antes (red
+  // lenta, o sin red), la tira del recibo nuevo no se enteraba y volvía a
+  // subir como la primera vez (revisión del 27/11/2026).
+  const [calificoEnLaVisita, setCalificoEnLaVisita] = useState(false);
 
   // Lo que ya vino en el HTML (la escala y las tablas del período inicial) y lo
   // que se fue trayendo después: nada se pide dos veces.
@@ -221,6 +228,24 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
     });
   };
 
+  /**
+   * Lleva el foco al campo con error. Si está en una sección plegada ("Lo que
+   * paga el empleador", "Ganancias"), primero la abre: un campo adentro de un
+   * <details> cerrado no se puede enfocar, y en el celular "Calcular
+   * liquidación" no hacía nada a la vista, con el aviso 600 px más abajo
+   * (revisión del 27/11/2026).
+   */
+  const enfocarCampo = (id) => {
+    const campo = document.getElementById(id);
+    if (!campo) return;
+    const seccion = campo.closest("details");
+    if (seccion && !seccion.open) {
+      seccion.open = true;
+      // Recién en el dibujado siguiente el campo existe para el foco.
+      requestAnimationFrame(() => campo.focus());
+    } else campo.focus();
+  };
+
   const simularLiquidacion = async (e) => {
     e.preventDefault();
     setErrorCalculo(null);
@@ -234,8 +259,7 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
     const revision = normalizarEntradas(convenio, valoresUsuario, periodoSeleccionado);
     setErrores(revision.errores);
     if (revision.hayErrores) {
-      const primero = Object.keys(revision.errores)[0];
-      document.getElementById(primero)?.focus();
+      enfocarCampo(Object.keys(revision.errores)[0]);
       return;
     }
 
@@ -272,9 +296,11 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
       setResultadoLiquidacion(reciboArmado);
       setEntradasUsadas({ ...valoresUsuario });
       setPeriodoUsado(periodoSeleccionado);
-      // La URL guarda la simulación: un F5 la vuelve a calcular, y se puede compartir.
+      // La URL guarda la simulación: un F5 la vuelve a calcular, y se puede
+      // compartir. Lo que venga después del # se conserva (#medidas, de la
+      // calificación): con sólo "?…" se perdía.
       if (typeof window !== "undefined") {
-        window.history.replaceState(null, "", `?${paramsDesdeEntradas(convenio, valoresUsuario, periodoSeleccionado)}`);
+        window.history.replaceState(null, "", `?${paramsDesdeEntradas(convenio, valoresUsuario, periodoSeleccionado)}${window.location.hash}`);
       }
 
     } catch (error) {
@@ -566,7 +592,7 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                       <ul className="list-disc pl-4 mt-1 space-y-0.5 text-[13px]">
                         {Object.entries(errores).map(([id, mensaje]) => (
                           <li key={id}>
-                            <button type="button" onClick={() => document.getElementById(id)?.focus()} className="font-medium underline underline-offset-2">
+                            <button type="button" onClick={() => enfocarCampo(id)} className="font-medium underline underline-offset-2">
                               {etiquetaDeCampo(convenio, id)}
                             </button>
                             : {mensaje}
@@ -823,15 +849,19 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                 afuera de lo que se apaga con "Cambiaste datos" y, con Tab, se
                 llega después de "Reportar error / sugerencia", en el orden en
                 que se ve. Sin insistir: ver lib/calificaciones.js (por qué no
-                es un cartel, qué se guarda y para qué). Una tarjeta por recibo
+                es un cartel, qué se guarda y para qué). Una tira por recibo
                 (`key`): si recalcula, lo que conteste ya no se pega al recibo
-                anterior; si ya calificó, la tarjeta nueva no aparece. */}
+                anterior, y el recibo nuevo también se puede calificar. Si ya
+                calificó (en esta visita o antes), la tira nueva no lo invita:
+                lo espera quieta acá abajo. */}
             <CalificarExperiencia
               key={calculosEnLaVisita}
               contexto={contextoDeCalificacion}
               desactualizado={desactualizado}
               visita={visitaDeCalificacion}
               alCambiarVisita={setVisitaDeCalificacion}
+              calificoEnLaVisita={calificoEnLaVisita}
+              alCalificar={() => setCalificoEnLaVisita(true)}
             />
             </div>
           ) : (

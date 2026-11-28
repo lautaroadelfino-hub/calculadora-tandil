@@ -18,6 +18,12 @@
 // celular o computadora, link o a mano, recibos a los que les faltaban datos);
 // ¿para quién? (perfil); y el detalle, en los comentarios.
 //
+// Desde el 28/11/2026 cada recibo se puede calificar, así que una persona
+// puede dejar varias calificaciones (lib/calificaciones.js, `yaCalifico`).
+// "Quiénes" deja ver todas, sólo la primera de cada persona (una por persona,
+// como antes: es con lo que se compara "Siguieron" con las semanas viejas) o
+// sólo las de quienes ya habían calificado.
+//
 // Las calificaciones de prueba (hechas desde la PC o una preview, con
 // `entorno: "prueba"`) no entran en los números salvo que se pida. Y como
 // cualquiera puede crear calificaciones sin sesión (lib/calificaciones.js),
@@ -44,6 +50,12 @@ const RANGOS = [
   { id: "90", texto: "Últimos 90 días", dias: 90 },
   { id: "todo", texto: "Desde el principio", dias: null },
 ];
+/** De quién son las calificaciones que se miran (lib/calificaciones.js, VECES). */
+const QUIENES = [
+  { id: "", texto: "Todas las calificaciones", enElFiltro: "" },
+  { id: "primera", texto: "Sólo la primera de cada persona", enElFiltro: ", sólo la primera de cada persona" },
+  { id: "siguiente", texto: "Sólo de quien ya había calificado", enElFiltro: ", sólo de quien ya había calificado" },
+];
 /** Cuántas se leen como máximo. Si algún día se llega, el panel lo dice. */
 const TOPE = 5000;
 /** Cuántas se listan de entrada en "Todas las calificaciones". */
@@ -57,6 +69,7 @@ const NOMBRE_DE_MOTIVO = Object.fromEntries(MOTIVOS.map((m) => [m.id, m.texto]))
 const NOMBRE_DE_DISPOSITIVO = { movil: "Celular", escritorio: "Computadora" };
 const NOMBRE_DE_ORIGEN = { manual: "Calculó a mano", link: "Abrió un link compartido" };
 const NOMBRE_DE_DATOS = { faltaban: "Le faltaban datos", completos: "Con todos los datos" };
+const NOMBRE_DE_VEZ = { primera: "Primera calificación", siguiente: "Ya había calificado" };
 const NOMBRE_DE_SEGUIMIENTO = { total: "Total", ...NOMBRE_DE_DISPOSITIVO };
 
 const pct = (x) => (x == null ? "—" : `${Math.round(x * 100)}%`);
@@ -174,7 +187,9 @@ function TablaDeSeguimiento({ filas }) {
       <p className="mt-1 text-[11px] text-slate-500">
         Siguieron: después de la estrella tocaron algo más o apretaron &quot;Enviar&quot;. Qué falló se cuenta sobre las de 1 a{" "}
         {PREGUNTA_MOTIVO_HASTA} estrellas, que son las que lo ven; con pocas, al lado va de cuántas sale. Para saber si un
-        cambio en la tarjeta funcionó, compará la columna Siguieron de semana a semana, antes y después del cambio.
+        cambio en la tarjeta funcionó, compará la columna Siguieron de semana a semana, antes y después del cambio. Para
+        comparar con las semanas anteriores al 28/11/2026, elegí arriba &quot;Sólo la primera de cada persona&quot;: quien
+        vuelve a calificar casi nunca contesta lo opcional, y para qué usa la calculadora ya no se le pregunta.
       </p>
     </div>
   );
@@ -191,7 +206,8 @@ function Calificacion({ c, nombreDeConvenio, onBorrar, borrando }) {
         {c.perfil && <span>· {NOMBRE_DE_PERFIL[c.perfil] || c.perfil}</span>}
         {c.dispositivo && <span>· {NOMBRE_DE_DISPOSITIVO[c.dispositivo] || c.dispositivo}</span>}
         {c.faltanDatos && <span>· le faltaban datos</span>}
-        {esPrueba(c) && <span className="rounded bg-slate-200 px-1.5 text-[10px] font-semibold uppercase text-slate-600">prueba</span>}
+        {c.yaCalifico === true && <span>· ya había calificado</span>}
+        {esPrueba(c) &&<span className="rounded bg-slate-200 px-1.5 text-[10px] font-semibold uppercase text-slate-600">prueba</span>}
         <button
           type="button"
           onClick={() => onBorrar(c)}
@@ -215,6 +231,8 @@ export default function CalificacionesTab({ convenios = [] }) {
   const [rango, setRango] = useState("90");
   const [convenioId, setConvenioId] = useState("");
   const [incluirPruebas, setIncluirPruebas] = useState(false);
+  // De quién: "" (todas), "primera" o "siguiente".
+  const [vez, setVez] = useState("");
   const [listadas, setListadas] = useState(LISTADAS);
   const [borrando, setBorrando] = useState(false);
   // La hora de la última lectura: el corte de "últimos N días" y la semana en
@@ -251,8 +269,8 @@ export default function CalificacionesTab({ convenios = [] }) {
 
   const delConvenio = useMemo(() => (lista || []).filter((c) => !convenioId || c.convenioId === convenioId), [lista, convenioId]);
   const r = useMemo(
-    () => resumenDeCalificaciones(delConvenio, { desde, hasta: leidoEl || undefined, incluirPruebas }),
-    [delConvenio, desde, leidoEl, incluirPruebas]
+    () => resumenDeCalificaciones(delConvenio, { desde, hasta: leidoEl || undefined, incluirPruebas, vez: vez || null }),
+    [delConvenio, desde, leidoEl, incluirPruebas, vez]
   );
   const maxEstrellas = Math.max(1, ...Object.values(r.porEstrellas));
   const maxMotivo = Math.max(1, ...r.motivos.map((m) => m.total));
@@ -269,7 +287,7 @@ export default function CalificacionesTab({ convenios = [] }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `calificaciones_${convenioId || "todas"}_${rango}${incluirPruebas ? "_con-pruebas" : ""}.csv`;
+    a.download = `calificaciones_${convenioId || "todas"}_${rango}${vez ? `_${vez}` : ""}${incluirPruebas ? "_con-pruebas" : ""}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -297,7 +315,7 @@ export default function CalificacionesTab({ convenios = [] }) {
   const borrarFiltradas = async () => {
     const ids = r.calificaciones.map((c) => c.id);
     if (!ids.length) return;
-    const filtro = `${RANGOS.find((x) => x.id === rango)?.texto.toLowerCase()}, ${convenioId ? nombreDeConvenio(convenioId) : "todos los convenios"}${incluirPruebas ? ", con las de prueba" : ""}`;
+    const filtro = `${RANGOS.find((x) => x.id === rango)?.texto.toLowerCase()}, ${convenioId ? nombreDeConvenio(convenioId) : "todos los convenios"}${QUIENES.find((x) => x.id === vez)?.enElFiltro || ""}${incluirPruebas ? ", con las de prueba" : ""}`;
     if (!window.confirm(`¿Borrar las ${ids.length} calificaciones que muestra el filtro (${filtro})? No se puede deshacer.\n\nConviene descargar el CSV antes.`)) return;
     setBorrando(true);
     try {
@@ -339,6 +357,11 @@ export default function CalificacionesTab({ convenios = [] }) {
               <option key={c.id} value={c.id}>{c.nombre || c.id}</option>
             ))}
           </select>
+          <select value={vez} onChange={(e) => setVez(e.target.value)} aria-label="Quiénes" className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm">
+            {QUIENES.map((x) => (
+              <option key={x.id} value={x.id}>{x.texto}</option>
+            ))}
+          </select>
           <label className="flex items-center gap-1.5 text-[12px] text-slate-600">
             <input type="checkbox" checked={incluirPruebas} onChange={(e) => setIncluirPruebas(e.target.checked)} />
             Incluir pruebas ({r.pruebas})
@@ -370,6 +393,8 @@ export default function CalificacionesTab({ convenios = [] }) {
           <p className="text-[11px] text-slate-500">
             Califica sobre todo quien quedó muy conforme o muy disconforme: compará grupos y semanas más que el promedio. Con menos de{" "}
             {MINIMO_PARA_COMPARAR} calificaciones, una diferencia no dice nada. Las fechas y las semanas van en hora argentina.
+            Desde el 28/11/2026 cada recibo se puede calificar, así que quien liquida muchos sueldos puede dejar varias: con
+            &quot;Sólo la primera de cada persona&quot;, cada una cuenta una vez.
           </p>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -403,6 +428,7 @@ export default function CalificacionesTab({ convenios = [] }) {
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {!convenioId && <TablaDeGrupos titulo="Por convenio" filas={r.porConvenio} nombre={nombreDeConvenio} />}
             <TablaDeGrupos titulo="Para qué la usan" filas={r.porPerfil} nombre={(k) => NOMBRE_DE_PERFIL[k] || k} />
+            {!vez && <TablaDeGrupos titulo="¿Primera vez, o ya había calificado otro recibo?" filas={r.porVez} nombre={(k) => NOMBRE_DE_VEZ[k] || k} />}
             <TablaDeGrupos titulo="Desde dónde" filas={r.porDispositivo} nombre={(k) => NOMBRE_DE_DISPOSITIVO[k] || k} />
             <TablaDeGrupos titulo="Cómo se armó el recibo" filas={r.porOrigen} nombre={(k) => NOMBRE_DE_ORIGEN[k] || k} />
             <TablaDeGrupos

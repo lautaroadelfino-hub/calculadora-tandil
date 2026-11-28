@@ -17,7 +17,7 @@ import {
   MAX_CATEGORIA,
   MINUTOS_PARA_CAMBIAR,
   CAMPOS_QUE_CAMBIAN,
-  DIAS_SIN_PREGUNTAR,
+  DIAS_SIN_INVITAR,
   nuevoIdDeCalificacion,
   estrellasValidas,
   limpiarComentario,
@@ -29,7 +29,8 @@ import {
   enviarCalificacion,
   leerRegistro,
   guardarRegistro,
-  debePreguntar,
+  debeInvitar,
+  calificoHacePoco,
   puedeCambiar,
   dispositivoDe,
   fechaArgentina,
@@ -67,6 +68,26 @@ describe("lo que se manda a Firestore", () => {
     expect(w.updateTransforms).toEqual([{ fieldPath: "creadoEl", setToServerValue: "REQUEST_TIME" }]);
     expect(w.currentDocument).toEqual({ exists: false });
     expect(w.updateMask).toBeUndefined();
+  });
+
+  it("crear, de quien ya había calificado: va marcada y lleva para qué usa la calculadora, en la misma alta", () => {
+    const [w] = escrituraNueva({ id: "b".repeat(20), estrellas: 2, perfil: "contador_rrhh", contexto: { ...CONTEXTO, yaCalifico: true } }).writes;
+    expect(w.update.fields).toMatchObject({
+      estrellas: { integerValue: "2" },
+      perfil: { stringValue: "contador_rrhh" },
+      yaCalifico: { booleanValue: true },
+    });
+    // Sigue siendo un alta: sin máscara y sin `actualizadoEl`, que en el panel contaría como que siguió.
+    expect(w.currentDocument).toEqual({ exists: false });
+    expect(w.updateMask).toBeUndefined();
+    expect(w.updateTransforms).toEqual([{ fieldPath: "creadoEl", setToServerValue: "REQUEST_TIME" }]);
+
+    // La primera de cada persona va como siempre: sin la marca. Y un perfil que no existe no viaja.
+    const primera = escrituraNueva({ id: "b".repeat(20), estrellas: 2, perfil: "jefe", contexto: { ...CONTEXTO, yaCalifico: false } }).writes[0].update.fields;
+    expect(primera.yaCalifico).toBeUndefined();
+    expect(primera.perfil).toBeUndefined();
+    expect(contextoValido({ yaCalifico: "sí" })).toEqual({});
+    expect(contextoValido({ yaCalifico: true })).toEqual({ yaCalifico: true });
   });
 
   it("el contexto que no tiene la forma esperada no se manda (si no, la regla rechazaría toda la calificación)", () => {
@@ -154,22 +175,32 @@ describe("enviar", () => {
   });
 });
 
-describe("cuándo se pregunta", () => {
+describe("a quién se invita, y quién ya había calificado", () => {
   const ahora = new Date("2026-11-26T15:00:00Z");
   const hace = (ms) => new Date(ahora.getTime() - ms).toISOString();
 
   it("a quien nunca contestó, siempre", () => {
-    expect(debePreguntar(null, ahora)).toBe(true);
-    expect(debePreguntar({ estado: "rara", el: hace(0) }, ahora)).toBe(true);
-    expect(debePreguntar({ estado: "calificada", el: "cualquier cosa" }, ahora)).toBe(true);
+    expect(debeInvitar(null, ahora)).toBe(true);
+    expect(debeInvitar({ estado: "rara", el: hace(0) }, ahora)).toBe(true);
+    expect(debeInvitar({ estado: "calificada", el: "cualquier cosa" }, ahora)).toBe(true);
   });
 
   it("después de calificar, no por un tiempo largo; después de 'Ahora no', por uno más corto", () => {
-    expect(debePreguntar({ estado: "calificada", el: hace(dias(DIAS_SIN_PREGUNTAR.calificada - 1)) }, ahora)).toBe(false);
-    expect(debePreguntar({ estado: "calificada", el: hace(dias(DIAS_SIN_PREGUNTAR.calificada)) }, ahora)).toBe(true);
-    expect(debePreguntar({ estado: "descartada", el: hace(dias(DIAS_SIN_PREGUNTAR.descartada - 1)) }, ahora)).toBe(false);
-    expect(debePreguntar({ estado: "descartada", el: hace(dias(DIAS_SIN_PREGUNTAR.descartada)) }, ahora)).toBe(true);
-    expect(DIAS_SIN_PREGUNTAR.descartada).toBeLessThan(DIAS_SIN_PREGUNTAR.calificada);
+    expect(debeInvitar({ estado: "calificada", el: hace(dias(DIAS_SIN_INVITAR.calificada - 1)) }, ahora)).toBe(false);
+    expect(debeInvitar({ estado: "calificada", el: hace(dias(DIAS_SIN_INVITAR.calificada)) }, ahora)).toBe(true);
+    expect(debeInvitar({ estado: "descartada", el: hace(dias(DIAS_SIN_INVITAR.descartada - 1)) }, ahora)).toBe(false);
+    expect(debeInvitar({ estado: "descartada", el: hace(dias(DIAS_SIN_INVITAR.descartada)) }, ahora)).toBe(true);
+    expect(DIAS_SIN_INVITAR.descartada).toBeLessThan(DIAS_SIN_INVITAR.calificada);
+  });
+
+  it("ya había calificado: sólo quien calificó (no quien dijo 'Ahora no'), y mientras dura el tiempo sin invitar", () => {
+    expect(calificoHacePoco(null, ahora)).toBe(false);
+    expect(calificoHacePoco({ estado: "calificada", el: hace(0) }, ahora)).toBe(true);
+    expect(calificoHacePoco({ estado: "calificada", el: hace(dias(DIAS_SIN_INVITAR.calificada - 1)) }, ahora)).toBe(true);
+    // Pasado ese tiempo vuelve a empezar: se la invita y su calificación es otra vez "la primera".
+    expect(calificoHacePoco({ estado: "calificada", el: hace(dias(DIAS_SIN_INVITAR.calificada)) }, ahora)).toBe(false);
+    expect(calificoHacePoco({ estado: "descartada", el: hace(dias(1)) }, ahora)).toBe(false);
+    expect(calificoHacePoco({ estado: "calificada", el: "cualquier cosa" }, ahora)).toBe(false);
   });
 
   it("se puede cambiar lo contestado durante un día (la ventana de la regla), con unos minutos de margen", () => {
@@ -259,6 +290,35 @@ describe("el resumen del panel", () => {
     expect(de(r.porFaltanDatos, "completos")).toMatchObject({ total: 2, promedio: 4.5 });
   });
 
+  it("la primera de cada persona y las de quien ya había calificado se cuentan aparte, y se puede mirar una sola", () => {
+    const conRepetidas = [
+      ...lista,
+      { id: "7", estrellas: 5, convenioId: "comercio-cct-130-75", perfil: "contador_rrhh", yaCalifico: true, creadoEl: ts("2026-11-25T14:00:00Z") },
+      { id: "8", estrellas: 5, convenioId: "comercio-cct-130-75", perfil: "contador_rrhh", yaCalifico: true, creadoEl: ts("2026-11-25T15:00:00Z"), actualizadoEl: ts("2026-11-25T15:01:00Z") },
+    ];
+    const sinRepetidas = resumenDeCalificaciones(lista, { hasta: HOY });
+    const todas = resumenDeCalificaciones(conRepetidas, { hasta: HOY });
+    expect(todas.total).toBe(6);
+    const de = (clave) => todas.porVez.find((f) => f.clave === clave);
+    expect(de("primera")).toMatchObject({ total: 4, promedio: 3 });
+    expect(de("siguiente")).toMatchObject({ total: 2, promedio: 5 });
+    // Lo de antes del 28/11/2026 no trae el campo: son todas primeras.
+    expect(sinRepetidas.porVez).toEqual([expect.objectContaining({ clave: "primera", total: 4 })]);
+
+    // Sólo la primera de cada persona: los mismos números que sin las repetidas.
+    const primeras = resumenDeCalificaciones(conRepetidas, { hasta: HOY, vez: "primera" });
+    expect(primeras.total).toBe(4);
+    expect(primeras.promedio).toBe(sinRepetidas.promedio);
+    expect(primeras.seguimiento).toEqual(sinRepetidas.seguimiento);
+    expect(primeras.porSemana).toEqual(sinRepetidas.porSemana);
+
+    const siguientes = resumenDeCalificaciones(conRepetidas, { hasta: HOY, vez: "siguiente" });
+    expect(siguientes.calificaciones.map((c) => c.id)).toEqual(["8", "7"]);
+    expect(siguientes.seguimiento[0]).toMatchObject({ total: 2, siguieron: 1, conPerfil: 2 });
+    // Un valor que no existe no filtra nada.
+    expect(resumenDeCalificaciones(conRepetidas, { hasta: HOY, vez: "cualquiera" }).total).toBe(6);
+  });
+
   it("semana a semana muestra también las semanas vacías, hasta la que está en curso", () => {
     const r = resumenDeCalificaciones(lista, { hasta: HOY });
     expect(r.porSemana.map((s) => [s.clave, s.total, s.enCurso])).toEqual([
@@ -335,14 +395,17 @@ describe("el CSV", () => {
       { id: "abc", estrellas: 2, motivos: ["numero_no_cierra", "otro"], comentario: 'Dice "neto"; y\nno cierra', convenioId: "comercio-cct-130-75", periodo: "2026-11", faltanDatos: true, entorno: "prueba", creadoEl: new Date("2026-12-01T01:15:00Z"), actualizadoEl: new Date("2026-12-01T02:40:00Z") },
       // Como llega del panel: la hora es un Timestamp de Firestore. Sin `actualizadoEl` (no siguió), la celda va vacía.
       { id: "def", estrellas: 5, creadoEl: { toDate: () => new Date("2026-11-26T15:00:00Z") } },
-      { id: "ghi", estrellas: 4, creadoEl: { toDate: () => new Date("2026-11-26T15:00:00Z") }, actualizadoEl: { toDate: () => new Date("2026-11-27T02:59:00Z") } },
+      { id: "ghi", estrellas: 4, yaCalifico: true, creadoEl: { toDate: () => new Date("2026-11-26T15:00:00Z") }, actualizadoEl: { toDate: () => new Date("2026-11-27T02:59:00Z") } },
     ]);
     const [cabecera, fila, sinSeguir, conTimestamp] = csv.split("\r\n");
-    expect(cabecera).toBe("fecha;actualizado;estrellas;motivos;perfil;comentario;convenio;periodo;categoria;dispositivo;origen;faltan_datos;calculos;entorno;id");
-    expect(fila).toBe('2026-11-30 22:15;2026-11-30 23:40;2;numero_no_cierra otro;;"Dice ""neto""; y\nno cierra";comercio-cct-130-75;2026-11;;;;si;;prueba;abc');
-    expect(sinSeguir).toBe("2026-11-26 12:00;;5;;;;;;;;;;;;def");
+    expect(cabecera).toBe("fecha;actualizado;estrellas;motivos;perfil;comentario;convenio;periodo;categoria;dispositivo;origen;faltan_datos;calculos;ya_califico;entorno;id");
+    expect(fila).toBe('2026-11-30 22:15;2026-11-30 23:40;2;numero_no_cierra otro;;"Dice ""neto""; y\nno cierra";comercio-cct-130-75;2026-11;;;;si;;no;prueba;abc');
+    // Diez celdas vacías entre las estrellas y "ya_califico" (de motivos a calculos), y la de entorno.
+    expect(sinSeguir).toBe(["2026-11-26 12:00", "", "5", ...Array(10).fill(""), "no", "", "def"].join(";"));
     // 02:59 UTC del 27 es todavía el 26 a la noche en la Argentina.
     expect(conTimestamp.split(";").slice(0, 2)).toEqual(["2026-11-26 12:00", "2026-11-26 23:59"]);
+    // La de quien ya había calificado otro recibo.
+    expect(conTimestamp.split(";").slice(-3)).toEqual(["si", "", "ghi"]);
   });
 
   it("un comentario que empieza con =, +, - o @ no llega a Excel como fórmula", () => {
@@ -382,10 +445,18 @@ describe("firestore.rules valida lo mismo que manda el código", () => {
   it("todo lo que el código puede mandar está entre las claves permitidas", () => {
     const permitidas = bloque.match(/d\.keys\(\)\.hasOnly\(\[([^\]]+)\]\)/)[1].split(",").map((s) => s.trim().replace(/'/g, ""));
     const mandadas = [
-      ...Object.keys(escrituraNueva({ id: "a".repeat(20), estrellas: 1, contexto: { ...CONTEXTO, entorno: "prueba" } }).writes[0].update.fields),
+      ...Object.keys(escrituraNueva({ id: "a".repeat(20), estrellas: 1, perfil: "otro", contexto: { ...CONTEXTO, entorno: "prueba", yaCalifico: true } }).writes[0].update.fields),
       ...CAMPOS_QUE_CAMBIAN, "creadoEl", "actualizadoEl",
     ];
+    expect(mandadas).toContain("yaCalifico");
     for (const k of mandadas) expect(permitidas).toContain(k);
+  });
+
+  it("`yaCalifico` sólo puede ser true, y se pone al crear: no está entre lo que se cambia después", () => {
+    expect(bloque).toContain("(!('yaCalifico' in d) || d.yaCalifico == true)");
+    expect(CAMPOS_QUE_CAMBIAN).not.toContain("yaCalifico");
+    // El código tampoco manda otra cosa que true (un false lo rechazarían las reglas).
+    expect(contextoValido({ yaCalifico: false })).toEqual({});
   });
 });
 
@@ -397,12 +468,20 @@ describe("app/globals.css, para la tarjeta de calificación", () => {
   it("tiene la animación del tilde (sin ella, el tilde queda invisible)", () => {
     expect(css).toMatch(/@keyframes calificacion-trazo\s*\{\s*to\s*\{\s*stroke-dashoffset:\s*0;?\s*\}\s*\}/);
   });
+  it("tiene el destello de las estrellas al entrar, que arranca y termina sin relleno", () => {
+    expect(css).toMatch(/@keyframes calificacion-destello\s*\{\s*0%,\s*100%\s*\{\s*fill:\s*transparent;?\s*\}/);
+  });
   it("mientras flota, reserva su alto en lo del recibo y no en la página (la franja de la página incluía a la tarjeta y el recibo saltaba)", () => {
     expect(css).toContain('[data-recibo]:has([data-calificacion="flotando"]) :not([data-flotante], [data-flotante] *)');
     expect(css).toMatch(/scroll-margin-bottom:\s*var\(--reserva-calificacion/);
     expect(css).not.toMatch(/scroll-padding-bottom/);
   });
   it("en el celular se desplaza la ventana, no el body: si no, lo pegado al pie queda debajo de las barras del navegador", () => {
-    expect(css).toMatch(/@supports \(overflow-x: clip\)\s*\{\s*body\s*\{\s*overflow-x:\s*clip;\s*height:\s*auto;/);
+    expect(css).toMatch(/@supports \(overflow-x: clip\)\s*\{\s*body\s*\{\s*overflow-x:\s*clip;/);
+  });
+  it("el body no tiene alto fijo: con height 100% la barra de arriba se despegaba al bajar una pantalla en la compu", () => {
+    const sinComentarios = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(sinComentarios).toMatch(/(^|[;}\s])html\s*\{\s*height:\s*100%;\s*\}/);
+    expect(sinComentarios).not.toMatch(/body[^{}]*\{[^}]*\bheight:\s*100%/);
   });
 });

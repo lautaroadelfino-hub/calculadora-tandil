@@ -66,6 +66,20 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // Mientras está abierto, la página de atrás no se desplaza: al deslizar sobre
+  // el modal se movía el recibo, y al cerrarlo la persona quedaba en otro lado.
+  // Va en el html y no en el body: con overflow en el body, en el celular el
+  // body volvería a ser el que hace scroll (app/globals.css, 27/11/2026).
+  useEffect(() => {
+    if (!open) return;
+    const raiz = document.documentElement;
+    const antes = raiz.style.overflowY;
+    raiz.style.overflowY = "hidden";
+    return () => {
+      raiz.style.overflowY = antes;
+    };
+  }, [open]);
+
   // Focus trap dentro del modal (Tab y Shift+Tab)
   useEffect(() => {
     if (!open) return;
@@ -162,6 +176,10 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
   // Se dibuja en document.body, fuera de <main>: adentro quedaba atrapado en el
   // contexto de apilamiento de la página y la barra verde de arriba se le
   // ponía encima, tapando el título y la ✕ (lo vio la persona del celular).
+  // El fondo hace scroll y el panel se centra con márgenes (my-auto): con
+  // `items-center`, cuando el panel no entraba (el celular acostado, o uno chico
+  // con "Datos que se envían" abierto) se cortaba por arriba y por abajo, y no
+  // había forma de llegar a la ✕ ni a "Enviar" (revisión del 27/11/2026).
   return createPortal(
     <div
       ref={backdropRef}
@@ -171,12 +189,12 @@ export default function ReportModal({ open, onClose, triggerRef, context }) {
       aria-labelledby="report-title"
       aria-describedby="report-desc"
       data-flotante=""
-      className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-[60] flex justify-center overflow-y-auto overscroll-contain bg-black/50 p-4 backdrop-blur-sm"
     >
       <div
         ref={panelRef}
         role="document"
-        className="w-full max-w-lg rounded-2xl bg-white shadow-xl p-5 outline-none"
+        className="my-auto w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl outline-none"
       >
         <div className="flex items-start justify-between gap-4">
           <div>
