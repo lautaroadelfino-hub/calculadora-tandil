@@ -179,6 +179,14 @@ describe("/novedades/<convenio>", () => {
     expect(pedido).toContain("mask.fieldPaths=detalle");
   });
 
+  it("lleva a las novedades de todos los convenios, y no repite la sección en cada recuadro", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado());
+    const h = await html(PaginaNovedades(params("camioneros-cct-40-89")));
+    expect(h).toMatch(/<a[^>]*href="\/novedades"[^>]*>Las novedades de todos los convenios<\/a>/);
+    expect(h).not.toContain("El sitio");
+    expect(h).not.toContain('href="/novedades/camioneros-cct-40-89"');
+  });
+
   it("sin novedades del convenio lo dice y no se indexa", async () => {
     vi.stubGlobal("fetch", firestoreSimulado({ novedades: [NOVEDADES[0]] }));
     const h = await html(PaginaNovedades(params("camioneros-cct-40-89")));
@@ -319,6 +327,22 @@ describe("/novedades (todas)", () => {
     expect(h).toContain("Camioneros: nueva escala cargada");
     expect(h).toContain('href="/novedades/camioneros-cct-40-89"');
     expect(h).not.toContain("animate-pulse");
+  });
+
+  it("es una tapa: el cabezal con la fecha de la última, las secciones y la más nueva como principal", async () => {
+    vi.stubGlobal("fetch", firestoreSimulado());
+    const h = await html(NovedadesGenerales());
+    expect(h).toMatch(/<h1[^>]*>Novedades<\/h1>/);
+    expect(h).toContain("Última novedad: 13 sept 2026");
+    // Las secciones: "Todas" marcada, y sólo los convenios que tienen alguna novedad.
+    const secciones = h.slice(h.indexOf('aria-label="Novedades por convenio"'), h.indexOf("</nav>"));
+    expect(secciones).toMatch(/<span aria-current="page"[^>]*>Todas<\/span>/);
+    expect(secciones).toMatch(/<a[^>]*href="\/novedades\/camioneros-cct-40-89"[^>]*>Camioneros<\/a>/);
+    expect(secciones).not.toContain("UOCRA");
+    // La más nueva (la general, del 13/9) va primera y grande, en la sección del sitio.
+    expect(h.indexOf("Novedad general del sitio")).toBeLessThan(h.indexOf("Camioneros: nueva escala cargada"));
+    expect(h).toContain(">El sitio</span>");
+    expect(h.match(/lg:text-5xl/g)).toHaveLength(1);
   });
 
   it("tiene canonical propio (antes heredaba el de la portada)", () => {

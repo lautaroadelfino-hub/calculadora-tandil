@@ -2,8 +2,10 @@
 // Las novedades de un convenio (las que el dueño cargó con ese convenio desde
 // /admin). Se arma en el servidor por la API REST de Firestore. Misma
 // estructura que /acuerdos/<convenio>: ver los comentarios de esa página sobre
-// el 404 y el runtime.
+// el 404 y el runtime. Las novedades van en la misma grilla de recuadros que
+// la tapa general (components/ListaNovedades.jsx), sin repetir la sección.
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { convenioCacheado, esIdDeConvenio } from "@/lib/datosCalculadora";
 import { listarColeccion } from "@/lib/firestoreRest";
 import { metadataDeNovedadesDeConvenio } from "@/lib/metadataConvenio";
@@ -54,6 +56,14 @@ export default async function PaginaNovedadesDeConvenio({ params }) {
       ) : (
         <ListaNovedades novedades={lista} />
       )}
+      <p className="mt-5 text-sm">
+        <Link
+          href="/novedades"
+          className="font-medium text-emerald-700 underline decoration-emerald-300 underline-offset-4 hover:decoration-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500"
+        >
+          Las novedades de todos los convenios
+        </Link>
+      </p>
     </div>
   );
 }
