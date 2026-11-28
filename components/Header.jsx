@@ -11,7 +11,7 @@
 // del 23/9/2026). Elegida por el dueño entre cuatro opciones dibujadas en un
 // lienzo de diseño.
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LINKS_NAVEGACION } from "@/lib/herramientas";
@@ -25,6 +25,24 @@ function esActivo(href, pathname) {
 export default function Header() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname() || "/";
+
+  // El menú del celular se despliega adentro de la barra, que va pegada
+  // arriba: abierto, seguía tapando la página mientras se la desplazaba (con el
+  // teléfono acostado, más de la mitad de la pantalla), y sólo se cerraba con
+  // su botón o eligiendo un link (revisión del 27/11/2026).
+  useEffect(() => {
+    if (!open) return;
+    const cerrar = () => setOpen(false);
+    const conEscape = (e) => {
+      if (e.key === "Escape") cerrar();
+    };
+    window.addEventListener("keydown", conEscape);
+    window.addEventListener("scroll", cerrar, { passive: true, once: true });
+    return () => {
+      window.removeEventListener("keydown", conEscape);
+      window.removeEventListener("scroll", cerrar);
+    };
+  }, [open]);
 
   return (
     <header className="sticky top-0 z-20 bg-white border-b border-slate-200 shadow-[0_1px_2px_rgba(15,23,42,0.04)] print:hidden">

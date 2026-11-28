@@ -134,35 +134,46 @@ semanales.
 ### 5. Mirar qué opina la gente (calificaciones)
 
 En cada recibo aparece **"¿Te sirvió este cálculo?"**, con 5 estrellas, en una
-tarjeta que flota abajo mientras mirás el recibo (en el celular, con los bordes
-del recibo; en la compu, en su esquina) y que al final se apoya debajo del
-recibo. No es un cartel ni aparece por tiempo: entra recién cuando ya se vieron
-enteros los tres números de arriba (neto, bruto y costo laboral), nunca queda
-encima del formulario y no tiene × ni "Ahora no": el que no quiere calificar no
-toca nada. En el celular, al calcular, el recibo queda arriba, debajo de la
-barra.
+tira oscura de una sola fila (la tinta de la franja "Simulación de recibo"),
+del ancho del recibo, que flota abajo mientras lo mirás, en el celular y en la
+compu, y que al final se apoya debajo del recibo. No es un cartel ni aparece
+por tiempo: entra recién cuando ya se vieron los tres números de arriba (neto,
+bruto y costo laboral), nunca queda encima del formulario y no tiene × ni
+"Ahora no": el que no quiere calificar no toca nada. En el celular, al
+calcular, el recibo queda arriba, debajo de la barra.
 
-Con un toque en las estrellas la calificación queda guardada en el acto.
-Después pregunta de a una, todo opcional: qué falló (si puso 3 o menos), para
-qué usó la calculadora y un comentario, con una pregunta según lo que contestó.
-**Seguir** y **Enviar** funcionan sin contestar. Si la persona sigue leyendo
-el recibo sin contestar, la pregunta se achica a una línea que sigue flotando,
-y un toque la vuelve a abrir (no se achica si dejó un comentario escrito sin
-mandar). **Enviar** pliega el panel y deja "¡Gracias por ayudar a mejorar!"
-(desde ahí puede borrar su comentario), que a los pocos segundos queda quieto
-debajo del recibo. Si algo no se pudo guardar (sin señal), la tarjeta lo dice
-y deja reintentar, y cuando la persona se va de la página se intenta mandar
-de nuevo lo que quedó sin guardar. Si la persona califica, no se le vuelve a
-preguntar por 4 meses. Hay una tarjeta por recibo: si recalcula después de
-calificar, no vuelve a aparecer.
+Con un toque en las estrellas la calificación queda guardada en el acto. La
+tira crece hacia arriba y pregunta de a una, todo opcional: qué falló (si puso
+3 o menos), para qué usó la calculadora y un comentario, con una pregunta según
+lo que contestó. **Seguir** y **Enviar** funcionan sin contestar. Si la persona
+sigue leyendo el recibo sin contestar, la pregunta vuelve a una fila que sigue
+flotando, y un toque la abre de nuevo (no se achica si dejó un comentario
+escrito sin mandar). **Enviar** pliega el panel y deja "¡Gracias por ayudar a
+mejorar!" (desde ahí puede borrar su comentario), que a los pocos segundos
+queda quieto debajo del recibo. Si algo no se pudo guardar (sin señal), la
+tira lo dice y deja reintentar, y cuando la persona se va de la página se
+intenta mandar de nuevo lo que quedó sin guardar. Si la persona califica, no
+se le vuelve a preguntar por 4 meses, y en esa visita los recibos siguientes
+ya no llevan tira.
 
-Así es **desde el 26/11/2026**. La versión anterior (una línea fija debajo de
-los tres números, con todo lo opcional junto) estuvo publicada sólo unas horas
-ese mismo día, así que no hay un "antes" con qué comparar: seguí cómo evoluciona
-la columna **Siguieron** de **Semana a semana**. Si algún día se cambia la
-tarjeta, compará esa columna en las semanas de antes y de después, sin "Incluir
-pruebas" y en la misma época del mes, porque las cargas de escalas mueven la
-nota. La semana del 23/11/2026 mezcla las versiones: no la uses para comparar.
+Es una tira **desde el 27/11/2026**. Antes fue, por un día, una tarjeta blanca
+que flotaba (en el celular tapaba entre un quinto y la mitad de la pantalla, y
+en la compu, la columna de los importes), y antes, por unas horas, una línea
+fija debajo de los tres números. Ninguna estuvo publicada lo suficiente como
+para dejar un "antes" con qué comparar: seguí cómo evoluciona la columna
+**Siguieron** de **Semana a semana**. Si algún día se cambia la tira, compará
+esa columna en las semanas de antes y de después, sin "Incluir pruebas" y en
+la misma época del mes, porque las cargas de escalas mueven la nota. La semana
+del 23/11/2026 mezcla las tres versiones: no la uses para comparar.
+
+**Para mirarla en un teléfono de verdad:** la compu no tiene las barras del
+navegador del celular ni su teclado, así que lo que va pegado al pie se
+confirma en un teléfono. Abrí la calculadora con `#medidas` al final de la
+dirección (por ejemplo `liquidar.ar/calcular/comercio-cct-130-75#medidas`) y
+calculá. Con eso la tira aparece aunque ese teléfono ya haya calificado, lo que
+contestes va como **prueba** (no cuenta en el panel) y no se recuerda, y arriba
+aparece un cuadro con las medidas de la pantalla y el navegador. Si algo se ve
+mal, una captura con ese cuadro alcanza para saber por qué.
 
 **Qué se guarda:** las estrellas y lo que conteste, más el contexto del recibo
 que calificó, que se toma solo: convenio, mes y categoría, si estaba en el
@@ -185,7 +196,7 @@ principal) y el promedio. Abajo, en este orden: qué falló en las bajas;
 **Cuántos siguen después de la estrella** (total, celular y computadora: qué
 parte contestó algo más o apretó "Enviar", qué parte dijo para qué la usó,
 cuántas de las de 3 o menos dijeron qué falló, con la base al lado cuando son
-pocas, y qué parte dejó comentario; si la tarjeta lleva a completar, esos
+pocas, y qué parte dejó comentario; si la tira lleva a completar, esos
 números suben); semana a semana (incluidas las semanas en cero, con la columna
 **Siguieron** para comparar antes y después de un cambio), por convenio, para qué la usan,
 desde dónde, cómo se armó el recibo y si le faltaban datos; después los
@@ -209,17 +220,17 @@ nada (el panel lo marca). Lo que más conviene mirar:
   que califican peor: cargar las tablas del mes a tiempo.
 - **Celular peor que computadora**: revisar la pantalla chica.
 - **Una semana en cero, marcada en rojo**, después de semanas con
-  calificaciones: puede ser que la tarjeta haya dejado de guardar (casi
+  calificaciones: puede ser que la tira haya dejado de guardar (casi
   siempre, reglas sin pegar: ver `docs/continuidad.md`).
 
-Quien no llega a calcular (por un error) no ve la tarjeta: para eso el aviso
+Quien no llega a calcular (por un error) no ve la tira: para eso el aviso
 del error trae "Reportar error / sugerencia", que manda un mail. Ese mail
 lleva la página sin la afiliación sindical ni los datos de la familia.
 
 **Antes de que funcione hay que pegar las reglas** (ver `firestore.rules`, más
 abajo): las calificaciones son lo único que alguien sin sesión puede escribir
 en la base, y las reglas validan cada campo. Sin el bloque de
-"calificaciones" en la consola, la tarjeta dice "No pudimos guardar tu
+"calificaciones" en la consola, la tira dice "No pudimos guardar tu
 calificación" y la pestaña, que no puede leerlas. Si algún día se cambian
 los motivos, los perfiles o cualquier dato que se guarda, se cambian en
 `lib/calificaciones.js` **y** en `firestore.rules` (un test avisa si no

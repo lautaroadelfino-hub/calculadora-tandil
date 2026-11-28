@@ -397,12 +397,20 @@ describe("app/globals.css, para la tarjeta de calificación", () => {
   it("tiene la animación del tilde (sin ella, el tilde queda invisible)", () => {
     expect(css).toMatch(/@keyframes calificacion-trazo\s*\{\s*to\s*\{\s*stroke-dashoffset:\s*0;?\s*\}\s*\}/);
   });
+  it("tiene el destello de las estrellas al entrar, que arranca y termina sin relleno", () => {
+    expect(css).toMatch(/@keyframes calificacion-destello\s*\{\s*0%,\s*100%\s*\{\s*fill:\s*transparent;?\s*\}/);
+  });
   it("mientras flota, reserva su alto en lo del recibo y no en la página (la franja de la página incluía a la tarjeta y el recibo saltaba)", () => {
     expect(css).toContain('[data-recibo]:has([data-calificacion="flotando"]) :not([data-flotante], [data-flotante] *)');
     expect(css).toMatch(/scroll-margin-bottom:\s*var\(--reserva-calificacion/);
     expect(css).not.toMatch(/scroll-padding-bottom/);
   });
   it("en el celular se desplaza la ventana, no el body: si no, lo pegado al pie queda debajo de las barras del navegador", () => {
-    expect(css).toMatch(/@supports \(overflow-x: clip\)\s*\{\s*body\s*\{\s*overflow-x:\s*clip;\s*height:\s*auto;/);
+    expect(css).toMatch(/@supports \(overflow-x: clip\)\s*\{\s*body\s*\{\s*overflow-x:\s*clip;/);
+  });
+  it("el body no tiene alto fijo: con height 100% la barra de arriba se despegaba al bajar una pantalla en la compu", () => {
+    const sinComentarios = css.replace(/\/\*[\s\S]*?\*\//g, "");
+    expect(sinComentarios).toMatch(/(^|[;}\s])html\s*\{\s*height:\s*100%;\s*\}/);
+    expect(sinComentarios).not.toMatch(/body[^{}]*\{[^}]*\bheight:\s*100%/);
   });
 });
