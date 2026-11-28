@@ -47,6 +47,12 @@ delegar. Escrita el 24/9/2026 a partir de la auditoría integral del 23/9.
   casi seguro, las reglas de la consola no son las de `firestore.rules` (se
   agregó un dato en lib/calificaciones.js y no se volvieron a pegar). En el
   panel se nota porque "semana a semana" muestra semanas en cero, marcadas.
+- **En el panel, nadie figura como "Ya había calificado":** desde el
+  28/11/2026 cada recibo se puede calificar, y la calificación de quien ya
+  había calificado lleva una marca (`yaCalifico`). Con las reglas viejas en la
+  consola no se pierde nada (la tira la manda sin la marca), pero todas
+  figuran como primeras: falta pegar `firestore.rules`. Cómo comprobarlo:
+  README, sección 5.
 - **Cloudflare deja de publicar:** pasó a fines de octubre de 2026: después
   del 28/10 ningún push (ni a `main` ni a otras ramas) llegó a armarse, sin
   ningún aviso. Se nota porque en GitHub los commits dejan de tener el check

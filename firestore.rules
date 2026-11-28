@@ -136,11 +136,15 @@ service cloud.firestore {
     // borra. Las horas las pone el servidor (`request.time`), no el navegador.
     // Las listas, los largos y los 1440 minutos son los de lib/calificaciones.js:
     // si se cambian allá, se cambian acá y se vuelve a pegar en la consola.
+    // `yaCalifico` (28/11/2026) sólo puede ser `true`: marca la calificación de
+    // un navegador que ya había calificado otro recibo. Se pone al crearla y no
+    // se puede cambiar después. Mientras la consola tenga las reglas de antes,
+    // la tira la manda sin esa marca (useCalificacion.js) y no se pierde.
     function calificacionValida(d) {
       return d.keys().hasAll(['estrellas', 'convenioId', 'periodo', 'creadoEl'])
           && d.keys().hasOnly(['estrellas', 'motivos', 'perfil', 'comentario', 'convenioId', 'periodo',
                                'categoria', 'dispositivo', 'origen', 'faltanDatos', 'calculos',
-                               'entorno', 'creadoEl', 'actualizadoEl'])
+                               'entorno', 'yaCalifico', 'creadoEl', 'actualizadoEl'])
           && d.estrellas is int && d.estrellas >= 1 && d.estrellas <= 5
           && d.convenioId is string && d.convenioId.matches('^[a-z0-9-]{1,60}$')
           && d.periodo is string && d.periodo.matches('^[0-9]{4}-(0[1-9]|1[0-2])$')
@@ -155,6 +159,7 @@ service cloud.firestore {
           && (!('faltanDatos' in d) || d.faltanDatos is bool)
           && (!('calculos' in d) || (d.calculos is int && d.calculos >= 1 && d.calculos <= 999))
           && (!('entorno' in d) || d.entorno in ['prueba'])
+          && (!('yaCalifico' in d) || d.yaCalifico == true)
           && d.creadoEl is timestamp
           && (!('actualizadoEl' in d) || d.actualizadoEl is timestamp);
     }

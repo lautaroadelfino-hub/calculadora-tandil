@@ -116,12 +116,13 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
   // "vista" (sí: la del recibo siguiente entra sin espera, sin volver a hacer
   // la entrada). No se guarda en el navegador: un F5 vuelve a "nueva".
   const [visitaDeCalificacion, setVisitaDeCalificacion] = useState("nueva");
-  // En qué cuenta de la visita tocó la primera estrella (null: todavía no).
-  // Desde ahí, los recibos siguientes no llevan tira. El navegador recién
-  // anota que ya calificó cuando Firestore contesta: si la persona recalculaba
-  // antes (red lenta, o sin red), la tira nueva volvía a preguntar y quedaban
-  // dos calificaciones de la misma persona (revisión del 27/11/2026).
-  const [calificoEnLaCuenta, setCalificoEnLaCuenta] = useState(null);
+  // ¿Ya tocó una estrella en esta visita? Cada recibo lleva su tira y se
+  // puede calificar, pero a quien ya calificó no se lo vuelve a invitar: la
+  // tira lo espera quieta al final del recibo. El navegador recién anota que
+  // calificó cuando Firestore contesta: si la persona recalculaba antes (red
+  // lenta, o sin red), la tira del recibo nuevo no se enteraba y volvía a
+  // subir como la primera vez (revisión del 27/11/2026).
+  const [calificoEnLaVisita, setCalificoEnLaVisita] = useState(false);
 
   // Lo que ya vino en el HTML (la escala y las tablas del período inicial) y lo
   // que se fue trayendo después: nada se pide dos veces.
@@ -850,18 +851,18 @@ export default function CalculadoraConvenio({ convenioId, inicial, encabezado = 
                 que se ve. Sin insistir: ver lib/calificaciones.js (por qué no
                 es un cartel, qué se guarda y para qué). Una tira por recibo
                 (`key`): si recalcula, lo que conteste ya no se pega al recibo
-                anterior; si ya calificó (en esta visita o antes), la tira
-                nueva no aparece. */}
-            {(calificoEnLaCuenta === null || calificoEnLaCuenta === calculosEnLaVisita) && (
-              <CalificarExperiencia
-                key={calculosEnLaVisita}
-                contexto={contextoDeCalificacion}
-                desactualizado={desactualizado}
-                visita={visitaDeCalificacion}
-                alCambiarVisita={setVisitaDeCalificacion}
-                alCalificar={() => setCalificoEnLaCuenta(calculosEnLaVisita)}
-              />
-            )}
+                anterior, y el recibo nuevo también se puede calificar. Si ya
+                calificó (en esta visita o antes), la tira nueva no lo invita:
+                lo espera quieta acá abajo. */}
+            <CalificarExperiencia
+              key={calculosEnLaVisita}
+              contexto={contextoDeCalificacion}
+              desactualizado={desactualizado}
+              visita={visitaDeCalificacion}
+              alCambiarVisita={setVisitaDeCalificacion}
+              calificoEnLaVisita={calificoEnLaVisita}
+              alCalificar={() => setCalificoEnLaVisita(true)}
+            />
             </div>
           ) : (
             <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-white/60 p-10 text-center lg:sticky lg:top-[calc(var(--h-header)+1rem)]">

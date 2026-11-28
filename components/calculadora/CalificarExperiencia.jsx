@@ -27,6 +27,16 @@
 // estrellas se encienden una vez, de a una. No toma el foco ni se anuncia.
 // Desde el segundo recibo de la visita entra sin espera y sin destello.
 //
+// QUIETA, PARA QUIEN YA CALIFICÓ. Cada recibo lleva su tira y se puede
+// calificar (el dueño, 27/11/2026: un contador liquida varios sueldos, y si
+// uno le sale mal más tarde tiene que poder decirlo). Pero invitar, se invita
+// una vez: a quien ya calificó en los últimos cuatro meses, o en esta visita,
+// la tira no le flota ni se le anima. Está desde el principio donde las demás
+// terminan: apoyada debajo del recibo, sin sombra. Si toca una estrella, ahí
+// sí se pega al pie de la pantalla y sigue como siempre (ya la tiene a la
+// vista, así que no se mueve de lugar: sólo crece). Y si ya había dicho para
+// qué usa la calculadora, esa pregunta no vuelve (useCalificacion.js).
+//
 // CÓMO SIGUE. Al tocar una estrella la calificación se guarda en el acto
 // (useCalificacion.js). La tira crece hacia arriba y sigue de a una pregunta:
 // qué falló (con 3 o menos), para qué la usó y un comentario con una pregunta
@@ -160,9 +170,11 @@ const focoDeTecladoEn = (gesto, seccion) => !CON_EL_DEDO_O_EL_MOUSE.has(gesto) &
  *   apareció: la del recibo siguiente entra sin espera). La guarda la
  *   calculadora, que arma una tira por recibo.
  * @param alCambiarVisita  avisa "vista" cuando entra por primera vez.
- * @param alCalificar  avisa la primera estrella: desde ahí la calculadora no
- *   arma otra tira en la visita (useCalificacion.js recién anota en el
- *   navegador que ya calificó cuando Firestore contesta).
+ * @param calificoEnLaVisita  ya tocó una estrella en otro recibo de esta
+ *   visita: esta tira arranca quieta, aunque el navegador todavía no lo haya
+ *   anotado (useCalificacion.js lo anota recién cuando Firestore contesta).
+ * @param alCalificar  avisa la primera estrella de este recibo: la calculadora
+ *   se lo dice a las tiras de los recibos que sigan (calificoEnLaVisita).
  * @param enviar, almacen, ahora, espera, tiempos  para los tests.
  */
 export default function CalificarExperiencia({
@@ -170,6 +182,7 @@ export default function CalificarExperiencia({
   desactualizado = false,
   visita = "nueva",
   alCambiarVisita,
+  calificoEnLaVisita = false,
   alCalificar,
   enviar,
   almacen,
@@ -180,11 +193,22 @@ export default function CalificarExperiencia({
   const t = { ...TIEMPOS, ...tiempos };
   // Se mira una sola vez, al armarse: en el servidor no hay dirección, y ahí la tira no dibuja nada.
   const [conMedidas] = useState(() => typeof window !== "undefined" && window.location.hash === HASH_DE_MEDIDAS);
-  const cal = useCalificacion({ contexto, enviar, almacen: almacen ?? (conMedidas ? SIN_MEMORIA : null), ahora, espera, dePrueba: conMedidas });
+  const cal = useCalificacion({
+    contexto,
+    enviar,
+    almacen: almacen ?? (conMedidas ? SIN_MEMORIA : null),
+    ahora,
+    espera,
+    dePrueba: conMedidas,
+    // En el modo de medidas se prueba la tira que invita: lo calificado antes no cuenta.
+    calificoEnLaVisita: calificoEnLaVisita && !conMedidas,
+  });
   const [paso, setPaso] = useState("estrellas");
   const [haciaAtras, setHaciaAtras] = useState(false);
   // flotando (pegada al pie de la pantalla) → saliendo → posada (quieta al pie
   // del recibo). Sólo el agradecimiento se apoya: la pregunta sigue flotando.
+  // La tira de quien ya calificó también espera apoyada, pero eso no es un
+  // estado de acá: sale de lo que recuerda el navegador (`quieta`, más abajo).
   const [modo, setModo] = useState("flotando");
   const [entro, setEntro] = useState(false);
   // Las estrellas se encienden una vez al entrar, sólo en el primer recibo de la visita.
@@ -224,10 +248,18 @@ export default function CalificarExperiencia({
   const pedirFoco = () => setPedidoDeFoco((n) => n + 1);
 
   const cerrada = cal.fase === "cerrada";
-  const pasos = ["estrellas", ...(cal.baja ? ["motivos"] : []), "perfil", "comentario"];
+  // Para qué la usa se pregunta hasta que lo contesta una vez: después lo recuerda el navegador.
+  const pasos = ["estrellas", ...(cal.baja ? ["motivos"] : []), ...(cal.perfilRecordado ? [] : ["perfil"]), "comentario"];
   const indice = Math.max(0, pasos.indexOf(paso));
-  const mostrada = cal.visible && !(desactualizado && cal.estrellas === 0) && (modo !== "flotando" || entro);
-  const estado = mostrada ? modo : "oculta";
+  // QUIETA: a quien no se invita (ya calificó hace poco), la tira lo espera
+  // apoyada al pie del recibo hasta que toca una estrella. Desde ahí es una
+  // tira como cualquiera: `modoActual` es dónde está, y `modo`, por dónde va
+  // el agradecimiento. Sin invitación tampoco hay entrada que esperar.
+  const quieta = !cal.invita && cal.estrellas === 0;
+  const modoActual = quieta ? "posada" : modo;
+  const entroYa = entro || !cal.invita;
+  const mostrada = cal.visible && !(desactualizado && cal.estrellas === 0) && (modoActual !== "flotando" || entroYa);
+  const estado = mostrada ? modoActual : "oculta";
   const enLinea = achicada && !cerrada;
   // La persona está con la tira: el mouse encima o el foco de teclado adentro.
   const estaConLaTarjeta = () => mouseEncima(gesto.current, seccion.current) || focoDeTecladoEn(gesto.current, seccion.current);
@@ -256,7 +288,7 @@ export default function CalificarExperiencia({
   });
   const demoraDeEntrada = visita === "nueva" ? t.entrada : 0;
   useEffect(() => {
-    if (!cal.visible || modo !== "flotando" || entro) return;
+    if (!cal.visible || modoActual !== "flotando" || entroYa) return;
     let espera = null;
     const listo = () => {
       espera = setTimeout(() => alEntrar(), demoraDeEntrada);
@@ -280,7 +312,7 @@ export default function CalificarExperiencia({
       observador.disconnect();
       clearTimeout(espera);
     };
-  }, [cal.visible, modo, entro, demoraDeEntrada]);
+  }, [cal.visible, modoActual, entroYa, demoraDeEntrada]);
 
   // ACHICARSE: la pregunta abierta (después de la estrella) se achica a una
   // línea si la página se mueve más de RECORRIDO_PARA_ACHICAR sin que la
@@ -292,7 +324,7 @@ export default function CalificarExperiencia({
   // una estrella elegida y de vuelta en ellas (con "Volver", o con el
   // teclado), sí: se va el renglón de "Seguir".
   const conBorrador = paso === "comentario" && cal.comentario.trim() !== "";
-  const puedeAchicarse = mostrada && modo === "flotando" && !cerrada && cal.estrellas > 0 && !achicada && !escribiendo && !conBorrador && !cal.enviando && !cal.plegando;
+  const puedeAchicarse = mostrada && modoActual === "flotando" && !cerrada && cal.estrellas > 0 && !achicada && !escribiendo && !conBorrador && !cal.enviando && !cal.plegando;
   // De disposición (useLayoutEffect) y no pasivo: el escucha queda puesto en el
   // mismo dibujado que muestra la pregunta. Con useEffect se ponía un instante
   // después, en otra tarea, y un scroll en ese medio no contaba (en el build
@@ -391,8 +423,8 @@ export default function CalificarExperiencia({
   // visual unos 24 px corrido.
   useEffect(() => {
     const vv = typeof window !== "undefined" ? window.visualViewport : null;
-    // Sólo mientras hay una tira flotando: a quien ya calificó no se le dibuja nada, y no hay qué medir.
-    if (!cal.visible || modo !== "flotando" || !vv) {
+    // Sólo mientras hay una tira flotando: apoyada al pie del recibo (el agradecimiento, o la que espera a quien ya calificó) no hay qué medir.
+    if (!cal.visible || modoActual !== "flotando" || !vv) {
       setTapa((v) => (v.px === 0 && v.libre === null ? v : SIN_TAPA));
       return;
     }
@@ -438,7 +470,7 @@ export default function CalificarExperiencia({
       window.removeEventListener("resize", medir);
       window.removeEventListener("pageshow", medir);
     };
-  }, [escribiendo, modo, cal.visible]);
+  }, [escribiendo, modoActual, cal.visible]);
 
   // "Escribiendo" se apaga con el blur de la caja, pero si la caja desaparece
   // con el foco adentro (otra pregunta, el agradecimiento) no llega ninguno.
@@ -520,13 +552,15 @@ export default function CalificarExperiencia({
   const conElDedoOElMouse = () => CON_EL_DEDO_O_EL_MOUSE.has(gesto.current);
   const seguir = () => irA(pasos[Math.min(indice + 1, pasos.length - 1)]);
   const volver = () => irA(pasos[Math.max(indice - 1, 0)], { atras: true });
+  /** La pregunta que sigue a `n` estrellas: qué falló (con 3 o menos), para qué la usó (si el navegador no lo recuerda) o el comentario. */
+  const despuesDeLasEstrellas = (n) => (n <= PREGUNTA_MOTIVO_HASTA ? "motivos" : cal.perfilRecordado ? "comentario" : "perfil");
 
   const elegirEstrellas = (n) => {
-    // La primera estrella. En el modo de medidas no avisa: ahí se prueba, y tiene que volver a preguntar.
+    // La primera estrella. En el modo de medidas no avisa: ahí se prueba, y tiene que volver a invitar.
     if (cal.estrellas === 0 && !conMedidas) alCalificar?.();
     cal.elegirEstrellas(n);
     if (conElDedoOElMouse()) {
-      irA(n <= PREGUNTA_MOTIVO_HASTA ? "motivos" : "perfil", { conPausa: true });
+      irA(despuesDeLasEstrellas(n), { conPausa: true });
     } else {
       pararReloj("pausa");
       setAvanzando(false);
@@ -534,7 +568,7 @@ export default function CalificarExperiencia({
   };
   /** Un toque en la estrella que ya estaba elegida (después de "Volver"): sigue, igual que al elegirla. */
   const repetirEstrella = (n) => {
-    if (conElDedoOElMouse()) irA(n <= PREGUNTA_MOTIVO_HASTA ? "motivos" : "perfil", { conPausa: true });
+    if (conElDedoOElMouse()) irA(despuesDeLasEstrellas(n), { conPausa: true });
   };
   const alTocarPerfil = (elegida) => {
     if (elegida && conElDedoOElMouse()) irA("comentario", { conPausa: true });
@@ -611,10 +645,10 @@ export default function CalificarExperiencia({
   const Contenedor = paso === "comentario" ? "form" : "div";
   const progreso = !cerrada && indice > 0 ? ` Pregunta ${indice + 1} de ${pasos.length}.` : "";
 
-  const pegada = modo !== "posada";
+  const pegada = modoActual !== "posada";
   const visibilidad =
     estado === "oculta"
-      ? `pointer-events-none opacity-0 ${!entro && visita === "nueva" ? "translate-y-3 motion-reduce:translate-y-0" : ""}`
+      ? `pointer-events-none opacity-0 ${!entroYa && visita === "nueva" ? "translate-y-3 motion-reduce:translate-y-0" : ""}`
       : estado === "saliendo"
         ? "pointer-events-none opacity-0 translate-y-2 motion-reduce:translate-y-0"
         : "pointer-events-auto opacity-100 translate-y-0";
@@ -631,6 +665,7 @@ export default function CalificarExperiencia({
         ref={riel}
         data-flotante=""
         data-calificacion={estado}
+        data-quieta={quieta ? "" : undefined}
         data-de-prueba={conMedidas ? "" : undefined}
         style={{ "--tapa": `${tapa.px}px` }}
         className={`@container pointer-events-none mt-3 print:hidden ${

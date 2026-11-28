@@ -152,19 +152,30 @@ escrito sin mandar). **Enviar** pliega el panel y deja "¡Gracias por ayudar a
 mejorar!" (desde ahí puede borrar su comentario), que a los pocos segundos
 queda quieto debajo del recibo. Si algo no se pudo guardar (sin señal), la
 tira lo dice y deja reintentar, y cuando la persona se va de la página se
-intenta mandar de nuevo lo que quedó sin guardar. Si la persona califica, no
-se le vuelve a preguntar por 4 meses, y en esa visita los recibos siguientes
-ya no llevan tira.
+intenta mandar de nuevo lo que quedó sin guardar.
 
-Es una tira **desde el 27/11/2026**. Antes fue, por un día, una tarjeta blanca
-que flotaba (en el celular tapaba entre un quinto y la mitad de la pantalla, y
-en la compu, la columna de los importes), y antes, por unas horas, una línea
-fija debajo de los tres números. Ninguna estuvo publicada lo suficiente como
-para dejar un "antes" con qué comparar: seguí cómo evoluciona la columna
-**Siguieron** de **Semana a semana**. Si algún día se cambia la tira, compará
-esa columna en las semanas de antes y de después, sin "Incluir pruebas" y en
-la misma época del mes, porque las cargas de escalas mueven la nota. La semana
-del 23/11/2026 mezcla las tres versiones: no la uses para comparar.
+**Cada recibo se puede calificar.** Quien liquida varios sueldos puede
+calificar el primero y, si más tarde otro le sale mal, decirlo en ése: cada
+recibo lleva su tira y cada calificación es de ese recibo. Lo que no se repite
+es la invitación: a quien ya calificó en los últimos 4 meses (o en esa visita)
+la tira no le flota ni se le anima. Lo espera quieta al final de cada recibo,
+y si toca una estrella sigue igual que siempre. Tampoco se le vuelve a
+preguntar para qué usa la calculadora si ya lo dijo: el navegador lo recuerda
+y va solo con cada calificación.
+
+Es una tira, y cada recibo se puede calificar, **desde el 28/11/2026**. Antes
+fue, por dos días, una tarjeta blanca que flotaba (en el celular tapaba entre
+un quinto y la mitad de la pantalla, y en la compu, la columna de los
+importes), y antes, por unas horas, una línea fija debajo de los tres números.
+Con cualquiera de las dos, el que calificaba no volvía a ver la pregunta por 4
+meses. Ninguna estuvo publicada lo suficiente como para dejar un "antes" con
+qué comparar: seguí cómo evoluciona la columna **Siguieron** de **Semana a
+semana**, con **Sólo la primera de cada persona** elegido arriba (quien vuelve
+a calificar casi nunca contesta lo opcional, y mezclado baja el número). Si
+algún día se cambia la tira, compará esa columna en las semanas de antes y de
+después, sin "Incluir pruebas" y en la misma época del mes, porque las cargas
+de escalas mueven la nota. La semana del 23/11/2026 mezcla las tres versiones:
+no la uses para comparar.
 
 **Para mirarla en un teléfono de verdad:** la compu no tiene las barras del
 navegador del celular ni su teclado, así que lo que va pegado al pie se
@@ -179,8 +190,10 @@ mal, una captura con ese cuadro alcanza para saber por qué.
 que calificó, que se toma solo: convenio, mes y categoría, si estaba en el
 celular o la computadora, si ese recibo lo armó un link de "Copiar link" o lo
 calculó a mano (un F5 cuenta como a mano), si le faltaban datos (una tabla del
-mes que no está, o que se tomó de otro mes) y cuántas cuentas lleva en esa
-visita a la página. **Ningún importe del sueldo ni dato de la persona.** El
+mes que no está, o que se tomó de otro mes), cuántas cuentas lleva en esa
+visita a la página y si ese navegador ya había calificado otro recibo en los
+últimos 4 meses (no dice quién es ni une una calificación con otra: sirve para
+contar una vez a cada persona). **Ningún importe del sueldo ni dato de la persona.** El
 comentario le pide que no escriba datos personales; si alguien los escribe
 igual, se borra desde el panel.
 
@@ -191,21 +204,27 @@ pero marcada como **prueba**, y el panel no la cuenta salvo que se tilde
 borralas después desde el panel.
 
 **Dónde se ve:** `/admin` → pestaña **Calificaciones** (fechas y semanas en
-hora argentina). Arriba, el porcentaje de 4 y 5 estrellas (la medida
-principal) y el promedio. Abajo, en este orden: qué falló en las bajas;
+hora argentina). Arriba, los filtros: el período, el convenio y **Quiénes**
+(todas las calificaciones, sólo la primera de cada persona, o sólo las de
+quien ya había calificado otro recibo). Con todas, pesa más el que más
+liquida; con **Sólo la primera de cada persona**, cada una cuenta una vez, que
+es como se contaba hasta el 28/11/2026. Después, el porcentaje de 4 y 5
+estrellas (la medida principal) y el promedio. Abajo, en este orden: qué falló en las bajas;
 **Cuántos siguen después de la estrella** (total, celular y computadora: qué
 parte contestó algo más o apretó "Enviar", qué parte dijo para qué la usó,
 cuántas de las de 3 o menos dijeron qué falló, con la base al lado cuando son
 pocas, y qué parte dejó comentario; si la tira lleva a completar, esos
 números suben); semana a semana (incluidas las semanas en cero, con la columna
 **Siguieron** para comparar antes y después de un cambio), por convenio, para qué la usan,
-desde dónde, cómo se armó el recibo y si le faltaban datos; después los
+si es la primera vez o ya había calificado, desde dónde, cómo se armó el
+recibo y si le faltaban datos; después los
 comentarios, y al final todas las calificaciones del filtro, cada una con su
 botón **Borrar**, y **Borrar las N del filtro** para limpiar de una (pruebas,
 o una tanda de calificaciones falsas: ver `docs/continuidad.md`).
 **Descargar CSV** baja lo que muestra el filtro, separado por punto y coma
 para que el Excel en castellano lo abra en columnas. La columna `actualizado`
-dice cuándo contestó lo último después de la estrella (vacía si no siguió).
+dice cuándo contestó lo último después de la estrella (vacía si no siguió), y
+`ya_califico`, si ese navegador ya había calificado otro recibo.
 
 **Cómo leerlo sin engañarse:** califica sobre todo el que quedó muy contento o
 muy enojado, así que importan más las comparaciones y la tendencia que el
@@ -235,6 +254,16 @@ calificación" y la pestaña, que no puede leerlas. Si algún día se cambian
 los motivos, los perfiles o cualquier dato que se guarda, se cambian en
 `lib/calificaciones.js` **y** en `firestore.rules` (un test avisa si no
 coinciden) y se vuelven a pegar las reglas.
+
+**Hay que volver a pegarlas por el cambio del 28/11/2026.** Las reglas de este
+repositorio aceptan un dato nuevo, `yaCalifico` (la marca de quien ya había
+calificado otro recibo). Mientras la consola tenga las de antes no se pierde
+ninguna calificación: la tira prueba con la marca y, si las reglas la
+rechazan, la manda sin ella, como siempre. Pero sin la marca el panel no
+distingue: todas figuran como "Primera calificación" y **Quiénes** no separa
+nada. Para comprobar que quedaron pegadas, calificá dos recibos seguidos desde
+la PC (van como prueba), tildá "Incluir pruebas" y fijate que la segunda diga
+"ya había calificado".
 
 ---
 

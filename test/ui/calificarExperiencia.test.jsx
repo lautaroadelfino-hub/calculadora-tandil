@@ -4,6 +4,9 @@
 // - Es una sola fila, con la pregunta y las estrellas. Entra recién cuando se
 //   vieron los tres números. No tiene × ni "Ahora no": si después de la
 //   estrella la persona sigue leyendo, la pregunta abierta vuelve a una fila.
+// - Cada recibo se puede calificar. A quien ya calificó no se lo vuelve a
+//   invitar: la tira lo espera quieta al pie del recibo, su calificación va
+//   marcada y, si ya dijo para qué usa la calculadora, no se le pregunta más.
 // - Un toque en las estrellas la guarda en el acto. Después sigue de a una
 //   pregunta (qué falló, para qué la usó, un comentario), y cada respuesta
 //   corrige la misma calificación.
@@ -96,9 +99,18 @@ function Recibo({ children }) {
   );
 }
 
-function armar({ enviar = vi.fn(async () => {}), almacen = almacenEnMemoria(), espera = 0, ahora = () => AHORA, tiempos = RAPIDO, visita = "nueva", desactualizado = false } = {}) {
+function armar({
+  enviar = vi.fn(async () => {}),
+  almacen = almacenEnMemoria(),
+  espera = 0,
+  ahora = () => AHORA,
+  tiempos = RAPIDO,
+  visita = "nueva",
+  desactualizado = false,
+  calificoEnLaVisita = false,
+} = {}) {
   const alCambiarVisita = vi.fn();
-  const props = { contexto: CONTEXTO, enviar, almacen, ahora, espera, tiempos, visita, desactualizado, alCambiarVisita };
+  const props = { contexto: CONTEXTO, enviar, almacen, ahora, espera, tiempos, visita, desactualizado, alCambiarVisita, calificoEnLaVisita };
   const vista = render(
     <Recibo>
       <CalificarExperiencia {...props} />
@@ -242,13 +254,6 @@ describe("cuándo aparece", () => {
     expect(conDestello()).toHaveLength(0);
   });
 
-  it("a quien ya calificó hace poco no se le dibuja nada, ni el lugar", () => {
-    const almacen = almacenEnMemoria({ [CLAVE_LOCAL]: JSON.stringify({ estado: "calificada", el: "2026-11-20T10:00:00.000Z", id: "x" }) });
-    armar({ almacen, enviar: vi.fn() });
-    expect(riel()).toBeNull();
-    expect(screen.queryByRole("region", { name: "Calificá este cálculo" })).toBeNull();
-  });
-
   it("con 'Cambiaste datos' y sin calificar se va mientras dure; si ya calificó, se queda", async () => {
     const { redibujar } = armar();
     await waitFor(() => expect(riel().dataset.calificacion).toBe("flotando"));
@@ -262,6 +267,217 @@ describe("cuándo aparece", () => {
     redibujar({ desactualizado: true });
     expect(riel().dataset.calificacion).toBe("flotando");
     expect(region().hasAttribute("inert")).toBe(false);
+  });
+});
+
+describe("a quien ya calificó: cada recibo se puede calificar, sin volver a invitar", () => {
+  /** Un navegador que calificó hace seis días (AHORA es el 26/11/2026). */
+  const yaCalifico = (extra = {}) =>
+    almacenEnMemoria({ [CLAVE_LOCAL]: JSON.stringify({ estado: "calificada", el: "2026-11-20T10:00:00.000Z", id: "x", ...extra }) });
+  const anotado = (almacen) => JSON.parse(almacen.mem.get(CLAVE_LOCAL));
+  const conDestello = () => [...region().querySelectorAll("label svg")].filter((s) => s.getAttribute("class").includes("calificacion-destello"));
+  /** Lo que contesta Firestore cuando las reglas no aceptan lo que se mandó. */
+  const sinPermiso = () => Object.assign(new Error("No pudimos guardar tu calificación."), { status: 403 });
+
+  it("la tira está desde el principio apoyada al pie del recibo: no flota, no espera a los números ni enciende las estrellas", () => {
+    vi.stubGlobal("IntersectionObserver", ObservadorFalso);
+    // Con una entrada larguísima y sin que nadie diga que los números se vieron: igual está.
+    const { alCambiarVisita } = armar({ almacen: yaCalifico(), tiempos: { ...RAPIDO, entrada: 60_000 } });
+    expect(riel().dataset.calificacion).toBe("posada");
+    expect(riel().hasAttribute("data-quieta")).toBe(true);
+    expect(riel().className).not.toContain("sticky");
+    expect(region().hasAttribute("inert")).toBe(false);
+    expect(region().className).toContain("shadow-none");
+    expect(estrellas()).toBeTruthy();
+    expect(conDestello()).toHaveLength(0);
+    expect(ObservadorFalso.todos).toHaveLength(0);
+    // La entrada de la visita es de la tira que invita: ésta no la gasta.
+    expect(alCambiarVisita).not.toHaveBeenCalled();
+    // Quieta no tapa nada: no reserva lugar en el recibo.
+    expect(document.querySelector("[data-recibo]").style.getPropertyValue("--reserva-calificacion")).toBe("");
+  });
+
+  it("con 'Cambiaste datos' y sin calificar ese recibo se va mientras dure, igual que la que invita", () => {
+    const { redibujar } = armar({ almacen: yaCalifico() });
+    redibujar({ desactualizado: true });
+    expect(riel().dataset.calificacion).toBe("oculta");
+    expect(region().hasAttribute("inert")).toBe(true);
+    redibujar({ desactualizado: false });
+    expect(riel().dataset.calificacion).toBe("posada");
+  });
+
+  it("al tocar una estrella se pega al pie de la pantalla y sigue como cualquiera; la calificación va marcada y el navegador anota la nueva", async () => {
+    const { enviar, almacen } = armar({ almacen: yaCalifico() });
+    tocar(estrella(4));
+    expect(riel().dataset.calificacion).toBe("flotando");
+    expect(riel().hasAttribute("data-quieta")).toBe(false);
+    expect(riel().className).toContain("sticky");
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(1));
+    const alta = escritura(enviar.mock.calls[0]);
+    expect(alta.currentDocument).toEqual({ exists: false });
+    expect(alta.update.fields.yaCalifico).toEqual({ booleanValue: true });
+    expect(alta.update.fields.perfil).toBeUndefined();
+    // No había dicho para qué la usa: esa pregunta sigue estando, hasta que la conteste una vez.
+    expect(await screen.findByText("¡Gracias! ¿Para qué la usaste?")).toBeTruthy();
+    expect(puntos()).toHaveLength(3);
+    await waitFor(() => expect(anotado(almacen)).toMatchObject({ estado: "calificada", el: AHORA.toISOString() }));
+    expect(alta.update.name.endsWith(`/calificaciones/${anotado(almacen).id}`)).toBe(true);
+  });
+
+  it("si ya había dicho para qué la usa, esa pregunta no vuelve: va sola en el alta y las correcciones no la borran", async () => {
+    const { enviar, almacen } = armar({ almacen: yaCalifico({ perfil: "contador_rrhh" }) });
+    tocar(estrella(5));
+    // De las estrellas, derecho al comentario: dos pasos y no tres.
+    const caja = await screen.findByLabelText("¿Algo que le agregarías?");
+    expect(screen.queryByRole("group", { name: /Para qué la usaste/ })).toBeNull();
+    expect(screen.getByText("Pregunta 2 de 2.", { exact: false })).toBeTruthy();
+    expect(puntos()).toHaveLength(2);
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(1));
+    expect(campos(enviar.mock.calls[0])).toMatchObject({ perfil: { stringValue: "contador_rrhh" }, yaCalifico: { booleanValue: true } });
+    expect(escritura(enviar.mock.calls[0]).updateMask).toBeUndefined();
+    // El perfil no sale en una corrección aparte: en el panel contaría como que siguió.
+    await new Promise((r) => setTimeout(r, 30));
+    expect(enviar).toHaveBeenCalledTimes(1);
+
+    fireEvent.change(caja, { target: { value: "Falta el SAC" } });
+    tocar(boton("Enviar"));
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(2));
+    expect(campos(enviar.mock.calls[1])).toMatchObject({ perfil: { stringValue: "contador_rrhh" }, comentario: { stringValue: "Falta el SAC" } });
+    // Y lo sigue recordando para el recibo que venga.
+    await waitFor(() => expect(anotado(almacen)).toMatchObject({ perfil: "contador_rrhh", el: AHORA.toISOString() }));
+  });
+
+  it("con 3 o menos pregunta qué falló y después el comentario, sin pasar por para qué la usa", async () => {
+    armar({ almacen: yaCalifico({ perfil: "empleado" }) });
+    tocar(estrella(2));
+    tocar(await screen.findByRole("button", { name: "El número no me cierra" }));
+    tocar(boton("Seguir"));
+    expect(await screen.findByLabelText("¿Qué concepto no te cierra?")).toBeTruthy();
+    expect(puntos()).toHaveLength(3);
+    tocar(boton("Volver"));
+    expect(await screen.findByText("Uy. ¿Qué falló?")).toBeTruthy();
+  });
+
+  it("la primera vez no va marcada, y el navegador anota para qué la usa cuando Firestore lo guardó; si después lo saca, lo olvida", async () => {
+    const { enviar, almacen } = armar();
+    await hastaElPerfil(5);
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(1));
+    expect(campos(enviar.mock.calls[0]).yaCalifico).toBeUndefined();
+    expect(campos(enviar.mock.calls[0]).perfil).toBeUndefined();
+    await waitFor(() => expect(anotado(almacen).estado).toBe("calificada"));
+    expect(anotado(almacen).perfil).toBeUndefined();
+
+    tocar(boton("Contador o RR. HH."));
+    await waitFor(() => expect(anotado(almacen).perfil).toBe("contador_rrhh"));
+    // Sigue siendo el registro de esa calificación: el mismo id.
+    expect(escritura(enviar.mock.calls[1]).update.name.endsWith(`/calificaciones/${anotado(almacen).id}`)).toBe(true);
+
+    tocar(await screen.findByRole("button", { name: "Volver" }));
+    tocar(await screen.findByRole("button", { name: "Contador o RR. HH." }));
+    await waitFor(() => expect(anotado(almacen).perfil).toBeUndefined());
+    expect(anotado(almacen).estado).toBe("calificada");
+  });
+
+  it("pasados los cuatro meses se la vuelve a invitar como la primera vez: flota, sin la marca, y se le pregunta todo de nuevo", async () => {
+    const haceMucho = almacenEnMemoria({ [CLAVE_LOCAL]: JSON.stringify({ estado: "calificada", el: "2026-07-01T10:00:00.000Z", id: "x", perfil: "empleado" }) });
+    const { enviar } = armar({ almacen: haceMucho });
+    await waitFor(() => expect(riel().dataset.calificacion).toBe("flotando"));
+    expect(riel().hasAttribute("data-quieta")).toBe(false);
+    await hastaElPerfil(5);
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(1));
+    expect(campos(enviar.mock.calls[0]).yaCalifico).toBeUndefined();
+    expect(campos(enviar.mock.calls[0]).perfil).toBeUndefined();
+  });
+
+  it("a quien dijo 'Ahora no' en la primera versión tampoco se la invita por un mes, pero no calificó: va sin la marca y con todas las preguntas", async () => {
+    const descartada = almacenEnMemoria({ [CLAVE_LOCAL]: JSON.stringify({ estado: "descartada", el: "2026-11-20T10:00:00.000Z" }) });
+    const { enviar } = armar({ almacen: descartada });
+    expect(riel().hasAttribute("data-quieta")).toBe(true);
+    await hastaElPerfil(4);
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(1));
+    expect(campos(enviar.mock.calls[0]).yaCalifico).toBeUndefined();
+  });
+
+  it("si calificó otro recibo en esta visita y el navegador todavía no lo anotó (red lenta), se lo dice la calculadora: quieta y marcada igual", async () => {
+    const { enviar } = armar({ calificoEnLaVisita: true });
+    expect(riel().hasAttribute("data-quieta")).toBe(true);
+    tocar(estrella(3));
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(1));
+    expect(campos(enviar.mock.calls[0]).yaCalifico).toEqual({ booleanValue: true });
+  });
+
+  it("la estrella de este mismo recibo no la cambia de modo: la calculadora avisa que calificó con la tira todavía en pantalla", async () => {
+    const { enviar, redibujar } = armar();
+    await waitFor(() => expect(riel().dataset.calificacion).toBe("flotando"));
+    redibujar({ calificoEnLaVisita: true });
+    expect(riel().dataset.calificacion).toBe("flotando");
+    expect(riel().hasAttribute("data-quieta")).toBe(false);
+    tocar(estrella(5));
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(1));
+    expect(campos(enviar.mock.calls[0]).yaCalifico).toBeUndefined();
+    expect(await screen.findByText("¡Gracias! ¿Para qué la usaste?")).toBeTruthy();
+  });
+
+  it("si las reglas publicadas todavía no aceptan la marca (se pegan a mano en la consola), se guarda igual, sin ella y sin error a la vista", async () => {
+    const enviar = vi.fn().mockRejectedValueOnce(sinPermiso()).mockResolvedValue(undefined);
+    const { almacen } = armar({ enviar, almacen: yaCalifico({ perfil: "empleador" }) });
+    tocar(estrella(4));
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(2));
+    const [conMarca, sinMarca] = enviar.mock.calls.map(escritura);
+    expect(conMarca.update.fields.yaCalifico).toEqual({ booleanValue: true });
+    // La misma alta, con el mismo id, como se guardó siempre.
+    expect(sinMarca.update.name).toBe(conMarca.update.name);
+    expect(sinMarca.currentDocument).toEqual({ exists: false });
+    expect(sinMarca.update.fields.yaCalifico).toBeUndefined();
+    expect(sinMarca.update.fields).toMatchObject({ estrellas: { integerValue: "4" }, perfil: { stringValue: "empleador" } });
+    await waitFor(() => expect(anotado(almacen).el).toBe(AHORA.toISOString()));
+    expect(screen.queryByRole("alert")).toBeNull();
+    // Y nada más: una corrección de más contaría como que siguió.
+    await new Promise((r) => setTimeout(r, 30));
+    expect(enviar).toHaveBeenCalledTimes(2);
+  });
+
+  it("si el rechazo no era por la marca sino porque la calificación ya existía, el reintento la encuentra igual", async () => {
+    const enviar = vi.fn()
+      .mockRejectedValueOnce(sinPermiso()) // el alta con la marca
+      .mockRejectedValueOnce(sinPermiso()) // sin la marca tampoco: ya existía
+      .mockResolvedValue(undefined); // la corrección con el mismo id funciona
+    armar({ enviar, almacen: yaCalifico() });
+    tocar(estrella(4));
+    await waitFor(() => expect(enviar).toHaveBeenCalledTimes(3));
+    const [primera, , tercera] = enviar.mock.calls.map(escritura);
+    expect(tercera.currentDocument).toEqual({ exists: true });
+    expect(tercera.update.name).toBe(primera.update.name);
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+  });
+
+  it("con un error que no es de permisos no prueba sin la marca: lo dice y deja reintentar", async () => {
+    const caido = Object.assign(new Error("No pudimos guardar tu calificación. Probá de nuevo en un rato."), { status: 503 });
+    const enviar = vi.fn().mockRejectedValue(caido);
+    armar({ enviar, almacen: yaCalifico() });
+    conTeclado(estrella(4));
+    await screen.findByRole("alert");
+    // El alta y la prueba de si ya existía: ningún alta sin la marca.
+    expect(enviar).toHaveBeenCalledTimes(2);
+    expect(escritura(enviar.mock.calls[1]).currentDocument).toEqual({ exists: true });
+    expect(boton("Reintentar")).toBeTruthy();
+  });
+
+  it("todo lo que escribe quien ya había calificado está entre lo que aceptan las reglas", async () => {
+    const permitidas = REGLAS.match(/d\.keys\(\)\.hasOnly\(\[([^\]]+)\]\)/)[1].split(",").map((s) => s.trim().replace(/'/g, ""));
+    const { enviar } = armar({ almacen: yaCalifico({ perfil: "otro" }) });
+    tocar(estrella(1));
+    tocar(await screen.findByRole("button", { name: "Es difícil de usar" }));
+    tocar(boton("Seguir"));
+    fireEvent.change(await screen.findByLabelText("¿En qué parte te trabaste?"), { target: { value: "En las horas extras" } });
+    tocar(boton("Enviar"));
+    await screen.findByText("¡Gracias por ayudar a mejorar!");
+    expect(Object.keys(campos(enviar.mock.calls[0]))).toContain("yaCalifico");
+    for (const [cuerpo] of enviar.mock.calls) {
+      const w = cuerpo.writes[0];
+      for (const k of Object.keys(w.update.fields)) expect(permitidas).toContain(k);
+      if (w.updateMask) for (const k of w.updateMask.fieldPaths) expect(CAMPOS_QUE_CAMBIAN).toContain(k);
+    }
   });
 });
 
@@ -933,8 +1149,10 @@ describe("para mirarla en un teléfono de verdad (#medidas)", () => {
     window.localStorage.setItem(CLAVE_LOCAL, YA_CALIFICO);
     irA(`https://liquidar.ar/calcular/comercio-cct-130-75${HASH_DE_MEDIDAS}`);
     // Sin almacén de test: el de verdad sería localStorage, que dice que ya calificó.
-    const { enviar } = armar({ almacen: null });
+    // Y aunque la calculadora diga que calificó en esta visita: acá se prueba la tira que invita.
+    const { enviar } = armar({ almacen: null, calificoEnLaVisita: true });
     await waitFor(() => expect(riel().dataset.calificacion).toBe("flotando"));
+    expect(riel().hasAttribute("data-quieta")).toBe(false);
     expect(riel().hasAttribute("data-de-prueba")).toBe(true);
     expect(document.querySelector("pre").textContent).toMatch(/ventana \d+x\d+/);
     // Al lado de la tira y no adentro: adentro, en navegadores viejos quedaría ubicado contra ella y no contra la pantalla.
@@ -944,6 +1162,7 @@ describe("para mirarla en un teléfono de verdad (#medidas)", () => {
     await waitFor(() => expect(enviar).toHaveBeenCalledTimes(1));
     // Sale de liquidar.ar, pero va como prueba: el panel la deja afuera de los números.
     expect(campos(enviar.mock.calls[0]).entorno).toEqual({ stringValue: "prueba" });
+    expect(campos(enviar.mock.calls[0]).yaCalifico).toBeUndefined();
     expect(window.localStorage.getItem(CLAVE_LOCAL)).toBe(YA_CALIFICO);
   });
 

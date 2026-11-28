@@ -13,11 +13,14 @@
 // pestaña pasa a segundo plano o la página se cierra, lo que todavía no salió
 // se intenta mandar en ese momento (alIrse).
 //
-// Hay una tira por recibo: la calculadora la vuelve a armar al recalcular,
-// y si ya calificó no se muestra (DIAS_SIN_PREGUNTAR). El id de la
-// calificación se elige una sola vez: un reintento después de un corte no la
-// duplica, y si el alta había llegado y se perdió la respuesta, el reintento
-// la encuentra y sigue desde ahí (revisión del 26/11/2026).
+// Hay una tira por recibo, y cada recibo se puede calificar: la calculadora la
+// vuelve a armar al recalcular. A quien ya calificó hace poco no se lo vuelve
+// a invitar (`invita`: la tira lo espera quieta), su calificación va marcada
+// (`yaCalifico`) y lo que dijo de para qué usa la calculadora va solo, sin
+// preguntárselo de nuevo (`perfilRecordado`). El porqué: lib/calificaciones.js.
+// El id de la calificación se elige una sola vez: un reintento después de un
+// corte no la duplica, y si el alta había llegado y se perdió la respuesta, el
+// reintento la encuentra y sigue desde ahí (revisión del 26/11/2026).
 
 import { useEffect, useRef, useState } from "react";
 import {
@@ -28,7 +31,9 @@ import {
   enviarCalificacion,
   leerRegistro,
   guardarRegistro,
-  debePreguntar,
+  debeInvitar,
+  calificoHacePoco,
+  perfilValido,
   puedeCambiar,
   dispositivoDe,
   entornoDe,
@@ -69,10 +74,28 @@ export function menosMovimiento() {
  * @param dePrueba  la calificación va marcada como prueba aunque salga de
  *   liquidar.ar (el modo #medidas de la tira): el panel la deja afuera de los
  *   números. Se lee al mandar, no hace falta que no cambie.
+ * @param calificoEnLaVisita  ya tocó una estrella en otro recibo de esta
+ *   visita. El navegador lo anota recién cuando Firestore contesta: con la red
+ *   lenta, la tira del recibo siguiente no se enteraba. Se mira una sola vez,
+ *   al armarse: la estrella de este mismo recibo no la cambia de modo.
  */
-export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen = null, ahora = AHORA, espera = 700, plegadoMs = PLEGADO_MS, dePrueba = false } = {}) {
-  // cargando → (oculta | pregunta) → guardada → cerrada
+export function useCalificacion({
+  contexto,
+  enviar = enviarCalificacion,
+  almacen = null,
+  ahora = AHORA,
+  espera = 700,
+  plegadoMs = PLEGADO_MS,
+  dePrueba = false,
+  calificoEnLaVisita = false,
+} = {}) {
+  // cargando → pregunta → guardada → cerrada
   const [fase, setFase] = useState("cargando");
+  // Lo que se decide al armarse, con lo que recuerda el navegador: si se la
+  // invita (la tira flota y enciende las estrellas) o se la espera quieta, y
+  // para qué dijo que usa la calculadora, si ya lo dijo.
+  const [invita, setInvita] = useState(false);
+  const [perfilRecordado, setPerfilRecordado] = useState(null);
   const [plegando, setPlegando] = useState(false);
   const [estrellas, setEstrellas] = useState(0);
   const [motivos, setMotivos] = useState([]);
@@ -92,6 +115,10 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
   const respuestas = useRef({ estrellas: 0, motivos: [], perfil: null, comentario: "" });
   const idDelAlta = useRef(null);
   const creada = useRef(null);
+  // Ese navegador ya había calificado otro recibo: el alta lleva `yaCalifico`
+  // y, si lo recordaba, para qué usa la calculadora (perfilDelAlta).
+  const yaHabiaCalificado = useRef(false);
+  const perfilDelAlta = useRef(null);
   const temporizador = useRef(null);
   const cola = useRef(Promise.resolve(true));
   // Cada cambio en lo contestado sube `version`. `despachada` es la última
@@ -152,14 +179,22 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
       if (sinRespuesta.current !== fallosAlPedir) return false;
       const r = respuestas.current;
       const v = version.current;
-      const masQueLaEstrella = r.motivos.length > 0 || Boolean(r.perfil) || Boolean(r.comentario);
+      // Lo que el alta no lleva: los motivos, el comentario y un perfil que no
+      // sea el que el navegador ya recordaba (ése va en el alta).
+      const masQueElAlta = r.motivos.length > 0 || Boolean(r.comentario) || (r.perfil || null) !== perfilDelAlta.current;
       const sale = () => {
         despachada.current = Math.max(despachada.current, v);
       };
-      /** Firestore quedó con `loGuardado`: se anota para no repetirlo. */
+      /**
+       * Firestore quedó con `loGuardado`: se anota para no repetirlo. Y el
+       * navegador recuerda que calificó y, si lo dijo, para qué usa la
+       * calculadora (si después lo saca, se olvida).
+       */
       const anotar = (loGuardado) => {
         firmaGuardada.current = JSON.stringify(cambioDe(loGuardado));
         comentarioGuardado.current = loGuardado.comentario;
+        const p = perfilValido(loGuardado.perfil);
+        guardarRegistro(almacenReal(), p ? { ...creada.current, perfil: p } : creada.current);
       };
       ocupada.current = true;
       setError("");
@@ -170,31 +205,42 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
             ...contextoActual.current,
             dispositivo: dispositivoDe(typeof window !== "undefined" ? window.innerWidth : 0),
             entorno: esDePrueba.current || typeof window === "undefined" ? "prueba" : entornoDe(window.location.hostname),
+            yaCalifico: yaHabiaCalificado.current,
           };
-          // El alta lleva sólo las estrellas y el contexto (lib/calificaciones.js).
+          // El alta lleva las estrellas, el contexto y, si el navegador lo
+          // recordaba, para qué usa la calculadora (lib/calificaciones.js).
+          const alta = (contexto) => enviar(escrituraNueva({ id: idDelAlta.current, estrellas: r.estrellas, perfil: perfilDelAlta.current, contexto }));
           let llevaTodo = false;
           try {
-            if (!masQueLaEstrella) sale();
-            await enviar(escrituraNueva({ id: idDelAlta.current, estrellas: r.estrellas, contexto: ctx }));
+            if (!masQueElAlta) sale();
+            await alta(ctx);
           } catch (e) {
-            // ¿Ya existía? Pasa si el alta anterior llegó y se perdió la
-            // respuesta: Firestore rechaza crearla de nuevo con el mismo id.
-            // Si corregirla funciona, estaba creada; si no, era otro error.
             if (!e?.status) throw e;
-            sale();
-            await enviar(cambioDe(r)).catch(() => { throw e; });
-            llevaTodo = true;
+            // ¿La rechazaron las reglas por `yaCalifico`? Las reglas se pegan a
+            // mano en la consola de Firebase, y las que están publicadas pueden
+            // ser las de antes de ese campo: entonces va sin la marca, que es
+            // como siempre se guardó. Sin esto, mientras nadie las pegue se
+            // perdía justo la calificación de quien vuelve a calificar. Sólo
+            // con un 403 (permiso denegado): cualquier otro error no es eso.
+            const sinLaMarca = ctx.yaCalifico && e.status === 403 && (await alta({ ...ctx, yaCalifico: false }).then(() => true, () => false));
+            if (!sinLaMarca) {
+              // ¿Ya existía? Pasa si el alta anterior llegó y se perdió la
+              // respuesta: Firestore rechaza crearla de nuevo con el mismo id.
+              // Si corregirla funciona, estaba creada; si no, era otro error.
+              sale();
+              await enviar(cambioDe(r)).catch(() => { throw e; });
+              llevaTodo = true;
+            }
           }
           creada.current = { estado: "calificada", el: ahora().toISOString(), id: idDelAlta.current };
-          guardarRegistro(almacenReal(), creada.current);
           setFase((f) => (f === "pregunta" ? "guardada" : f));
-          anotar(llevaTodo ? r : { ...r, motivos: [], perfil: null, comentario: "" });
+          anotar(llevaTodo ? r : { ...r, motivos: [], perfil: perfilDelAlta.current, comentario: "" });
           // Si el alta salió en un reintento, la persona ya pudo haber elegido
           // algo más (la tira sigue de pregunta en pregunta aunque el alta
           // falle): eso va enseguida, como corrección. Antes se perdía. La
           // calificación ya quedó marcada como creada, así que si esto falla,
           // "Reintentar" corrige y no repite el alta.
-          if (!llevaTodo && masQueLaEstrella) {
+          if (!llevaTodo && masQueElAlta) {
             sale();
             await enviar(cambioDe(r));
             anotar(r);
@@ -264,8 +310,13 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
     alIrseRef.current = alIrse;
   });
 
-  // Si se pregunta o no, se decide en el navegador (el servidor no sabe qué
-  // contestó esta persona antes) y una sola vez. Al irse (alIrse): si la
+  // Si se la invita o se la espera quieta, y si ya había calificado, se decide
+  // en el navegador (el servidor no sabe qué contestó esta persona antes) y
+  // una sola vez. "Ya había calificado" vale por lo que recuerda el navegador
+  // o porque lo dice la calculadora (calificoEnLaVisita). Lo que recordaba de
+  // para qué la usa entra en lo contestado: va en el alta, y las correcciones
+  // que sigan no lo borran (lo que falta en una corrección se saca del
+  // documento). Al irse (alIrse): si la
   // tira desaparece (recalcular, ir a otra página), si la pestaña pasa a
   // segundo plano o si se cierra. El envío lleva `keepalive`
   // (lib/calificaciones.js). En el celular, "pagehide" no siempre llega y el
@@ -279,9 +330,21 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
   // contaba como que siguió (27/11/2026).
   const almacenInicial = useRef(almacen);
   const ahoraInicial = useRef(ahora);
+  const calificoEnLaVisitaInicial = useRef(calificoEnLaVisita);
   useEffect(() => {
     const registro = leerRegistro(almacenInicial.current ?? almacenDelNavegador());
-    setFase((f) => (f === "cargando" ? (debePreguntar(registro, ahoraInicial.current()) ? "pregunta" : "oculta") : f));
+    const hoy = ahoraInicial.current();
+    const yaHabia = calificoEnLaVisitaInicial.current || calificoHacePoco(registro, hoy);
+    const recordado = yaHabia ? perfilValido(registro?.perfil) : null;
+    yaHabiaCalificado.current = yaHabia;
+    perfilDelAlta.current = recordado;
+    if (recordado) {
+      respuestas.current = { ...respuestas.current, perfil: recordado };
+      setPerfil(recordado);
+    }
+    setInvita(!yaHabia && debeInvitar(registro, hoy));
+    setPerfilRecordado(recordado);
+    setFase((f) => (f === "cargando" ? "pregunta" : f));
     const alOcultar = () => alIrseRef.current();
     const alCambiarVisibilidad = () => {
       if (document.visibilityState === "hidden") alIrseRef.current();
@@ -397,8 +460,12 @@ export function useCalificacion({ contexto, enviar = enviarCalificacion, almacen
 
   return {
     fase,
-    /** ¿Se muestra algo? (ni mientras se decide, ni si ya calificó hace poco) */
-    visible: fase !== "cargando" && fase !== "oculta",
+    /** ¿Ya se sabe qué mostrar? Mientras se lee lo que recuerda el navegador, nada. */
+    visible: fase !== "cargando",
+    /** ¿Se la invita? Si no (calificó o dijo "Ahora no" hace poco), la tira la espera quieta al final del recibo. */
+    invita,
+    /** Para qué dijo que usa la calculadora en una calificación anterior: no se le vuelve a preguntar. */
+    perfilRecordado,
     plegando,
     estrellas,
     elegirEstrellas,
